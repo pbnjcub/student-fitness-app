@@ -1,8 +1,13 @@
-require('dotenv').config();
+const dotenv = require('dotenv');
+dotenv.config();
 
-import express from 'express';
+const express = require('express');
 const app = express();
 const port = 3000;
+
+const studentRoutes = require('./routes/studentRoutes'); // Import the router using CommonJS syntax
+
+app.use('/api', studentRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello from the Backend!');

@@ -1,0 +1,8 @@
+const path = require('path');
+
+module.exports = {
+  'config': path.resolve('config', 'config.cjs'),  // Pointing to your config.cjs file
+  'models-path': path.resolve('models'),           // Adjust if your models are in a different directory
+  'seeders-path': path.resolve('seeders'),         // Adjust if your seeders are in a different directory
+  'migrations-path': path.resolve('migrations'),   // Adjust if your migrations are in a different directory
+};
