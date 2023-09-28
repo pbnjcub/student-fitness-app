@@ -2,10 +2,19 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const express = require('express');
+const cors = require('cors'); // Import cors module
 const app = express();
 const port = 3000;
 
-const studentRoutes = require('./routes/studentRoutes'); // Import the router using CommonJS syntax
+const studentRoutes = require('./routes/studentRoutes');
+
+// Setup CORS Middleware
+const corsOptions = {
+  origin: 'http://localhost:8081', // Replace with your frontend application's address
+  credentials: true,
+  methods: 'GET,POST,PUT,DELETE',
+};
+app.use(cors(corsOptions)); // Apply CORS with the options 
 
 app.use('/api', studentRoutes);
 

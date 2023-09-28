@@ -13,6 +13,16 @@ module.exports = {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
+      {
+        name: 'Jane Johnson',
+        birthDate: new Date('1995-05-16'),
+        gradYear: 2024,
+        weight: 120,
+        height: 200,
+        photo: 'https://picsum.photos/200/300',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     ]);
   },
 
