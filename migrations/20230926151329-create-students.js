@@ -9,7 +9,11 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      name: {
+      lastName: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      firstName: {
         type: Sequelize.STRING,
         allowNull: false,
       },
@@ -20,15 +24,6 @@ module.exports = {
       gradYear: {
         type: Sequelize.INTEGER,
         allowNull: false,
-      },
-      weight: {
-        type: Sequelize.INTEGER,
-      },
-      height: {
-        type: Sequelize.INTEGER, // Store height in centimeters as an integer
-      },
-      photo: {
-        type: Sequelize.STRING, // Assuming this is a URL to the photo
       },
       createdAt: {
         allowNull: false,

@@ -19,6 +19,7 @@ router.get('/students', async (req, res) => {
 
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
+
     const buffer = req.file.buffer;
     const content = buffer.toString();
     

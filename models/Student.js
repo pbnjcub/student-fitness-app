@@ -5,11 +5,10 @@ module.exports = (sequelize) => {
   class Student extends Model {}
 
   Student.init({
-    name: DataTypes.STRING,
+    lastName: DataTypes.STRING,
+    firstName: DataTypes.STRING,
     birthDate: DataTypes.DATE,
     gradYear: DataTypes.INTEGER,
-    weight: DataTypes.INTEGER,
-    height: DataTypes.INTEGER,
   }, { sequelize, modelName: 'Student', tableName: 'students' });
 
   return Student;
