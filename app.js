@@ -2,8 +2,12 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const express = require('express');
+const bodyParser = require('body-parser');
 const cors = require('cors'); // Import cors module
 const app = express();
+
+const jsonParser = bodyParser.json();
+const urlencodedParser = bodyParser.urlencoded({ extended: false });
 const port = 3000;
 
 const studentRoutes = require('./routes/studentRoutes');
@@ -15,6 +19,8 @@ const corsOptions = {
   methods: 'GET,POST,PUT,DELETE',
 };
 app.use(cors(corsOptions)); // Apply CORS with the options 
+
+app.use(jsonParser);
 
 app.use('/api', studentRoutes);
 

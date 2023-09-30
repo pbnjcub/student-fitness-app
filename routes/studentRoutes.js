@@ -61,5 +61,37 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+router.post('/students', async (req, res) => {
+  // Extracting information about the student from the request body.
+  const { email, password, firstName, lastName, birthDate, gradYear } = req.body;
+  
+  // You can add validations here to check whether the required fields are present or not.
+  if(!email || !password || !firstName || !lastName || !birthDate || !gradYear) {
+      return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+      // Attempt to create the student in the database.
+      const student = await Student.create({ 
+          email,
+          password, 
+          firstName, 
+          lastName, 
+          birthDate, 
+          gradYear 
+          //... add other fields as necessary
+      });
+
+      // If successful, return the created student.
+      res.status(201).json(student);
+  } catch (error) {
+      console.error('Error in creating student:', error);
+      
+      // If an error occurs, return a 500 Internal Server Error status code and a message.
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 module.exports = router;
 
