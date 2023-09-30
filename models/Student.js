@@ -5,6 +5,8 @@ module.exports = (sequelize) => {
   class Student extends Model {}
 
   Student.init({
+    email: DataTypes.STRING,
+    password: DataTypes.STRING,
     lastName: DataTypes.STRING,
     firstName: DataTypes.STRING,
     birthDate: DataTypes.DATE,

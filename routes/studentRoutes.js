@@ -19,26 +19,32 @@ router.get('/students', async (req, res) => {
 
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
-
     const buffer = req.file.buffer;
     const content = buffer.toString();
-    
+
     Papa.parse(content, {
       header: true,
       dynamicTyping: true,
       complete: async (results) => {
-        
         // Start a transaction
         const transaction = await sequelize.transaction();
         
         try {
-          // Bulk create students and, if successful, commit the transaction
-          await Student.bulkCreate(results.data, { transaction, ignoreDuplicates: true });
+          const newStudents = []; // Array to hold newly added students
+          for(const studentData of results.data) {
+            const [student, created] = await Student.findOrCreate({
+              where: { email: studentData.email },
+              defaults: studentData,
+              transaction
+            });
+            if(created) newStudents.push(student); // If student is new, add to newStudents array
+          }
           await transaction.commit();
+
+          // Send newly added students as response
+          res.status(200).json({ success: 'File uploaded and processed successfully', newStudents });
           
-          res.status(200).json({ success: 'File uploaded and processed successfully' });
         } catch (error) {
-          // If an error occurs, rollback the transaction
           await transaction.rollback();
           console.error('Error processing CSV:', error);
           res.status(500).json({ error: 'Internal Server Error' });
@@ -56,3 +62,4 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 });
 
 module.exports = router;
+
