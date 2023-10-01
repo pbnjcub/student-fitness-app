@@ -92,6 +92,37 @@ router.post('/students', async (req, res) => {
   }
 });
 
+router.patch('/students/:id', async (req, res) => {
+  const { id } = req.params; // Extracting student ID from the route parameter.
+  const { email, password, firstName, lastName, birthDate, gradYear } = req.body; // Extracting fields from the request body.
+
+  if (!id) return res.status(400).json({ error: 'Student ID is required' });
+
+  try {
+    // Find the student by ID.
+    const student = await Student.findByPk(id);
+
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    // Update the student's fields if they are provided.
+    if (email) student.email = email;
+    if (password) student.password = password;
+    if (firstName) student.firstName = firstName;
+    if (lastName) student.lastName = lastName;
+    if (birthDate) student.birthDate = birthDate;
+    if (gradYear) student.gradYear = gradYear;
+
+    // Save the updated student object.
+    await student.save();
+
+    // Return the updated student.
+    res.status(200).json(student);
+
+  } catch (error) {
+    console.error('Error in updating student:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 module.exports = router;
 
