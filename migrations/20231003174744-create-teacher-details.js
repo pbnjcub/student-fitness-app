@@ -2,36 +2,29 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('students', {
+    await queryInterface.createTable('teacher_details', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      email:{
-        type: Sequelize.STRING,
-        allowNull: false,
-        unique: true,
-      },
-      password:{
-        type: Sequelize.STRING,
-        allowNull: false,
-      },
-      lastName: {
-        type: Sequelize.STRING,
-        allowNull: false,
-      },
-      firstName: {
-        type: Sequelize.STRING,
-        allowNull: false,
-      },
-      birthDate: {
-        type: Sequelize.DATE,
-        allowNull: false,
-      },
-      gradYear: {
+      userId: {
         type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'users',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+      },
+      yearsExp: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+      },
+      bio: {
+        type: Sequelize.TEXT,
         allowNull: false,
       },
       createdAt: {
@@ -46,6 +39,7 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('students');
+    await queryInterface.dropTable('teacher_details'); // Drop this first due to the foreign key constraint.
+    // await queryInterface.dropTable('users');
   }
 };

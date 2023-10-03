@@ -1,21 +1,59 @@
 const express = require('express');
 const multer = require('multer');
-const { Student, sequelize } = require('../models'); // Import sequelize instance along with Student Model
+const { User, StudentDetail, sequelize } = require('../models'); // Import sequelize instance along with Student Model
 const Papa = require('papaparse');
 const router = express.Router();
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-router.get('/students', async (req, res) => {
+router.get('/users', async (req, res) => {
   try {
-    const students = await Student.findAll();
-    res.json(students);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    const users = await User.findAll({
+      include: [{
+        model: StudentDetail,
+        as: 'studentDetails',
+        required: false // This ensures that even users without studentDetails are returned
+      }, {
+        model: TeacherDetail,
+        as: 'teacherDetails',
+        required: false
+      }, {
+        model: AdminDetail,
+        as: 'adminDetails',
+        required: false
+      }]
+    });
+
+    const modifiedUsers = users.map(user => {
+      const { id, email, lastName, firstName, userType, createdAt, updatedAt, studentDetails, teacherDetails, adminDetails } = user;
+      
+      let details = {};
+      switch(userType) {
+        case 'student':
+          if (studentDetails) {
+            details.birthDate = studentDetails.birthDate.toISOString().split('T')[0];
+            details.gradYear = studentDetails.gradYear;
+          }
+          break;
+        case 'teacher':
+          // Populate details with teacher specific details from teacherDetails
+          break;
+        case 'admin':
+          // Populate details with admin specific details from adminDetails
+          break;
+      }
+
+      return { id, email, lastName, firstName, userType, ...details };
+    });
+    
+    res.json(modifiedUsers);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).send('Server error');
   }
 });
+
 
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
