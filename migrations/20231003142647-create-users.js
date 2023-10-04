@@ -54,6 +54,17 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
+    // Check existence of tables
+    // const studentDetailsExists = await queryInterface.hasTable('student_details');
+    // const teacherDetailsExists = await queryInterface.hasTable('teacher_details');
+    // const adminDetailsExists = await queryInterface.hasTable('admin_details'); // Assuming you have this table.
+  
+    // // If any of the tables still exist, throw an error.
+    // if (studentDetailsExists || teacherDetailsExists || adminDetailsExists) {
+    //   throw new Error('Dependent tables (student_details, teacher_details, admin_details) still exist. Drop them first.');
+    // }
+  
     await queryInterface.dropTable('users');
   }
+  
 };

@@ -1,11 +1,80 @@
 const express = require('express');
+const bcrypt = require('bcrypt');
 const multer = require('multer');
-const { User, StudentDetail, sequelize } = require('../models'); // Import sequelize instance along with Student Model
+const { User, StudentDetail, TeacherDetail, AdminDetail, sequelize } = require('../models'); // Import sequelize instance along with Student Model
 const Papa = require('papaparse');
 const router = express.Router();
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
+router.post('/register', async (req, res) => {
+  const { email, password, lastName, firstName, birthDate, userType } = req.body;
+
+  if (!email || !password || !lastName || !firstName || birthDate || !userType) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+    //Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      email,
+      password: hashedPassword,
+      lastName,
+      firstName,
+      birthDate,
+      genderIdentity,
+      pronouns,
+      userType
+    });
+
+    // Add additional details based on userType
+    switch (userType) {
+      case 'student':
+        if (!gradYear) {
+          return res.status(400).json({ error: 'gradYear is required for students' });
+        }
+        await StudentDetail.create({
+          userId: user.id,
+          gradYear
+        });
+        break;
+
+      case 'teacher':
+        if (!yearsExp || !bio) {
+          return res.status(400).json({ error: 'yearsExp and bio are required for teachers' });
+        }
+        await TeacherDetail.create({
+          userId: user.id,
+          yearsExp,
+          bio
+        });
+        break;
+
+      case 'admin':
+        if (!yearsExp || !bio) {
+          return res.status(400).json({ error: 'yearsExp and bio are required for admins' });
+        }
+        await AdminDetail.create({
+          userId: user.id,
+          yearsExp,
+          bio
+        });
+        break;
+
+      default:
+        // Handle unrecognized userType or just let it pass
+        break;
+    }
+
+    res.status(201).json(user);
+  } catch (err) {
+    console.error('Error when registering user:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 router.get('/users', async (req, res) => {
   try {
@@ -26,34 +95,38 @@ router.get('/users', async (req, res) => {
     });
 
     const modifiedUsers = users.map(user => {
-      const { id, email, lastName, firstName, userType, createdAt, updatedAt, studentDetails, teacherDetails, adminDetails } = user;
-      
+      const { id, email, lastName, firstName, birthDate, genderIdentiy, pronouns, userType, createdAt, updatedAt, studentDetails, teacherDetails, adminDetails } = user;
+
       let details = {};
-      switch(userType) {
+      switch (userType) {
         case 'student':
           if (studentDetails) {
-            details.birthDate = studentDetails.birthDate.toISOString().split('T')[0];
             details.gradYear = studentDetails.gradYear;
           }
           break;
         case 'teacher':
-          // Populate details with teacher specific details from teacherDetails
+          if (teacherDetails) {
+            details.yearsExp = teacherDetails.yearsExp;
+            details.bio = teacherDetails.bio;
+          }
           break;
         case 'admin':
-          // Populate details with admin specific details from adminDetails
+          if (adminDetails) {
+            details.yearsExp = adminDetails.yearsExp;
+            details.bio = adminDetails.bio;
+          }
           break;
       }
 
-      return { id, email, lastName, firstName, userType, ...details };
+      return { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, ...details };
     });
-    
+
     res.json(modifiedUsers);
   } catch (err) {
     console.error('Error fetching users:', err);
     res.status(500).send('Server error');
   }
 });
-
 
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
@@ -66,22 +139,72 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       complete: async (results) => {
         // Start a transaction
         const transaction = await sequelize.transaction();
-        
+
         try {
-          const newStudents = []; // Array to hold newly added students
-          for(const studentData of results.data) {
-            const [student, created] = await Student.findOrCreate({
-              where: { email: studentData.email },
-              defaults: studentData,
+          const newUsers = []; // Array to hold newly added users
+
+          for (const userData of results.data) {
+
+            //Hash password
+            const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+            const [user, created] = await User.findOrCreate({
+              where: { email: userData.email },
+              defaults: {
+                ...userData,
+                password: hashedPassword
+              },
               transaction
             });
-            if(created) newStudents.push(student); // If student is new, add to newStudents array
+
+            if (created) {
+              newUsers.push(user); // If user is new, add to newUsers array
+
+              // Add additional details based on userType
+              switch (userData.userType) {
+                case 'student':
+                  if (!userData.gradYear) {
+                    throw new Error('gradYear is required for students');
+                  }
+                  await StudentDetail.create({
+                    userId: user.id,
+                    gradYear: userData.gradYear
+                  }, { transaction });
+                  break;
+
+                case 'teacher':
+                  if (!userData.yearsExp || !userData.bio) {
+                    throw new Error('yearsExp and bio are required for teachers');
+                  }
+                  await TeacherDetail.create({
+                    userId: user.id,
+                    yearsExp: userData.yearsExp,
+                    bio: userData.bio
+                  }, { transaction });
+                  break;
+
+                case 'admin':
+                  if (!userData.yearsExp || !userData.bio) {
+                    throw new Error('yearsExp and bio are required for admins');
+                  }
+                  await AdminDetail.create({
+                    userId: user.id,
+                    yearsExp: userData.yearsExp,
+                    bio: userData.bio
+                  }, { transaction });
+                  break;
+
+                default:
+                  throw new Error('Invalid userType');
+              }
+            }
           }
+
           await transaction.commit();
 
-          // Send newly added students as response
-          res.status(200).json({ success: 'File uploaded and processed successfully', newStudents });
-          
+          // Send newly added users as response
+          res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
+
         } catch (error) {
           await transaction.rollback();
           console.error('Error processing CSV:', error);
@@ -99,68 +222,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-router.post('/students', async (req, res) => {
-  // Extracting information about the student from the request body.
-  const { email, password, firstName, lastName, birthDate, gradYear } = req.body;
-  
-  // You can add validations here to check whether the required fields are present or not.
-  if(!email || !password || !firstName || !lastName || !birthDate || !gradYear) {
-      return res.status(400).json({ error: 'All fields are required' });
-  }
 
-  try {
-      // Attempt to create the student in the database.
-      const student = await Student.create({ 
-          email,
-          password, 
-          firstName, 
-          lastName, 
-          birthDate, 
-          gradYear 
-          //... add other fields as necessary
-      });
-
-      // If successful, return the created student.
-      res.status(201).json(student);
-  } catch (error) {
-      console.error('Error in creating student:', error);
-      
-      // If an error occurs, return a 500 Internal Server Error status code and a message.
-      res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-router.patch('/students/:id', async (req, res) => {
-  const { id } = req.params; // Extracting student ID from the route parameter.
-  const { email, password, firstName, lastName, birthDate, gradYear } = req.body; // Extracting fields from the request body.
-
-  if (!id) return res.status(400).json({ error: 'Student ID is required' });
-
-  try {
-    // Find the student by ID.
-    const student = await Student.findByPk(id);
-
-    if (!student) return res.status(404).json({ error: 'Student not found' });
-
-    // Update the student's fields if they are provided.
-    if (email) student.email = email;
-    if (password) student.password = password;
-    if (firstName) student.firstName = firstName;
-    if (lastName) student.lastName = lastName;
-    if (birthDate) student.birthDate = birthDate;
-    if (gradYear) student.gradYear = gradYear;
-
-    // Save the updated student object.
-    await student.save();
-
-    // Return the updated student.
-    res.status(200).json(student);
-
-  } catch (error) {
-    console.error('Error in updating student:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
 
 module.exports = router;
 
