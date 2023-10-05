@@ -50,5 +50,7 @@ module.exports = (sequelize) => {
     }
   }, { sequelize, modelName: 'User', tableName: 'users' });
 
+  console.log("Inside User model file");
+
   return User;
 };

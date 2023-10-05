@@ -24,5 +24,5 @@ module.exports = (sequelize) => {
     }
   }, { sequelize, modelName: 'AdminDetail', tableName: 'admin_details' });
 
-  return StudentDetail;
+  return AdminDetail;
 };

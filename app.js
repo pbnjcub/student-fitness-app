@@ -18,7 +18,7 @@ const studentRoutes = require('./routes/StudentRoutes');
 
 //Import models and setup associations
 const db = require('./models');
-require('./models/Associations');
+require('./models/05_Associations');
 
 // Setup CORS Middleware
 const corsOptions = {
@@ -32,7 +32,7 @@ app.use(jsonParser);
 app.use(urlencodedParser)
 
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || "default_secret",
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -41,7 +41,7 @@ app.use(session({
   }
 }));
 
-app.use('/api', sessionsRoutes);
+// app.use('/api', sessionsRoutes);
 app.use('/api', userRoutes);
 app.use('/api', studentRoutes);
 
