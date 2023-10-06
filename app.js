@@ -5,6 +5,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors'); // Import cors module
 const session = require('express-session');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 
@@ -12,9 +13,10 @@ const jsonParser = bodyParser.json();
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
 const port = 3000;
 
-const sessionsRoutes = require('./routes/SessionsRoutes');
+
 const userRoutes = require('./routes/UserRoutes');
 const studentRoutes = require('./routes/StudentRoutes');
+const sessionsRoutes = require('./routes/SessionsRoutes');
 
 //Import models and setup associations
 const db = require('./models');
@@ -30,6 +32,7 @@ app.use(cors(corsOptions)); // Apply CORS with the options
 
 app.use(jsonParser);
 app.use(urlencodedParser)
+app.use(cookieParser());
 
 app.use(session({
   secret: process.env.SESSION_SECRET || "default_secret",
@@ -41,9 +44,10 @@ app.use(session({
   }
 }));
 
-// app.use('/api', sessionsRoutes);
+
 app.use('/api', userRoutes);
 app.use('/api', studentRoutes);
+app.use('/api', sessionsRoutes);
 
 
 app.get('/', (req, res) => {
