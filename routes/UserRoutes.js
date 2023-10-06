@@ -95,7 +95,7 @@ router.get('/users', async (req, res) => {
     });
 
     const modifiedUsers = users.map(user => {
-      const { id, email, lastName, firstName, birthDate, genderIdentiy, pronouns, userType, createdAt, updatedAt, studentDetails, teacherDetails, adminDetails } = user;
+      const { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, createdAt, updatedAt, studentDetails, teacherDetails, adminDetails } = user;
 
       let details = {};
       switch (userType) {
