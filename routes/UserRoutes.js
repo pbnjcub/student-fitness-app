@@ -33,34 +33,25 @@ router.post('/register', async (req, res) => {
     // Add additional details based on userType
     switch (userType) {
       case 'student':
-        if (!gradYear) {
-          return res.status(400).json({ error: 'gradYear is required for students' });
-        }
         await StudentDetail.create({
           userId: user.id,
-          gradYear
+          gradYear: gradYear || null
         });
         break;
 
       case 'teacher':
-        if (!yearsExp || !bio) {
-          return res.status(400).json({ error: 'yearsExp and bio are required for teachers' });
-        }
         await TeacherDetail.create({
           userId: user.id,
-          yearsExp,
-          bio
+          yearsExp: yearsExp || null,
+          bio: bio || null
         });
         break;
 
       case 'admin':
-        if (!yearsExp || !bio) {
-          return res.status(400).json({ error: 'yearsExp and bio are required for admins' });
-        }
         await AdminDetail.create({
           userId: user.id,
-          yearsExp,
-          bio
+          yearsExp: yearsExp || null,
+          bio: bio || null
         });
         break;
 
@@ -94,31 +85,36 @@ router.get('/users', async (req, res) => {
       }]
     });
 
+
+
     const modifiedUsers = users.map(user => {
-      const { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, createdAt, updatedAt, studentDetails, teacherDetails, adminDetails } = user;
+      const { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, studentDetails, teacherDetails, adminDetails } = user;
+
+      const formattedBirthDate = birthDate.toISOString().split('T')[0];
 
       let details = {};
       switch (userType) {
         case 'student':
           if (studentDetails) {
-            details.gradYear = studentDetails.gradYear;
+            const { gradYear } = studentDetails;
+            details = gradYear;
           }
           break;
         case 'teacher':
           if (teacherDetails) {
-            details.yearsExp = teacherDetails.yearsExp;
-            details.bio = teacherDetails.bio;
+            const { yearsExp, bio } = teacherDetails; 
+            details = { yearsExp, bio };
           }
           break;
         case 'admin':
           if (adminDetails) {
-            details.yearsExp = adminDetails.yearsExp;
-            details.bio = adminDetails.bio;
+            const { yearsExp, bio } = adminDetails;
+            details = { yearsExp, bio };
           }
           break;
       }
 
-      return { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, ...details };
+      return { id, email, lastName, firstName, birthDate: formattedBirthDate, genderIdentity, pronouns, userType, ...details };
     });
 
     res.json(modifiedUsers);
@@ -163,34 +159,25 @@ router.post('/upload', upload.single('file'), async (req, res) => {
               // Add additional details based on userType
               switch (userData.userType) {
                 case 'student':
-                  if (!userData.gradYear) {
-                    throw new Error('gradYear is required for students');
-                  }
                   await StudentDetail.create({
                     userId: user.id,
-                    gradYear: userData.gradYear
+                    gradYear: userData.gradYear || null
                   }, { transaction });
                   break;
 
                 case 'teacher':
-                  if (!userData.yearsExp || !userData.bio) {
-                    throw new Error('yearsExp and bio are required for teachers');
-                  }
                   await TeacherDetail.create({
                     userId: user.id,
-                    yearsExp: userData.yearsExp,
-                    bio: userData.bio
+                    yearsExp: userData.yearsExp || null,
+                    bio: userData.bio || null
                   }, { transaction });
                   break;
 
                 case 'admin':
-                  if (!userData.yearsExp || !userData.bio) {
-                    throw new Error('yearsExp and bio are required for admins');
-                  }
                   await AdminDetail.create({
                     userId: user.id,
-                    yearsExp: userData.yearsExp,
-                    bio: userData.bio
+                    yearsExp: userData.yearsExp || null,
+                    bio: userData.bio || null
                   }, { transaction });
                   break;
 

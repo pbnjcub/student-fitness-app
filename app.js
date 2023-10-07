@@ -16,6 +16,7 @@ const port = 3000;
 
 const userRoutes = require('./routes/UserRoutes');
 const studentRoutes = require('./routes/StudentRoutes');
+const teacherRoutes = require('./routes/TeacherRoutes');
 const sessionsRoutes = require('./routes/SessionsRoutes');
 
 //Import models and setup associations
@@ -47,6 +48,7 @@ app.use(session({
 
 app.use('/api', userRoutes);
 app.use('/api', studentRoutes);
+app.use('/api', teacherRoutes);
 app.use('/api', sessionsRoutes);
 
 
