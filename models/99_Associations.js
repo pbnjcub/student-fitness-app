@@ -1,6 +1,6 @@
 
 module.exports = (db) => {
-    // Associations for User and StudentDetail
+    // Associations for User and Student
     db.User.hasOne(db.StudentDetail, {
         foreignKey: 'userId',
         as: 'studentDetails'
@@ -8,6 +8,14 @@ module.exports = (db) => {
       db.StudentDetail.belongsTo(db.User, {
         foreignKey: 'userId'
       });
+    
+    db.User.hasMany(db.StudentAntrho, {
+        foreignKey: 'userId',
+        as: 'studentAnthros'
+    });
+    db.StudentAntrho.belongsTo(db.User, {
+        foreignKey: 'userId'
+    });
        // Associations for User and TeacherDetail
     db.User.hasOne(db.TeacherDetail, {
         foreignKey: 'userId',

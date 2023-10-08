@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { sequelize } = require('../models');  // Ensure you import the sequelize instance.
 const { User, StudentDetail } = require('../models');
 
 // Helper function to format student data
@@ -46,11 +47,12 @@ router.get('/students', async (req, res) => {
 // Other student-specific routes can go here...
 router.patch('/students/:id', async (req, res) => {
   const { id } = req.params; // Extracting student ID from the route parameter.
-  const { email, password, firstName, lastName, birthDate, genderIdentity, pronounsgradYear } = req.body; // Extracting fields from the request body.
+  const { password, studentDetails } = req.body; // Extracting password and studentDetails from the request body.
 
   if (!id) return res.status(400).json({ error: 'Student ID is required' });
 
   try {
+    const transaction = await sequelize.transaction();
     // Find the student by ID and include the associated StudentDetail.
     const student = await User.findByPk(id, {
       include: [{
@@ -59,26 +61,34 @@ router.patch('/students/:id', async (req, res) => {
       }]
     });
 
-    if (!student) return res.status(404).json({ error: 'Student not found' });
-
-    // Update the student's fields if they are provided.
-    if (email) student.email = email;
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10); // Ensure you've imported bcrypt at the top of your file.
-      student.password = hashedPassword;
+    if (!student) {
+      await transaction.rollback();
+      return res.status(404).json({ error: 'Student not found' });
     }
-    if (firstName) student.firstName = firstName;
-    if (lastName) student.lastName = lastName;
-    if (birthDate) student.birthDate = birthDate;
+
+    const updateFields = {
+      email: req.body.email || student.email,
+      password: req.body.password ? await bcrypt.hash(password, 10) : student.password,
+      firstName: req.body.firstName || student.firstName,
+      lastName: req.body.lastName || student.lastName,
+      birthDate: req.body.birthDate || student.birthDate,
+      userType: req.body.userType || student.userType,
+      genderIdentity: req.body.genderIdentity || student.genderIdentity,
+      pronouns: req.body.pronouns || student.pronouns
+    }
+    // Update the student's fields if they are provided.
+    await student.update(updateFields, { transaction });
 
     // Update fields in the associated StudentDetail.
-    if (student.studentDetails) {
-      if (gradYear) student.studentDetails.gradYear = gradYear;
-      await student.studentDetails.save();
+    if (student.studentDetails && studentDetails) { // Ensure studentDetails from req.body is also not undefined.
+      const studentDetailUpdates = {
+        gradYear: studentDetails.gradYear || student.studentDetails.gradYear // Fixed semicolon here.
+      };
+      await student.studentDetails.update(studentDetailUpdates, { transaction });
+    } else {
+      await transaction.rollback();
+      return res.status(404).json({ error: 'Student details not found' });
     }
-
-    // Save the updated student object.
-    await student.save();
 
     const formattedStudent = formatStudentData(student);
 

@@ -33,7 +33,7 @@ module.exports = (sequelize) => {
       allowNull: false
     },
     birthDate: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATEONLY,
       allowNull: false
     },
     genderIdentity: {
@@ -47,6 +47,10 @@ module.exports = (sequelize) => {
     userType: {
       type: DataTypes.ENUM('student', 'teacher', 'admin'),
       allowNull: false
+    },
+    photoUrl: {
+      type: DataTypes.STRING, // Assuming the URL or path is a string.
+      allowNull: true
     }
   }, { sequelize, modelName: 'User', tableName: 'users' });
 

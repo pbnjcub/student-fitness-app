@@ -16,7 +16,7 @@ fs.readdirSync(__dirname)
   });
 
 // Now that all models are loaded, set up the associations:
-require('./05_Associations')(db);
+require('./99_Associations')(db);
 
 Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {

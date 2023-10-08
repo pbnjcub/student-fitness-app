@@ -1,26 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const { sequelize } = require('../models');  // Ensure you import the sequelize instance.
 const { User, AdminDetail } = require('../models');
-
-// Helper function to format admin data
-const formatAdminData = (admin) => {
-  const { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, adminDetails } = admin;
-
-  const formattedBirthDate = birthDate.toISOString().split('T')[0];
-  
-  return {
-    id, 
-    email, 
-    lastName, 
-    firstName, 
-    birthDate: formattedBirthDate, 
-    genderIdentity, 
-    pronouns, 
-    userType, 
-    adminDetails 
-  };
-};
-
+const bcrypt = require('bcrypt'); // Ensure you've imported bcrypt.
 
 // Retrieve all admin users
 router.get('/admins', async (req, res) => {
@@ -35,63 +17,76 @@ router.get('/admins', async (req, res) => {
       }]
     });
 
-    const modifiedAdmins = admins.map(admin => formatAdminData(admin));
-
-    res.json(modifiedAdmins);
+    res.json(admins);
   } catch (err) {
     console.error('Error fetching admins:', err);
     res.status(500).send('Server error');
   }
 });
 
-// Other student-specific routes can go here...
+// Other admin-specific routes can go here...
 router.patch('/admins/:id', async (req, res) => {
-  const { id } = req.params; // Extracting admin ID from the route parameter.
-  const { email, password, firstName, lastName, birthDate, yearsExp, bio } = req.body; // Extracting fields from the request body.
+  const { id } = req.params;
 
-  if (!id) return res.status(400).json({ error: 'admin ID is required' });
+  console.log(`Starting PATCH /admins/${id}...`);
+  console.log(`Received request body:`, req.body);
+
+  if (!id) return res.status(400).json({ error: 'Admin ID is required' });
 
   try {
-    // Find the admin by ID and include the associated adminDetail.
+    const transaction = await sequelize.transaction();
+
     const admin = await User.findByPk(id, {
       include: [{
         model: AdminDetail,
         as: 'adminDetails'
       }]
-    });
+    }, { transaction });
 
-    if (!admin) return res.status(404).json({ error: 'admin not found' });
-
-    // Update the admin's fields if they are provided.
-    if (email) admin.email = email;
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10); // Ensure you've imported bcrypt at the top of your file.
-      admin.password = hashedPassword;
+    if (!admin) {
+      await transaction.rollback();
+      console.log(`Admin with ID ${id} not found.`);
+      return res.status(404).json({ error: 'Admin not found' });
     }
-    if (firstName) admin.firstName = firstName;
-    if (lastName) admin.lastName = lastName;
-    if (birthDate) admin.birthDate = birthDate;
 
-    // Update fields in the associated StudentDetail.
+    console.log(`Found admin:`, admin.toJSON());
+
+    const updateFields = {
+      email: req.body.email || admin.email,
+      password: req.body.password ? await bcrypt.hash(req.body.password, 10) : admin.password,
+      firstName: req.body.firstName || admin.firstName,
+      lastName: req.body.lastName || admin.lastName,
+      birthDate: req.body.birthDate || admin.birthDate,
+      userType: req.body.userType || admin.userType,
+      genderIdentity: req.body.genderIdentity || admin.genderIdentity,
+      pronouns: req.body.pronouns || admin.pronouns
+    };
+
+    console.log(`Updating admin with:`, updateFields);
+    await admin.update(updateFields, { transaction });
+
     if (admin.adminDetails) {
-      if (yearsExp) admin.adminDetails.yearsExp = yearsExp;
-      if (bio) admin.adminDetails.bio = bio;
-      await admin.adminDetails.save();
+      const adminDetailUpdates = {
+        yearsExp: req.body.adminDetails.yearsExp || admin.adminDetails.yearsExp,
+        bio: req.body.adminDetails.bio || admin.adminDetails.bio
+      };
+      console.log(`Updating admin details with:`, adminDetailUpdates);
+      await admin.adminDetails.update(adminDetailUpdates, { transaction });
+    } else {
+      await transaction.rollback();
+      console.log('Admin details missing for the specified admin.');
+      return res.status(400).json({ error: 'Admin details missing for the specified admin' });
     }
 
-    // Save the updated admin object.
-    await admin.save();
+    await transaction.commit();
+    console.log('Transaction committed.');
 
-    const formattedAdmin = formatAdminData(admin);
-
-    // Return the updated admin with associated details.
-    res.status(200).json(formattedAdmin);
+    res.status(200).json(admin);
 
   } catch (error) {
     console.error('Error in updating admin:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 module.exports = router;

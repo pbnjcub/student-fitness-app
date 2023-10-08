@@ -17,11 +17,12 @@ const port = 3000;
 const userRoutes = require('./routes/UserRoutes');
 const studentRoutes = require('./routes/StudentRoutes');
 const teacherRoutes = require('./routes/TeacherRoutes');
+const adminRoutes = require('./routes/AdminRoutes');
 const sessionsRoutes = require('./routes/SessionsRoutes');
 
 //Import models and setup associations
 const db = require('./models');
-require('./models/05_Associations');
+require('./models/99_Associations');
 
 // Setup CORS Middleware
 const corsOptions = {
@@ -49,6 +50,7 @@ app.use(session({
 app.use('/api', userRoutes);
 app.use('/api', studentRoutes);
 app.use('/api', teacherRoutes);
+app.use('/api', adminRoutes);
 app.use('/api', sessionsRoutes);
 
 

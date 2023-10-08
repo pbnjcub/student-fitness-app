@@ -27,7 +27,7 @@ module.exports = {
         allowNull: false,
       },
       birthDate: {
-        type: Sequelize.DATE,
+        type: Sequelize.DATEONLY,
         allowNull: false,
       },
       genderIdentity: {
@@ -42,6 +42,10 @@ module.exports = {
         type: Sequelize.ENUM('student', 'teacher', 'admin'),
         allowNull: false,
       },
+      photoUrl: {
+        type: Sequelize.STRING, // Assuming the URL or path is a string.
+        allowNull: true
+      },      
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
