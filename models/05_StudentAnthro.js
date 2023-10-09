@@ -14,6 +14,11 @@ module.exports = (sequelize) => {
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE'
     },
+    date: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
+      defaultValue: DataTypes.NOW // Sets the default value to the current date
+    },
     height: {
       type: DataTypes.INTEGER,
       allowNull: false
@@ -22,7 +27,7 @@ module.exports = (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-  }, { sequelize, modelName: 'StudentAnthro', tableName: 'student_anthro' });
+  }, { sequelize, modelName: 'StudentAnthro', tableName: 'student_anthros' });
 
   return StudentAnthro;
 };

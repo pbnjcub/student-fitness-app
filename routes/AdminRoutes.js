@@ -59,7 +59,8 @@ router.patch('/admins/:id', async (req, res) => {
       birthDate: req.body.birthDate || admin.birthDate,
       userType: req.body.userType || admin.userType,
       genderIdentity: req.body.genderIdentity || admin.genderIdentity,
-      pronouns: req.body.pronouns || admin.pronouns
+      pronouns: req.body.pronouns || admin.pronouns,
+      photoUrl: req.body.photoUrl || admin.photoUrl
     };
 
     console.log(`Updating admin with:`, updateFields);

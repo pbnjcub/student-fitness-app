@@ -8,7 +8,7 @@ console.log("Sequelize initialized")
 const db = {};
 
 fs.readdirSync(__dirname)
-  .filter(file => file.indexOf('.') !== 0 && file !== 'index.js' && file.slice(-3) === '.js' && file !== '05_Associations.js')
+  .filter(file => file.indexOf('.') !== 0 && file !== 'index.js' && file.slice(-3) === '.js' && file !== '99_Associations.js')
   .forEach(file => {
     const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
     db[model.name] = model;

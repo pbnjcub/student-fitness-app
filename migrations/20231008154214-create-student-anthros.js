@@ -19,6 +19,11 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
+      date: {
+        type: Sequelize.DATEONLY, // Use DATEONLY if you only want to store the date without time.
+        allowNull: false,
+        defaultValue: Sequelize.fn('NOW') // Default value set to today's date.
+      },
       height: {
         type: Sequelize.INTEGER,
         allowNull: false,
@@ -39,7 +44,7 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('admin_details'); // Drop this first due to the foreign key constraint.
+    await queryInterface.dropTable('student_anthros'); // Drop this first due to the foreign key constraint.
     // await queryInterface.dropTable('users');
   }
 };

@@ -9,11 +9,11 @@ module.exports = (db) => {
         foreignKey: 'userId'
       });
     
-    db.User.hasMany(db.StudentAntrho, {
+    db.User.hasOne(db.StudentAnthro, {
         foreignKey: 'userId',
-        as: 'studentAnthros'
+        as: 'studentAnthro'
     });
-    db.StudentAntrho.belongsTo(db.User, {
+    db.StudentAnthro.belongsTo(db.User, {
         foreignKey: 'userId'
     });
        // Associations for User and TeacherDetail

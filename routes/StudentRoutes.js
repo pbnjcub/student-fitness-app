@@ -1,26 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcrypt');
 const { sequelize } = require('../models');  // Ensure you import the sequelize instance.
-const { User, StudentDetail } = require('../models');
-
-// Helper function to format student data
-const formatStudentData = (student) => {
-  const { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, studentDetails } = student;
-
-  const formattedBirthDate = birthDate.toISOString().split('T')[0];
-  
-  return {
-    id, 
-    email, 
-    lastName, 
-    firstName, 
-    birthDate: formattedBirthDate, 
-    genderIdentity, 
-    pronouns, 
-    userType, 
-    studentDetails 
-  };
-}
+const { User, StudentDetail, StudentAnthro } = require('../models');
 
 // Retrieve all student users
 router.get('/students', async (req, res) => {
@@ -32,12 +14,14 @@ router.get('/students', async (req, res) => {
       include: [{
         model: StudentDetail,
         as: 'studentDetails'
+      },
+      {
+        model: StudentAnthro,
+        as: 'studentAnthro'
       }]
     });
 
-    const modifiedStudents = students.map(student => formatStudentData(student));
-
-    res.json(modifiedStudents);
+    res.json(students);
   } catch (err) {
     console.error('Error fetching students:', err);
     res.status(500).send('Server error');
@@ -45,6 +29,7 @@ router.get('/students', async (req, res) => {
 });
 
 // Other student-specific routes can go here...
+
 router.patch('/students/:id', async (req, res) => {
   const { id } = req.params; // Extracting student ID from the route parameter.
   const { password, studentDetails } = req.body; // Extracting password and studentDetails from the request body.
@@ -74,7 +59,8 @@ router.patch('/students/:id', async (req, res) => {
       birthDate: req.body.birthDate || student.birthDate,
       userType: req.body.userType || student.userType,
       genderIdentity: req.body.genderIdentity || student.genderIdentity,
-      pronouns: req.body.pronouns || student.pronouns
+      pronouns: req.body.pronouns || student.pronouns,
+      photoUrl: req.body.photoUrl || student.photoUrl
     }
     // Update the student's fields if they are provided.
     await student.update(updateFields, { transaction });
@@ -90,16 +76,13 @@ router.patch('/students/:id', async (req, res) => {
       return res.status(404).json({ error: 'Student details not found' });
     }
 
-    const formattedStudent = formatStudentData(student);
-
     // Return the updated student with associated details.
-    res.status(200).json(formattedStudent);
+    res.status(200).json(student);
 
   } catch (error) {
     console.error('Error in updating student:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 module.exports = router;

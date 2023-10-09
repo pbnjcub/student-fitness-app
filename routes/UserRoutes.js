@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
-const { User, StudentDetail, TeacherDetail, AdminDetail, sequelize } = require('../models'); // Import sequelize instance along with Student Model
+const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize } = require('../models');
 const Papa = require('papaparse');
 const router = express.Router();
 
@@ -11,12 +11,11 @@ const upload = multer({ storage: storage });
 router.post('/register', async (req, res) => {
   const { email, password, lastName, firstName, birthDate, userType } = req.body;
 
-  if (!email || !password || !lastName || !firstName || birthDate || !userType) {
+  if (!email || !password || !lastName || !firstName || !birthDate || !userType) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
   try {
-    //Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
@@ -27,10 +26,10 @@ router.post('/register', async (req, res) => {
       birthDate,
       genderIdentity,
       pronouns,
-      userType
+      userType,
+      photoUrl
     });
 
-    // Add additional details based on userType
     switch (userType) {
       case 'student':
         await StudentDetail.create({
@@ -54,10 +53,6 @@ router.post('/register', async (req, res) => {
           bio: bio || null
         });
         break;
-
-      default:
-        // Handle unrecognized userType or just let it pass
-        break;
     }
 
     res.status(201).json(user);
@@ -73,8 +68,14 @@ router.get('/users', async (req, res) => {
       include: [{
         model: StudentDetail,
         as: 'studentDetails',
-        required: false // This ensures that even users without studentDetails are returned
-      }, {
+        required: false
+      },
+      {
+        model: StudentAnthro,
+        as: 'studentAnthro',
+        required: false
+      },
+      {
         model: TeacherDetail,
         as: 'teacherDetails',
         required: false
@@ -85,19 +86,14 @@ router.get('/users', async (req, res) => {
       }]
     });
 
-
-
     const modifiedUsers = users.map(user => {
-      const { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, studentDetails, teacherDetails, adminDetails } = user;
-
-      const formattedBirthDate = birthDate.toISOString().split('T')[0];
+      const { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, photoUrl, studentDetails, studentAnthro, teacherDetails, adminDetails } = user;
 
       let details = {};
       switch (userType) {
         case 'student':
           if (studentDetails) {
-            const { gradYear } = studentDetails;
-            details = gradYear;
+            details = { ...studentDetails.toJSON(), ...studentAnthro ? studentAnthro.toJSON() : {} };
           }
           break;
         case 'teacher':
@@ -114,7 +110,7 @@ router.get('/users', async (req, res) => {
           break;
       }
 
-      return { id, email, lastName, firstName, birthDate: formattedBirthDate, genderIdentity, pronouns, userType, ...details };
+      return { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, photoUrl, ...details };
     });
 
     res.json(modifiedUsers);
@@ -133,15 +129,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       header: true,
       dynamicTyping: true,
       complete: async (results) => {
-        // Start a transaction
         const transaction = await sequelize.transaction();
 
         try {
-          const newUsers = []; // Array to hold newly added users
+          const newUsers = [];
 
           for (const userData of results.data) {
-
-            //Hash password
             const hashedPassword = await bcrypt.hash(userData.password, 10);
 
             const [user, created] = await User.findOrCreate({
@@ -154,9 +147,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
             });
 
             if (created) {
-              newUsers.push(user); // If user is new, add to newUsers array
+              newUsers.push(user);
 
-              // Add additional details based on userType
               switch (userData.userType) {
                 case 'student':
                   await StudentDetail.create({
@@ -188,8 +180,6 @@ router.post('/upload', upload.single('file'), async (req, res) => {
           }
 
           await transaction.commit();
-
-          // Send newly added users as response
           res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
 
         } catch (error) {
@@ -209,7 +199,4 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-
-
 module.exports = router;
-
