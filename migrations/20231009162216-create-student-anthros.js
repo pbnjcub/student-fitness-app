@@ -9,7 +9,7 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      userId: {
+      teacherUserId: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
@@ -19,7 +19,17 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
-      date: {
+      studentUserId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'users',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+      },
+      date_recorded: {
         type: Sequelize.DATEONLY, // Use DATEONLY if you only want to store the date without time.
         allowNull: false,
         defaultValue: Sequelize.fn('NOW') // Default value set to today's date.
@@ -27,10 +37,12 @@ module.exports = {
       height: {
         type: Sequelize.INTEGER,
         allowNull: false,
+        defaultValue: 0
       },
       weight: {
         type: Sequelize.INTEGER,
         allowNull: false,
+        defaultValue: 0
       },
       createdAt: {
         allowNull: false,
@@ -45,6 +57,6 @@ module.exports = {
 
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('student_anthros'); // Drop this first due to the foreign key constraint.
-    // await queryInterface.dropTable('users');
   }
 };
+

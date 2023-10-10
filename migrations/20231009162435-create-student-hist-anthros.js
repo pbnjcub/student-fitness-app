@@ -2,24 +2,44 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('student_anthros_history', {
+    await queryInterface.createTable('student_hist_anthros', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      studentAnthrosId: {
+      originalAnthroId: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'student_anthros',
+          model: 'student_anthros', // Name of the created table above.
           key: 'id'
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
-      date: {
+      teacherUserId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'users',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+      },
+      studentUserId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'users',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+      },
+      date_recorded: {
         type: Sequelize.DATEONLY, // Use DATEONLY if you only want to store the date without time.
         allowNull: false,
         defaultValue: Sequelize.fn('NOW') // Default value set to today's date.
@@ -44,7 +64,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('student_anthros_history'); // Drop this first due to the foreign key constraint.
-    // await queryInterface.dropTable('users');
+    await queryInterface.dropTable('student_hist_anthros'); // Drop this first due to the foreign key constraint.
   }
 };

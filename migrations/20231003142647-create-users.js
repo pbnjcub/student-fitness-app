@@ -9,12 +9,12 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      email:{
+      email: {
         type: Sequelize.STRING,
         allowNull: false,
         unique: true,
       },
-      password:{
+      password: {
         type: Sequelize.STRING,
         allowNull: false,
       },
@@ -32,11 +32,11 @@ module.exports = {
       },
       genderIdentity: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       pronouns: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       userType: {
         type: Sequelize.ENUM('student', 'teacher', 'admin'),
@@ -45,7 +45,16 @@ module.exports = {
       photoUrl: {
         type: Sequelize.STRING, // Assuming the URL or path is a string.
         allowNull: true
-      },      
+      },
+      isArchived: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+      },
+      dateArchived: {
+        type: Sequelize.DATEONLY,
+        allowNull: true,
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
@@ -58,17 +67,9 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    // Check existence of tables
-    // const studentDetailsExists = await queryInterface.hasTable('student_details');
-    // const teacherDetailsExists = await queryInterface.hasTable('teacher_details');
-    // const adminDetailsExists = await queryInterface.hasTable('admin_details'); // Assuming you have this table.
-  
-    // // If any of the tables still exist, throw an error.
-    // if (studentDetailsExists || teacherDetailsExists || adminDetailsExists) {
-    //   throw new Error('Dependent tables (student_details, teacher_details, admin_details) still exist. Drop them first.');
-    // }
-  
     await queryInterface.dropTable('users');
   }
-  
+
 };
+
+

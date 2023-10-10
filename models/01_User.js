@@ -1,29 +1,29 @@
 const { Model, DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
-  class User extends Model {}
+  class User extends Model { }
 
   User.init({
     email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-        validate: {
-          isEmail: {
-            msg: "Must be a valid email address",
-          },
-        },
-      },      
-      password: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-          len: {
-            args: [6, 128], // Example: Minimum of 6 characters
-            msg: "Password must be between 6 and 128 characters",
-          },
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: {
+          msg: "Must be a valid email address",
         },
       },
+    },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: {
+          args: [6, 128], // Example: Minimum of 6 characters
+          msg: "Password must be between 6 and 128 characters",
+        },
+      },
+    },
     lastName: {
       type: DataTypes.STRING,
       allowNull: false
@@ -38,11 +38,11 @@ module.exports = (sequelize) => {
     },
     genderIdentity: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: true
     },
     pronouns: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: true
     },
     userType: {
       type: DataTypes.ENUM('student', 'teacher', 'admin'),
@@ -50,6 +50,15 @@ module.exports = (sequelize) => {
     },
     photoUrl: {
       type: DataTypes.STRING, // Assuming the URL or path is a string.
+      allowNull: true
+    },
+    isArchived: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    dateArchived: {
+      type: DataTypes.DATEONLY,
       allowNull: true
     }
   }, { sequelize, modelName: 'User', tableName: 'users' });

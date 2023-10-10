@@ -21,11 +21,11 @@ module.exports = {
       },
       yearsExp: {
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true,
       },
       bio: {
         type: Sequelize.TEXT,
-        allowNull: false,
+        allowNull: true,
       },
       createdAt: {
         allowNull: false,
@@ -40,6 +40,5 @@ module.exports = {
 
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('teacher_details'); // Drop this first due to the foreign key constraint.
-    // await queryInterface.dropTable('users');
   }
 };

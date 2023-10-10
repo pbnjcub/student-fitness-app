@@ -1,7 +1,7 @@
 const { Model, DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
-  class StudentDetail extends Model {}
+  class StudentDetail extends Model { }
 
   StudentDetail.init({
     userId: {

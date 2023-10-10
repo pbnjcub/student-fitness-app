@@ -36,6 +36,5 @@ module.exports = {
 
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('student_details'); // Drop this first due to the foreign key constraint.
-    // await queryInterface.dropTable('users');
   }
 };

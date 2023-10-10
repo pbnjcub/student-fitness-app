@@ -1,7 +1,7 @@
 const { Model, DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
-  class AdminDetail extends Model {}
+  class AdminDetail extends Model { }
 
   AdminDetail.init({
     userId: {
@@ -16,11 +16,11 @@ module.exports = (sequelize) => {
     },
     yearsExp: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: true
     },
     bio: {
       type: DataTypes.TEXT,
-      allowNull: false
+      allowNull: true
     }
   }, { sequelize, modelName: 'AdminDetail', tableName: 'admin_details' });
 

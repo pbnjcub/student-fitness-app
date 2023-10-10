@@ -2,29 +2,20 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('admin_details', {
+    await queryInterface.createTable('student_performance_types', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      userId: {
-        type: Sequelize.INTEGER,
+      name: {
+        type: Sequelize.STRING,
         allowNull: false,
-        references: {
-          model: 'users',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        unique: true, // Enforce unique constraint.
       },
-      yearsExp: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-      },
-      bio: {
-        type: Sequelize.TEXT,
+      description: {
+        type: Sequelize.STRING,
         allowNull: true,
       },
       createdAt: {
@@ -39,6 +30,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('admin_details'); // Drop this first due to the foreign key constraint.
+    await queryInterface.dropTable('student_performance_types'); // Drop this first due to the foreign key constraint.
   }
 };

@@ -1,23 +1,43 @@
 const { Model, DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
-  class StudentAnthroHistory extends Model {}
+  class StudentHistAnthro extends Model { }
 
-  StudentAnthroHistory.init({
-    studentAnthroId: {
+  StudentHistAnthro.init({
+    originalAnthroId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'student_anthro', // Name of the table for StudentAnthro
+        model: 'student_anthros', // Name of the table for StudentAnthro
         key: 'id'
       },
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE'
     },
-    date: {
-      type: DataTypes.DATEONLY,
+    teacherUserId: {
+      type: Sequelize.INTEGER,
       allowNull: false,
-      defaultValue: DataTypes.NOW // Sets the default value to the current date
+      references: {
+        model: 'users',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    },
+    studentUserId: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    },
+    date_recorded: {
+      type: Sequelize.DATEONLY, // Use DATEONLY if you only want to store the date without time.
+      allowNull: false,
+      defaultValue: Sequelize.fn('NOW') // Default value set to today's date.
     },
     height: {
       type: DataTypes.INTEGER,
@@ -27,7 +47,7 @@ module.exports = (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-  }, { sequelize, modelName: 'StudentAnthroHistory', tableName: 'student_anthro_history' });
+  }, { sequelize, modelName: 'StudentHistAnthro', tableName: 'student_hist_anthros' });
 
-  return StudentAnthroHistory;
+  return StudentHistAnthro;
 };
