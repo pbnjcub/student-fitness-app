@@ -65,13 +65,13 @@ module.exports = {
     await queryInterface.addConstraint('student_performance_grades', {
       fields: ['performanceTypeId', 'studentUserId'],
       type: 'unique',
-      name: 'unique_performanceTypeId_studentUserId'
+      name: 'unique_constraint_grades'
     });
   },
 
   async down(queryInterface, Sequelize) {
     // Remove the unique constraint during the rollback
-    await queryInterface.removeConstraint('student_performance_grades', 'unique_performanceTypeId_studentUserId');
+    await queryInterface.removeConstraint('student_performance_grades', 'unique_constraint_grades');
 
     await queryInterface.dropTable('student_performance_grades');
   }

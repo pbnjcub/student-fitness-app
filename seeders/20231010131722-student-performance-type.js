@@ -25,6 +25,9 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    return queryInterface.bulkDelete('student_performance_types', null, {});
+    await queryInterface.bulkDelete('student_performance_types', null, {});
+
+    await queryInterface.sequelize.query('ALTER SEQUENCE student_performance_types_id_seq RESTART WITH 1');
+
   }
 };

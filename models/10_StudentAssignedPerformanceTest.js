@@ -41,7 +41,7 @@ module.exports = (sequelize) => {
     }, { 
         sequelize, 
         modelName: 'StudentAssignedPerformanceTest', 
-        tableName: 'student_performance_grades',
+        tableName: 'student_assigned_performance_test',
         indexes: [
             {
                 unique: true,

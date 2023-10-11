@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
       onDelete: 'CASCADE'
     },
     teacherUserId: {
-      type: Sequelize.INTEGER,
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: 'users',
@@ -25,7 +25,7 @@ module.exports = (sequelize) => {
       onDelete: 'CASCADE'
     },
     studentUserId: {
-      type: Sequelize.INTEGER,
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: 'users',
@@ -35,9 +35,9 @@ module.exports = (sequelize) => {
       onDelete: 'CASCADE'
     },
     date_recorded: {
-      type: Sequelize.DATEONLY, // Use DATEONLY if you only want to store the date without time.
+      type: DataTypes.DATEONLY, // Use DATEONLY if you only want to store the date without time.
       allowNull: false,
-      defaultValue: Sequelize.fn('NOW') // Default value set to today's date.
+      defaultValue: DataTypes.NOW  // Default value set to today's date.
     },
     height: {
       type: DataTypes.INTEGER,

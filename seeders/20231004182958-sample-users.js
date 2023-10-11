@@ -11,7 +11,7 @@ module.exports = {
         firstName: 'Rich',
         birthDate: new Date('1965-05-15'),
         genderIdentity: 'cis',
-        pronouns: 'He/Him/His',
+        pronouns: 'he-him-his',
         userType: 'teacher',
         photoUrl: '',
         createdAt: new Date(),
@@ -24,7 +24,7 @@ module.exports = {
         firstName: 'Kiersten',
         birthDate: new Date('1986-05-16'),
         genderIdentity: 'cis',
-        pronouns: 'She/Her/Hers',
+        pronouns: 'she-her-hers',
         userType: 'teacher',
         photoUrl: '',
         createdAt: new Date(),
@@ -38,7 +38,7 @@ module.exports = {
         firstName: 'Ben',
         birthDate: new Date('2000-05-15'),
         genderIdentity: 'cis',
-        pronouns: 'He/Him/His',
+        pronouns: 'he-him-his',
         userType: 'student',
         photoUrl: '',
         createdAt: new Date(),
@@ -51,7 +51,7 @@ module.exports = {
         firstName: 'Paige',
         birthDate: new Date('2001-05-16'),
         genderIdentity: 'cis',
-        pronouns: 'She/Her/Hers',
+        pronouns: 'she-her-hers',
         userType: 'student',
         photoUrl: '',
         createdAt: new Date(),
@@ -65,7 +65,7 @@ module.exports = {
         firstName: 'Michelle',
         birthDate: new Date('1985-05-15'),
         genderIdentity: 'cis',
-        pronouns: 'She/Her/Hers',
+        pronouns: 'she-her-hers',
         userType: 'admin',
         photoUrl: '',
         createdAt: new Date(),
@@ -77,8 +77,8 @@ module.exports = {
         lastName: 'Traub',
         firstName: 'Liz',
         birthDate: new Date('1965-05-16'),
-        genderIdentity: 'Cis',
-        pronouns: 'She/Her/Hers',
+        genderIdentity: 'cis',
+        pronouns: 'she-her-hers',
         userType: 'admin',
         photoUrl: '',
         createdAt: new Date(),
@@ -138,5 +138,9 @@ module.exports = {
     await queryInterface.bulkDelete('student_details', null, {});
     await queryInterface.bulkDelete('teacher_details', null, {});
     await queryInterface.bulkDelete('admin_details', null, {});
+    await queryInterface.bulkDelete('users', null, {});
+    
+    await queryInterface.sequelize.query('ALTER SEQUENCE users_id_seq RESTART WITH 1');
+
   }
 };

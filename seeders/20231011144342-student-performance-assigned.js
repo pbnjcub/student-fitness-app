@@ -2,53 +2,47 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    return queryInterface.bulkInsert('student_performance_grades', [
+    return queryInterface.bulkInsert('student_assigned_performance_test', [
       {
         performanceTypeId: 1,
         teacherUserId: 1,
         studentUserId: 3,
-        date_taken: new Date(),
-        grade: 5.5,
+        date_assigned: new Date(),
       },
       {
         performanceTypeId: 2,
         teacherUserId: 2,
         studentUserId: 3,
-        date_taken: new Date(),
-        grade: 600,
+        date_assigned: new Date(),
       },
       {
         performanceTypeId: 3,
         teacherUserId: 1,
         studentUserId: 3,
-        date_taken: new Date(),
-        grade: 25,
+        date_assigned: new Date(),
       },
       {
         performanceTypeId: 1,
         teacherUserId: 1,
         studentUserId: 4,
-        date_taken: new Date(),
-        grade: 6.2,
+        date_assigned: new Date(),
       },
       {
         performanceTypeId: 2,
         teacherUserId: 2,
         studentUserId: 4,
-        date_taken: new Date(),
-        grade: 500,
+        date_assigned: new Date(),
       },
       {
         performanceTypeId: 3,
         teacherUserId: 2,
         studentUserId: 4,
-        date_taken: new Date(),
-        grade: 18,
+        date_assigned: new Date(),
       },
     ], {});
   },
 
   down: async (queryInterface, Sequelize) => {
-    return queryInterface.bulkDelete('student_performance_grades', null, {});
+    return queryInterface.bulkDelete('student_assigned_performance_test', null, {});
   }
 };

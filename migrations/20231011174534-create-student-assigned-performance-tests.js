@@ -2,7 +2,7 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('student_assigned_performance_tests', {
+    await queryInterface.createTable('student_assigned_performance_test', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -56,17 +56,17 @@ module.exports = {
     });
 
     // Add the unique constraint on performanceTypeId and userId.
-    await queryInterface.addConstraint('student_assigned_performance_tests', {
+    await queryInterface.addConstraint('student_assigned_performance_test', {
       fields: ['performanceTypeId', 'studentUserId'],
       type: 'unique',
-      name: 'unique_performanceTypeId_studentUserId'
+      name: 'unique_constraint_assigned'
     });
   },
 
   async down(queryInterface, Sequelize) {
     // Remove the unique constraint during the rollback
-    await queryInterface.removeConstraint('student_assigned_performance_tests', 'unique_performanceTypeId_studentUserId');
+    await queryInterface.removeConstraint('student_assigned_performance_test', 'unique_constraint_assigned');
 
-    await queryInterface.dropTable('student_assigned_performance_tests');
+    await queryInterface.dropTable('student_assigned_performance_test');
   }
 };
