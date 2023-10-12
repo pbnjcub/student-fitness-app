@@ -8,6 +8,23 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+function userDTO(user) {
+  return {
+      id: user.id,
+      email: user.email,
+      lastName: user.lastName,
+      firstName: user.firstName,
+      birthDate: user.birthDate,
+      genderIdentity: user.genderIdentity,
+      pronouns: user.pronouns,
+      userType: user.userType,
+      photoUrl: user.photoUrl,
+      isArchived: user.isArchived,
+      dateArchived: user.dateArchived
+  };
+}
+
+
 router.post('/register', async (req, res) => {
   const { email, password, lastName, firstName, birthDate, userType } = req.body;
 
@@ -27,7 +44,9 @@ router.post('/register', async (req, res) => {
       genderIdentity,
       pronouns,
       userType,
-      photoUrl
+      photoUrl,
+      isArchived,
+      dateArchived
     });
 
     switch (userType) {
@@ -55,7 +74,7 @@ router.post('/register', async (req, res) => {
         break;
     }
 
-    res.status(201).json(user);
+    res.status(201).json(userDTO(user));
   } catch (err) {
     console.error('Error when registering user:', err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -90,7 +109,7 @@ router.get('/users', async (req, res) => {
     });
 
     const modifiedUsers = users.map(user => {
-      const { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, photoUrl, studentDetails, studentAnthro, teacherDetails, adminDetails } = user;
+      const { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, photoUrl, isArchived, dateArchived, studentDetails, studentAnthro, teacherDetails, adminDetails } = user;
 
       let details = {};
       switch (userType) {
@@ -116,7 +135,7 @@ router.get('/users', async (req, res) => {
           break;
       }
 
-      return { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, photoUrl, ...details };
+      return { id, email, lastName, firstName, birthDate, genderIdentity, pronouns, userType, photoUrl, isArchived, dateArchived, ...details };
     });
 
     res.json(modifiedUsers);
@@ -153,7 +172,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
             });
 
             if (created) {
-              newUsers.push(user);
+              newUsers.push(userDTO(user));
 
               switch (userData.userType) {
                 case 'student':
