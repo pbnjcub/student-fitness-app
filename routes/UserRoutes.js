@@ -65,25 +65,28 @@ router.post('/register', async (req, res) => {
 router.get('/users', async (req, res) => {
   try {
     const users = await User.findAll({
-      include: [{
-        model: StudentDetail,
-        as: 'studentDetails',
-        required: false
-      },
-      {
-        model: StudentAnthro,
-        as: 'studentAnthro',
-        required: false
-      },
-      {
-        model: TeacherDetail,
-        as: 'teacherDetails',
-        required: false
-      }, {
-        model: AdminDetail,
-        as: 'adminDetails',
-        required: false
-      }]
+      include: [
+        {
+          model: StudentDetail,
+          as: 'studentDetails',
+          required: false
+        },
+        {
+          model: StudentAnthro,
+          as: 'studentAnthro',
+          required: false
+        },
+        {
+          model: TeacherDetail,
+          as: 'teacherDetails',
+          required: false
+        }, 
+        {
+          model: AdminDetail,
+          as: 'adminDetails',
+          required: false
+        }
+      ]
     });
 
     const modifiedUsers = users.map(user => {
@@ -93,7 +96,10 @@ router.get('/users', async (req, res) => {
       switch (userType) {
         case 'student':
           if (studentDetails) {
-            details = { ...studentDetails.toJSON(), ...studentAnthro ? studentAnthro.toJSON() : {} };
+            details = {
+              ...studentDetails.toJSON(),
+              ...studentAnthro ? studentAnthro.toJSON() : {}
+            };
           }
           break;
         case 'teacher':
@@ -197,6 +203,77 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     console.error('Error in /upload:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
+
+  router.post('/users/bulk-edit', upload.single('file'), async (req, res) => {
+    try {
+        const buffer = req.file.buffer;
+        const content = buffer.toString();
+
+        Papa.parse(content, {
+            header: true,
+            dynamicTyping: true,
+            complete: async (results) => {
+                const transaction = await sequelize.transaction();
+
+                try {
+                    for (const userData of results.data) {
+                        const user = await User.findByPk(userData.id, { transaction });
+
+                        if (!user) {
+                            throw new Error(`User with ID ${userData.id} not found`);
+                        }
+
+                        // Update main user fields based on what's provided
+                        for (let field in userData) {
+                            if (userData[field] && field !== 'id') {
+                                user[field] = userData[field];
+                            }
+                        }
+
+                        await user.save({ transaction });
+
+                        switch (user.userType) {
+                            case 'student':
+                                if (userData.gradYear) {
+                                    const studentDetail = await StudentDetail.findOne({ where: { userId: userData.id }, transaction });
+                                    studentDetail.gradYear = userData.gradYear;
+                                    await studentDetail.save({ transaction });
+                                }
+                                break;
+
+                            case 'teacher':
+                            case 'admin':
+                                const detailModel = user.userType === 'teacher' ? TeacherDetail : AdminDetail;
+                                const details = await detailModel.findOne({ where: { userId: userData.id }, transaction });
+                                if (userData.yearsExp) details.yearsExp = userData.yearsExp;
+                                if (userData.bio) details.bio = userData.bio;
+                                await details.save({ transaction });
+                                break;
+                        }
+
+                    }
+
+                    await transaction.commit();
+                    res.status(200).json({ success: 'Bulk update from CSV successful' });
+
+                } catch (error) {
+                    await transaction.rollback();
+                    console.error('Error processing CSV for bulk update:', error);
+                    res.status(500).json({ error: 'Internal Server Error' });
+                }
+            },
+            error: (error) => {
+                console.error('Error parsing CSV:', error);
+                res.status(500).json({ error: 'Internal Server Error' });
+            },
+        });
+    } catch (error) {
+        console.error('Error in /users/bulk-edit:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+
 });
 
 module.exports = router;

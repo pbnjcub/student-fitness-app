@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const { sequelize } = require('../models');  // Ensure you import the sequelize instance.
-const { User, StudentDetail, StudentAnthro } = require('../models');
+const { User, StudentDetail, StudentAnthro, StudentAssignedPerformanceTest, StudentPerformanceGrade } = require('../models');
 
 // Retrieve all student users
 router.get('/students', async (req, res) => {
@@ -18,6 +18,14 @@ router.get('/students', async (req, res) => {
       {
         model: StudentAnthro,
         as: 'studentAnthro'
+      },
+      {
+        model: StudentAssignedPerformanceTest,
+        as: 'studentAssignedPerformanceTest'
+      },
+      {
+        model: StudentPerformanceGrade,
+        as: 'studentPerformanceGrade'
       }]
     });
 

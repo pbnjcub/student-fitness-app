@@ -126,20 +126,20 @@ module.exports = (db) => {
 
   console.log("Setting up StudentPerformanceType-StudentPerformanceGrade association.");
   db.StudentPerformanceType.hasMany(db.StudentPerformanceGrade, {
-    foreignKey: 'studentPerformanceTypeId',
-    as: 'studentPerformanceGrade'
+    foreignKey: 'performanceTypeId',
+    as: 'performanceGrade'
   });
   db.StudentPerformanceGrade.belongsTo(db.StudentPerformanceType, {
-    foreignKey: 'studentPerformanceTypeId'
+    foreignKey: 'performanceTypeId'
   });
 
   console.log("Setting up StudentPerformanceType-StudentPerformanceGradeHistory association.");
   db.StudentPerformanceType.hasMany(db.StudentPerformanceGradesHistory, {
-    foreignKey: 'studentPerformanceTypeId',
-    as: 'studentPerformanceGradeHistory'
+    foreignKey: 'performanceTypeId',
+    as: 'performanceGradeHistory'
   });
   db.StudentPerformanceGradesHistory.belongsTo(db.StudentPerformanceType, {
-    foreignKey: 'studentPerformanceTypeId'
+    foreignKey: 'performanceTypeId'
   });
 
   console.log("Setting up StudentPerformanceType-StudentAssignedPerformanceTest association.");

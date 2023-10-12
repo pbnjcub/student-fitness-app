@@ -49,6 +49,10 @@ module.exports = {
         allowNull: false,
         defaultValue: 0.00
       },
+      comment: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,

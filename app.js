@@ -64,19 +64,8 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something went wrong!');
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  db.sequelize.sync({force: true})
-    .then(() => {
-      app.listen(port, () => {
-        console.log(`Backend is listening at http://localhost:${port}`);
-      });
-    })
-    .catch(err => {
-      console.error('Error syncing database:', err);
-    });
-} else {
-  app.listen(port, () => {
-    console.log(`Backend is listening at http://localhost:${port}`);
-  });
-}
+app.listen(port, () => {
+  console.log(`Backend is listening at http://localhost:${port}`);
+});
+
 

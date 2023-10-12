@@ -9,6 +9,9 @@ module.exports = {
         studentUserId: 3,
         date_taken: new Date(),
         grade: 5.5,
+        comment: 'Good job!',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         performanceTypeId: 2,
@@ -16,6 +19,9 @@ module.exports = {
         studentUserId: 3,
         date_taken: new Date(),
         grade: 600,
+        comment: 'Great job!',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         performanceTypeId: 3,
@@ -23,6 +29,9 @@ module.exports = {
         studentUserId: 3,
         date_taken: new Date(),
         grade: 25,
+        comment: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         performanceTypeId: 1,
@@ -30,6 +39,9 @@ module.exports = {
         studentUserId: 4,
         date_taken: new Date(),
         grade: 6.2,
+        comment: 'Good job!',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         performanceTypeId: 2,
@@ -37,6 +49,9 @@ module.exports = {
         studentUserId: 4,
         date_taken: new Date(),
         grade: 500,
+        comment: 'Great job!',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         performanceTypeId: 3,
@@ -44,6 +59,9 @@ module.exports = {
         studentUserId: 4,
         date_taken: new Date(),
         grade: 18,
+        comment: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ], {});
   },

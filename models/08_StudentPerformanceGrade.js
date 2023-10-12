@@ -43,7 +43,11 @@ module.exports = (sequelize) => {
             type: DataTypes.DECIMAL(5, 2),
             allowNull: false,
             defaultValue: 0.00
-        }
+        },
+        comment: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+        },
     }, { 
         sequelize, 
         modelName: 'StudentPerformanceGrade', 
