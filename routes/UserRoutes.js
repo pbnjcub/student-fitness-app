@@ -9,22 +9,76 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 //helper functions
+
+function userDTO(user) {
+  return {
+      id: user.id,
+      email: user.email,
+      lastName: user.lastName,
+      firstName: user.firstName,
+      birthDate: user.birthDate,
+      genderIdentity: user.genderIdentity,
+      pronouns: user.pronouns,
+      userType: user.userType,
+      photoUrl: user.photoUrl,
+      isArchived: user.isArchived,
+      dateArchived: user.dateArchived
+  };
+}
+
+const checkRequired = (userData) => {
+  const { email, password, lastName, firstName, birthDate, userType } = userData;
+
+  //checking for required values
+  if (!email) return 'Email is required';
+  if (!password) return 'Password is required';
+  if (!lastName) return 'Last name is required';
+  if (!firstName) return 'First name is required';
+  if (!birthDate) return 'Birth date is required';
+  if (!userType) return 'User type is required';
+
+  return true;
+}
 async function createUser(userData, transaction = null) {
-  console.log("createUser function hit")
+  console.log("Attempting to create user with data:", userData);
+
   const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-  const user = await User.create({
-      ...userData,
-      password: hashedPassword
-  }, { transaction });
-  console.log("user", user)
+  const mainUserData = {
+      email: userData.email,
+      password: hashedPassword,
+      lastName: userData.lastName,
+      firstName: userData.firstName,
+      birthDate: userData.birthDate,
+      userType: userData.userType,
+      photoUrl: userData.photoUrl,
+      isArchived: userData.isArchived || false,
+      dateArchived: userData.dateArchived || null
+  };
 
+  console.log("Main user data:", mainUserData);
+
+  const [user, created] = await User.findOrCreate({
+      where: { email: userData.email },
+      defaults: mainUserData,
+      transaction
+  });
+
+  if (!created) {
+      console.log("User with email:", userData.email, "already exists.");
+      return null;
+  }
+
+  console.log("User with data successfully created:", user);
+
+  // Create user details
   switch (userData.userType) {
       case 'student':
           await StudentDetail.create({
               userId: user.id,
               gradYear: userData.gradYear || null
           }, { transaction });
+          console.log("Student details created for user:", user.toJSON());
           break;
       case 'teacher':
           await TeacherDetail.create({
@@ -32,6 +86,7 @@ async function createUser(userData, transaction = null) {
               yearsExp: userData.yearsExp || null,
               bio: userData.bio || null
           }, { transaction });
+          console.log("Teacher details created for user:", user.toJSON());
           break;
       case 'admin':
           await AdminDetail.create({
@@ -39,11 +94,187 @@ async function createUser(userData, transaction = null) {
               yearsExp: userData.yearsExp || null,
               bio: userData.bio || null
           }, { transaction });
+          console.log("Admin details created for user:", user.toJSON());
           break;
+      default:
+          console.log("Invalid user type:", user.userType);
+          throw new Error("Invalid user type");
   }
 
   return user;
 }
+
+// async function createUser(userData, transaction = null) {
+//   console.log("Attempting to create user with data:", userData);
+
+//   const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+//   const mainUserData = {
+//       email: userData.email,
+//       password: hashedPassword,
+//       lastName: userData.lastName,
+//       firstName: userData.firstName,
+//       birthDate: userData.birthDate,
+//       userType: userData.userType,
+//       photoUrl: userData.photoUrl,
+//       isArchived: userData.isArchived || false,
+//       dateArchived: userData.dateArchived || null
+//   };
+
+//   console.log("Main user data:", mainUserData);
+
+//   const [user, created] = await User.findOrCreate({
+//       where: { email: userData.email },
+//       defaults: mainUserData,
+//       transaction
+//   });
+
+//   if (!created) {
+//       console.log("User with email:", userData.email, "already exists.");
+//       return null;
+//   }
+
+//   console.log("User with data successfully created:", user);
+//   return user;
+
+// }
+
+// async function createUserDetails(userData, transaction = null) {
+//   console.log("Attempting to create user details for user:", userData.email)
+//   switch (userData.userType) {
+//       case 'student':
+//           await StudentDetail.create({
+//               userId: user.id,
+//               gradYear: userData.gradYear || null
+//           }, { transaction });
+//           console.log("Student details created for user:", user.toJSON());
+//           break;
+//       case 'teacher':
+//           await TeacherDetail.create({
+//               userId: user.id,
+//               yearsExp: userData.yearsExp || null,
+//               bio: userData.bio || null
+//           }, { transaction });
+//           console.log("Teacher details created for user:", user.toJSON());
+//           break;
+//       case 'admin':
+//           await AdminDetail.create({
+//               userId: user.id,
+//               yearsExp: userData.yearsExp || null,
+//               bio: userData.bio || null
+//           }, { transaction });
+//           console.log("Admin details created for user:", user.toJSON());
+//           break;
+//       default:
+//           console.log("Invalid user type:", user.userType);
+//           throw new Error("Invalid user type");
+//   }
+// }
+
+async function detailedUser(newUser) {
+  console.log("New User: ", newUser)
+
+  let userDetails = {};
+
+  console.log( "User ID: ", newUser.id)
+  console.log("User Type: ", newUser.userType)
+
+  const user = await User.findByPk(newUser.id, {
+      include: [
+          {
+              model: StudentDetail,
+              as: 'studentDetails',
+              required: false
+          },
+          {
+              model: StudentAnthro,
+              as: 'studentAnthro',
+              required: false
+          },
+          {
+              model: TeacherDetail,
+              as: 'teacherDetails',
+              required: false
+          },
+          {
+              model: AdminDetail,
+              as: 'adminDetails',
+              required: false
+          }
+      ]
+  });
+
+  console.log("Detailed User data:", user);
+  
+  if (user && user.userType === 'student') {
+      userDetails = {
+          ...user.studentDetails ? user.studentDetails.toJSON() : null,
+          ...user.studentAnthro ? user.studentAnthro.toJSON() : null
+      };
+  } else if (user.userType === 'teacher') {
+      userDetails = {
+          ...user.teacherDetails ? user.teacherDetails.toJSON() : null
+      };
+  } else if (user.userType === 'admin') {
+      userDetails = {
+          ...user.adminDetails ? user.adminDetails.toJSON() : null
+      };
+  }
+
+  return {
+      ...newUser,
+      details: userDetails
+  };
+}
+
+// const processUsers = async (data, transaction) => {
+//   console.log("Starting to process users. Data size:", data.length);
+//   console.log("Data:", data);
+//   const newUsers = [];
+//   const existingUsers = [];
+//   const invalidUsers = [];
+
+//   // Step 1: Validate and create all main users first
+//   for (const userData of data) {
+//       const requiredCheck = checkRequired(userData);
+//       if (requiredCheck !== true) {
+//           invalidUsers.push({ ...userData, error: requiredCheck });
+//           continue;
+//       }
+
+//       const newUser = await createUser(userData, transaction);
+//       if (newUser) {
+//           newUsers.push(newUser);
+//       } else {
+//           existingUsers.push(userData);
+//       }
+//   }
+
+//   // If there are any invalid or existing users, we rollback and exit the function
+//   if (invalidUsers.length > 0 || existingUsers.length > 0) {
+//     console.log("Transaction rollback due to invalid or existing users.");
+//     await transaction.rollback();
+//     throw { existingUsers, invalidUsers };
+//   }
+
+//   // Step 2: Create the user details for each of the new main users created.
+//   for (const userData of data) {
+//       await createUserDetails(userData, transaction);
+//   }
+
+//   // Step 3: Commit the transaction
+//   console.log("Transaction commit after successful processing of users.");
+//   await transaction.commit();
+
+//   // Convert the new users to a detailed user format
+//   const detailedUsers = await Promise.all(newUsers.map(async (user) => {
+//       return await detailedUser(user);
+//   }));
+
+//   return detailedUsers;
+// };
+
+
 
 async function hashPassword(password) {
   return await bcrypt.hash(password, 10);
@@ -63,209 +294,174 @@ async function updateUserDetails(user, userData, transaction) {
   }
 }
 
-function userDTO(user) {
-  return {
-      id: user.id,
-      email: user.email,
-      lastName: user.lastName,
-      firstName: user.firstName,
-      birthDate: user.birthDate,
-      genderIdentity: user.genderIdentity,
-      pronouns: user.pronouns,
-      userType: user.userType,
-      photoUrl: user.photoUrl,
-      isArchived: user.isArchived,
-      dateArchived: user.dateArchived
-  };
-}
+
 
 
 //routes
-router.post('/register', async (req, res) => {
-  const { email, password, lastName, firstName, birthDate, genderIdentity, pronouns, photoUrl, userType, isArchived, dateArchived, gradYear, yearsExp, bio } = req.body;
-
-  if (!email || !password || !lastName || !firstName || !birthDate || !userType) {
-    return res.status(400).json({ error: 'All fields are required' });
-  }
-
+//create user
+router.post('/users/register', async (req, res) => {
   try {
+    // 1. Check for required fields.
+    const requiredCheck = checkRequired(req.body);
+    if (requiredCheck !== true) {
+      return res.status(400).json({ error: requiredCheck });
+    }
+
+    // 2. Create the main user.
     const user = await createUser(req.body);
-    res.status(201).json(userDTO(user));
+
+    if (user) {
+      // 3. Create user details if user was successfully created.
+      // await createUserDetails(user, req.body);
+      
+      // Return a response with the detailed user data.
+      const mainUserData = userDTO(user);
+      const userWithDetails = await detailedUser(mainUserData);
+      return res.status(201).json(userWithDetails);
+    } else {
+      return res.status(409).json({ error: 'User already exists' });
+    }
+
   } catch (err) {
-    res.status(500).json({ error: 'Internal Server Error' });
+    if (err.message === "User already exists.") {
+      return res.status(409).json({ error: err.message });
+    } else if (err.message === "Invalid user type") {
+      return res.status(400).json({ error: err.message });
+    }
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
+
+
+//get users
 router.get('/users', async (req, res) => {
   try {
-    const users = await User.findAll({
-      include: [
-        {
-          model: StudentDetail,
-          as: 'studentDetails',
-          required: false
-        },
-        {
-          model: StudentAnthro,
-          as: 'studentAnthro',
-          required: false
-        },
-        {
-          model: TeacherDetail,
-          as: 'teacherDetails',
-          required: false
-        }, 
-        {
-          model: AdminDetail,
-          as: 'adminDetails',
-          required: false
-        }
-      ]
-    });
+    const users = await User.findAll();
+    const mainUsers = [];
 
-    const detailedUsers = users.map(user => {
-      const mainUserData = userDTO(user);
-      let userDetails = {};
+    for (const user of users) {
+      mainUsers.push(userDTO(user));
+    }
 
-      if (user.userType === 'student') {
-        userDetails = {
-          ...user.studentDetails ? user.studentDetails.toJSON() : null,
-          ...user.studentAnthro ? user.studentAnthro.toJSON() : null
-        };
-      } else if (user.userType === 'teacher') {
-        userDetails = {
-          ...user.teacherDetails ? user.teacherDetails.toJSON() : null
-        };
-      } else if (user.userType === 'admin') {
-        userDetails = {
-          ...user.adminDetails ? user.adminDetails.toJSON() : null
-        };
-      }
+    const detailedUsers = [];
 
-      return {
-        ...mainUserData,
-        details: userDetails
-      };
-    });
-
+    for (const user of mainUsers) {
+      detailedUsers.push(await detailedUser(user));
+    }
+  
     res.json(detailedUsers);
   } catch (err) {
     res.status(500).send('Server error');
   }
 });
 
-// router.post('/users/upload', upload.single('file'), async (req, res) => {
-//   console.log("upload route hit");
-//   let transaction = null;  // Initialize transaction with null
-//   try {
-//       const buffer = req.file.buffer;
-//       const content = buffer.toString();
-//       console.log("content", content);
+//bulk upload
+router.post('/users/upload', upload.single('file'), async (req, res) => {
+  console.log("Bulk upload route triggered.");
 
-//       const results = await new Promise((resolve, reject) => {
-//           Papa.parse(content, {
-//               header: true,
-//               dynamicTyping: true,
-//               complete: resolve,
-//               error: reject
-//           });
-//       });
+  try {
+      const buffer = req.file.buffer;
+      const content = buffer.toString();
 
-//       console.log("results", results);
-//       transaction = await sequelize.transaction();  // Set the transaction here
-//       console.log("Transaction state:", transaction.finished);
+      let parsingError = null;
+      const newUsers = [];
 
-//       // ... (rest of your code)
+      Papa.parse(content, {
+          header: true,
+          dynamicTyping: true,
+          complete: async (results) => {
+              const transaction = await sequelize.transaction();
+              try {
+                  for (const userData of results.data) {
+                      const requiredCheck = checkRequired(userData);
+                      if (requiredCheck !== true) {
+                          throw new Error(requiredCheck);
+                      } else {
+                          const newUser = await createUser(userData, transaction);
+                          if (!newUser) {
+                              throw new Error(`User with email ${userData.email} already exists`);
+                          } else {
+                              newUsers.push(newUser);
+                          }
+                      }
+                  }
+                  await transaction.commit();
+                  console.log("New Users: ", newUsers);
+                  res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
+              } catch (error) {
+                  await transaction.rollback(); // Rollback the transaction if there's an error
+                  parsingError = error;
+              }
+          }
+      });
 
-//       await transaction.commit();
-//       res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
+      if (parsingError) {
+          console.error('Error:', parsingError.message);
+          res.status(500).json({ error: 'Internal Server Error' });
+      }
 
-//   } catch (error) {
-//       if (transaction) {
-//           await transaction.rollback();
+  } catch (error) {
+      console.error('Error:', error.message);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+                
+
+//       console.log("PapaParse completed with results data size:", results.data.length);
+
+//       const transaction = await sequelize.transaction();
+//       try {
+//           const newUsers = await processUsers(results.data, transaction);
+//           await transaction.commit();  // Moved commit here for clarity
+//           res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
+//       } catch (error) {
+//           console.log("Error while processing PapaParse results:", error.message);
+//           await transaction.rollback();  // Ensure we rollback here
+
+//           if (error.existingUsers || error.invalidUsers) {
+//               return res.status(409).json({ error: 'Some users had issues', ...error });
+//           }
+//           throw error;
 //       }
+//   } catch (error) {
 //       console.error('Error:', error.message);
 //       res.status(500).json({ error: 'Internal Server Error' });
 //   }
 // });
+// router.post('/users/upload', upload.single('file'), async (req, res) => {
+//   console.log("Bulk upload route triggered.");
 
+//   try {
+//       const buffer = req.file.buffer;
+//       const content = buffer.toString();
 
+//       const results = Papa.parse(content, {
+//           header: true,
+//           dynamicTyping: true
+//       });
 
-router.post('/users/upload', upload.single('file'), async (req, res) => {
-  console.log("upload route hit")
-  try {
-    const buffer = req.file.buffer;
-    const content = buffer.toString();
+//       console.log("PapaParse completed with results data size:", results.data.length);
 
-    console.log("content", content);  
-    Papa.parse(content, {
-      header: true,
-      dynamicTyping: true,
-      complete: async (results) => {
-        console.log("results", results);
-        const transaction = await sequelize.transaction();
-        console.log("Transaction state:", transaction.finished);
+//       const transaction = await sequelize.transaction();
+//       try {
+//           const newUsers = await processUsers(results.data, transaction);
+//           await transaction.commit();  // Moved commit here for clarity
+//           res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
+//       } catch (error) {
+//           console.log("Error while processing PapaParse results:", error.message);
+//           await transaction.rollback();  // Ensure we rollback here
 
-        try {
-          const newUsers = [];
-
-          for (const userData of results.data) {
-            const hashedPassword = await bcrypt.hash(userData.password, 10);
-
-            const [user, created] = await User.findOrCreate({
-              where: { email: userData.email },
-              defaults: {
-                ...userData,
-                password: hashedPassword
-              },
-              transaction
-            });
-
-            if (created) {
-              newUsers.push(userDTO(user));
-
-              switch (userData.userType) {
-                case 'student':
-                  await StudentDetail.create({
-                    userId: user.id,
-                    gradYear: userData.gradYear || null
-                  }, { transaction });
-                  break;
-
-                case 'teacher':
-                  await TeacherDetail.create({
-                    userId: user.id,
-                    yearsExp: userData.yearsExp || null,
-                    bio: userData.bio || null
-                  }, { transaction });
-                  break;
-
-                case 'admin':
-                  await AdminDetail.create({
-                    userId: user.id,
-                    yearsExp: userData.yearsExp || null,
-                    bio: userData.bio || null
-                  }, { transaction });
-                  break;
-              }
-            }
-          }
-
-          await transaction.commit();
-          res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
-
-        } catch (error) {
-          await transaction.rollback();
-          res.status(500).json({ error: 'Internal Server Error' });
-          console.error('Error:', error.message)
-        }
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal Server Error' });
-    console.error('Error:', error.message)
-  }
-});
+//           if (error.existingUsers || error.invalidUsers) {
+//               return res.status(409).json({ error: 'Some users had issues', ...error });
+//           }
+//           throw error;
+//       }
+//   } catch (error) {
+//       console.error('Error:', error.message);
+//       res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// });
 
 router.patch('/users/:id', async (req, res) => {
   const { id } = req.params;
@@ -405,6 +601,24 @@ router.post('/users/bulk-edit', upload.single('file'), (req, res, next) => {
       });
   } catch (err) {
       res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+//delete user by id
+router.delete('/users/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findByPk(id);
+
+    if (!user) {
+      return res.status(404).json({ error: `User with ID ${id} not found` });
+    }
+
+    await user.destroy();
+    res.status(204).json("User successfully deleted");
+  } catch (err) {
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
