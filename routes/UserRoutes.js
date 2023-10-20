@@ -29,16 +29,19 @@ function userDTO(user) {
 const checkRequired = (userData) => {
   const { email, password, lastName, firstName, birthDate, userType } = userData;
 
-  //checking for required values
-  if (!email) return 'Email is required';
-  if (!password) return 'Password is required';
-  if (!lastName) return 'Last name is required';
-  if (!firstName) return 'First name is required';
-  if (!birthDate) return 'Birth date is required';
-  if (!userType) return 'User type is required';
+  const missingFields = [];
+  
+  if (!email) missingFields.push('Email');
+  if (!password) missingFields.push('Password');
+  if (!lastName) missingFields.push('Last name');
+  if (!firstName) missingFields.push('First name');
+  if (!birthDate) missingFields.push('Birth date');
+  if (!userType) missingFields.push('User type');
 
-  return true;
+  return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
 }
+
+
 async function createUser(userData, transaction = null) {
   console.log("Attempting to create user with data:", userData);
 
@@ -104,73 +107,6 @@ async function createUser(userData, transaction = null) {
   return user;
 }
 
-// async function createUser(userData, transaction = null) {
-//   console.log("Attempting to create user with data:", userData);
-
-//   const hashedPassword = await bcrypt.hash(userData.password, 10);
-
-//   const mainUserData = {
-//       email: userData.email,
-//       password: hashedPassword,
-//       lastName: userData.lastName,
-//       firstName: userData.firstName,
-//       birthDate: userData.birthDate,
-//       userType: userData.userType,
-//       photoUrl: userData.photoUrl,
-//       isArchived: userData.isArchived || false,
-//       dateArchived: userData.dateArchived || null
-//   };
-
-//   console.log("Main user data:", mainUserData);
-
-//   const [user, created] = await User.findOrCreate({
-//       where: { email: userData.email },
-//       defaults: mainUserData,
-//       transaction
-//   });
-
-//   if (!created) {
-//       console.log("User with email:", userData.email, "already exists.");
-//       return null;
-//   }
-
-//   console.log("User with data successfully created:", user);
-//   return user;
-
-// }
-
-// async function createUserDetails(userData, transaction = null) {
-//   console.log("Attempting to create user details for user:", userData.email)
-//   switch (userData.userType) {
-//       case 'student':
-//           await StudentDetail.create({
-//               userId: user.id,
-//               gradYear: userData.gradYear || null
-//           }, { transaction });
-//           console.log("Student details created for user:", user.toJSON());
-//           break;
-//       case 'teacher':
-//           await TeacherDetail.create({
-//               userId: user.id,
-//               yearsExp: userData.yearsExp || null,
-//               bio: userData.bio || null
-//           }, { transaction });
-//           console.log("Teacher details created for user:", user.toJSON());
-//           break;
-//       case 'admin':
-//           await AdminDetail.create({
-//               userId: user.id,
-//               yearsExp: userData.yearsExp || null,
-//               bio: userData.bio || null
-//           }, { transaction });
-//           console.log("Admin details created for user:", user.toJSON());
-//           break;
-//       default:
-//           console.log("Invalid user type:", user.userType);
-//           throw new Error("Invalid user type");
-//   }
-// }
-
 async function detailedUser(newUser) {
   console.log("New User: ", newUser)
 
@@ -226,55 +162,6 @@ async function detailedUser(newUser) {
       details: userDetails
   };
 }
-
-// const processUsers = async (data, transaction) => {
-//   console.log("Starting to process users. Data size:", data.length);
-//   console.log("Data:", data);
-//   const newUsers = [];
-//   const existingUsers = [];
-//   const invalidUsers = [];
-
-//   // Step 1: Validate and create all main users first
-//   for (const userData of data) {
-//       const requiredCheck = checkRequired(userData);
-//       if (requiredCheck !== true) {
-//           invalidUsers.push({ ...userData, error: requiredCheck });
-//           continue;
-//       }
-
-//       const newUser = await createUser(userData, transaction);
-//       if (newUser) {
-//           newUsers.push(newUser);
-//       } else {
-//           existingUsers.push(userData);
-//       }
-//   }
-
-//   // If there are any invalid or existing users, we rollback and exit the function
-//   if (invalidUsers.length > 0 || existingUsers.length > 0) {
-//     console.log("Transaction rollback due to invalid or existing users.");
-//     await transaction.rollback();
-//     throw { existingUsers, invalidUsers };
-//   }
-
-//   // Step 2: Create the user details for each of the new main users created.
-//   for (const userData of data) {
-//       await createUserDetails(userData, transaction);
-//   }
-
-//   // Step 3: Commit the transaction
-//   console.log("Transaction commit after successful processing of users.");
-//   await transaction.commit();
-
-//   // Convert the new users to a detailed user format
-//   const detailedUsers = await Promise.all(newUsers.map(async (user) => {
-//       return await detailedUser(user);
-//   }));
-
-//   return detailedUsers;
-// };
-
-
 
 async function hashPassword(password) {
   return await bcrypt.hash(password, 10);
@@ -361,107 +248,56 @@ router.post('/users/upload', upload.single('file'), async (req, res) => {
   console.log("Bulk upload route triggered.");
 
   try {
-      const buffer = req.file.buffer;
-      const content = buffer.toString();
+    const buffer = req.file.buffer;
+    const content = buffer.toString();
 
-      let parsingError = null;
-      const newUsers = [];
+    const newUsers = [];
+    const errors = [];
 
-      Papa.parse(content, {
-          header: true,
-          dynamicTyping: true,
-          complete: async (results) => {
-              const transaction = await sequelize.transaction();
+    Papa.parse(content, {
+      header: true,
+      dynamicTyping: true,
+      complete: async (results) => {
+        const transaction = await sequelize.transaction();
+        try {
+          for (const userData of results.data) {
+            const requiredCheck = checkRequired(userData);
+            if (requiredCheck !== true) {
+              errors.push({ userData, error: requiredCheck });
+            } else {
               try {
-                  for (const userData of results.data) {
-                      const requiredCheck = checkRequired(userData);
-                      if (requiredCheck !== true) {
-                          throw new Error(requiredCheck);
-                      } else {
-                          const newUser = await createUser(userData, transaction);
-                          if (!newUser) {
-                              throw new Error(`User with email ${userData.email} already exists`);
-                          } else {
-                              newUsers.push(newUser);
-                          }
-                      }
-                  }
-                  await transaction.commit();
-                  console.log("New Users: ", newUsers);
-                  res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
+                const newUser = await createUser(userData, transaction);
+                if (!newUser) {
+                  errors.push({ userData, error: `User with email ${userData.email} already exists` });
+                } else {
+                  newUsers.push(userDTO(newUser));
+                }
               } catch (error) {
-                  await transaction.rollback(); // Rollback the transaction if there's an error
-                  parsingError = error;
+                errors.push({ userData, error: error.message });
               }
+            }
           }
-      });
-
-      if (parsingError) {
-          console.error('Error:', parsingError.message);
+          if (errors.length > 0) {
+            await transaction.rollback();
+            console.error('Errors:', errors);
+            res.status(400).json({ error: 'Some users could not be processed', details: errors });
+          } else {
+            await transaction.commit();
+            console.log("New Users: ", newUsers);
+            res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
+          }
+        } catch (error) {
+          await transaction.rollback(); // Rollback the transaction if there's an error
+          console.error('Error:', error.message);
           res.status(500).json({ error: 'Internal Server Error' });
+        }
       }
-
+    });
   } catch (error) {
-      console.error('Error:', error.message);
-      res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Error:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-                
-
-//       console.log("PapaParse completed with results data size:", results.data.length);
-
-//       const transaction = await sequelize.transaction();
-//       try {
-//           const newUsers = await processUsers(results.data, transaction);
-//           await transaction.commit();  // Moved commit here for clarity
-//           res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
-//       } catch (error) {
-//           console.log("Error while processing PapaParse results:", error.message);
-//           await transaction.rollback();  // Ensure we rollback here
-
-//           if (error.existingUsers || error.invalidUsers) {
-//               return res.status(409).json({ error: 'Some users had issues', ...error });
-//           }
-//           throw error;
-//       }
-//   } catch (error) {
-//       console.error('Error:', error.message);
-//       res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// });
-// router.post('/users/upload', upload.single('file'), async (req, res) => {
-//   console.log("Bulk upload route triggered.");
-
-//   try {
-//       const buffer = req.file.buffer;
-//       const content = buffer.toString();
-
-//       const results = Papa.parse(content, {
-//           header: true,
-//           dynamicTyping: true
-//       });
-
-//       console.log("PapaParse completed with results data size:", results.data.length);
-
-//       const transaction = await sequelize.transaction();
-//       try {
-//           const newUsers = await processUsers(results.data, transaction);
-//           await transaction.commit();  // Moved commit here for clarity
-//           res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
-//       } catch (error) {
-//           console.log("Error while processing PapaParse results:", error.message);
-//           await transaction.rollback();  // Ensure we rollback here
-
-//           if (error.existingUsers || error.invalidUsers) {
-//               return res.status(409).json({ error: 'Some users had issues', ...error });
-//           }
-//           throw error;
-//       }
-//   } catch (error) {
-//       console.error('Error:', error.message);
-//       res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// });
 
 router.patch('/users/:id', async (req, res) => {
   const { id } = req.params;
