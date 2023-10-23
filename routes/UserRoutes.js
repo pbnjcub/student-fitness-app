@@ -43,7 +43,6 @@ const checkRequired = (userData) => {
 
 
 async function createUser(userData, transaction = null) {
-  console.log("Attempting to create user with data:", userData);
 
   const hashedPassword = await bcrypt.hash(userData.password, 10);
 
@@ -59,8 +58,6 @@ async function createUser(userData, transaction = null) {
       dateArchived: userData.dateArchived || null
   };
 
-  console.log("Main user data:", mainUserData);
-
   const [user, created] = await User.findOrCreate({
       where: { email: userData.email },
       defaults: mainUserData,
@@ -68,11 +65,8 @@ async function createUser(userData, transaction = null) {
   });
 
   if (!created) {
-      console.log("User with email:", userData.email, "already exists.");
       return null;
   }
-
-  console.log("User with data successfully created:", user);
 
   // Create user details
   switch (userData.userType) {
@@ -81,7 +75,6 @@ async function createUser(userData, transaction = null) {
               userId: user.id,
               gradYear: userData.gradYear || null
           }, { transaction });
-          console.log("Student details created for user:", user.toJSON());
           break;
       case 'teacher':
           await TeacherDetail.create({
@@ -89,7 +82,6 @@ async function createUser(userData, transaction = null) {
               yearsExp: userData.yearsExp || null,
               bio: userData.bio || null
           }, { transaction });
-          console.log("Teacher details created for user:", user.toJSON());
           break;
       case 'admin':
           await AdminDetail.create({
@@ -97,10 +89,8 @@ async function createUser(userData, transaction = null) {
               yearsExp: userData.yearsExp || null,
               bio: userData.bio || null
           }, { transaction });
-          console.log("Admin details created for user:", user.toJSON());
           break;
       default:
-          console.log("Invalid user type:", user.userType);
           throw new Error("Invalid user type");
   }
 
@@ -108,12 +98,8 @@ async function createUser(userData, transaction = null) {
 }
 
 async function detailedUser(newUser) {
-  console.log("New User: ", newUser)
 
   let userDetails = {};
-
-  console.log( "User ID: ", newUser.id)
-  console.log("User Type: ", newUser.userType)
 
   const user = await User.findByPk(newUser.id, {
       include: [
@@ -139,8 +125,6 @@ async function detailedUser(newUser) {
           }
       ]
   });
-
-  console.log("Detailed User data:", user);
   
   if (user && user.userType === 'student') {
       userDetails = {
@@ -188,26 +172,16 @@ async function updateUserDetails(user, userData, transaction) {
 //create user
 router.post('/users/register', async (req, res) => {
   try {
-    // 1. Check for required fields.
     const requiredCheck = checkRequired(req.body);
     if (requiredCheck !== true) {
       return res.status(400).json({ error: requiredCheck });
     }
 
-    // 2. Create the main user.
     const user = await createUser(req.body);
+    const mainUserData = userDTO(user);
+    const userWithDetails = await detailedUser(mainUserData);
 
-    if (user) {
-      // 3. Create user details if user was successfully created.
-      // await createUserDetails(user, req.body);
-      
-      // Return a response with the detailed user data.
-      const mainUserData = userDTO(user);
-      const userWithDetails = await detailedUser(mainUserData);
-      return res.status(201).json(userWithDetails);
-    } else {
-      return res.status(409).json({ error: 'User already exists' });
-    }
+    return res.status(201).json(userWithDetails);
 
   } catch (err) {
     if (err.message === "User already exists.") {
@@ -218,6 +192,7 @@ router.post('/users/register', async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
@@ -279,28 +254,27 @@ router.post('/users/upload', upload.single('file'), async (req, res) => {
           }
           if (errors.length > 0) {
             await transaction.rollback();
-            console.error('Errors:', errors);
             res.status(400).json({ error: 'Some users could not be processed', details: errors });
           } else {
             await transaction.commit();
-            console.log("New Users: ", newUsers);
             res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
           }
         } catch (error) {
           await transaction.rollback(); // Rollback the transaction if there's an error
-          console.error('Error:', error.message);
           res.status(500).json({ error: 'Internal Server Error' });
         }
       }
     });
   } catch (error) {
-    console.error('Error:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
+//edit user by id
 router.patch('/users/:id', async (req, res) => {
+
   const { id } = req.params;
+
   const {
       email, password, lastName, firstName, birthDate, genderIdentity,
       pronouns, photoUrl, userType, isArchived, dateArchived, gradYear, yearsExp, bio
@@ -315,17 +289,17 @@ router.patch('/users/:id', async (req, res) => {
 
       // Prepare an object to hold the updated values
       const updatedValues = {};
-      if (email !== user.email) updatedValues.email = email;
-      if (password && password !== user.password) updatedValues.password = await hashPassword(password);
-      if (lastName !== user.lastName) updatedValues.lastName = lastName;
-      if (firstName !== user.firstName) updatedValues.firstName = firstName;
-      if (birthDate !== user.birthDate) updatedValues.birthDate = birthDate;
-      if (genderIdentity !== user.genderIdentity) updatedValues.genderIdentity = genderIdentity;
-      if (pronouns !== user.pronouns) updatedValues.pronouns = pronouns;
-      if (photoUrl !== user.photoUrl) updatedValues.photoUrl = photoUrl;
-      if (userType !== user.userType) updatedValues.userType = userType;
-      if (isArchived !== user.isArchived) updatedValues.isArchived = isArchived;
-      if (dateArchived !== user.dateArchived) updatedValues.dateArchived = dateArchived;
+      if (email && email !== user.email) updatedValues.email = email;
+      if (password) updatedValues.password = await hashPassword(password);
+      if (lastName && lastName !== user.lastName) updatedValues.lastName = lastName;
+      if (firstName && firstName !== user.firstName) updatedValues.firstName = firstName;
+      if (birthDate && birthDate !== user.birthDate) updatedValues.birthDate = birthDate;
+      if (genderIdentity && genderIdentity !== user.genderIdentity) updatedValues.genderIdentity = genderIdentity;
+      if (pronouns && pronouns !== user.pronouns) updatedValues.pronouns = pronouns;
+      if (photoUrl && photoUrl !== user.photoUrl) updatedValues.photoUrl = photoUrl;
+      if (userType && userType !== user.userType) updatedValues.userType = userType;
+      if (isArchived !== undefined && isArchived !== user.isArchived) updatedValues.isArchived = isArchived;
+      if (dateArchived && dateArchived !== user.dateArchived) updatedValues.dateArchived = dateArchived;
 
       await user.update(updatedValues);
 
@@ -333,19 +307,21 @@ router.patch('/users/:id', async (req, res) => {
       switch (userType) {
           case 'student':
               userDetails = await user.getStudentDetails();
-              if (gradYear !== userDetails.gradYear) {
+              if (gradYear && gradYear !== userDetails.gradYear) {
                   await userDetails.update({ gradYear });
               }
               break;
           case 'teacher':
               userDetails = await user.getTeacherDetails();
-              if (yearsExp !== userDetails.yearsExp || bio !== userDetails.bio) {
+              if ((yearsExp && yearsExp !== userDetails.yearsExp) || (bio && bio !== userDetails.bio)) {
                   await userDetails.update({ yearsExp, bio });
               }
               break;
           case 'admin':
               userDetails = await user.getAdminDetails();
-              // You can add conditions here if admin has specific fields
+              if ((yearsExp && yearsExp !== userDetails.yearsExp) || (bio && bio !== userDetails.bio)) {
+                await userDetails.update({ yearsExp, bio });
+            }
               break;
       }
 
@@ -358,87 +334,6 @@ router.patch('/users/:id', async (req, res) => {
   }
 });
 
-
-
-router.post('/users/bulk-edit', upload.single('file'), (req, res, next) => {
-  if (!req.file || !req.file.buffer) {
-      return res.status(400).json({ error: 'No file uploaded' });
-  }
-  next();
-}, async (req, res) => {
-  try {
-      const buffer = req.file.buffer;
-      const content = buffer.toString();
-
-      let editedUsers = [];
-
-      Papa.parse(content, {
-          header: true,
-          dynamicTyping: true,
-          complete: async (results) => {
-              const transaction = await sequelize.transaction();
-              try {
-                  for (const userData of results.data) {
-                      userData.id = parseInt(userData.id);
-                      if (isNaN(userData.id)) {
-                          throw new Error(`Invalid ID ${userData.id} provided in CSV`);
-                      }
-
-                      const user = await User.findByPk(userData.id, { transaction });
-                      if (!user) {
-                          throw new Error(`User with ID ${userData.id} not found`);
-                      }
-
-                      if (userData.password) {
-                          userData.password = await bcrypt.hash(userData.password, 10);
-                      }
-
-                      // Remove unchanged fields
-                      for (const key in userData) {
-                          if (userData[key] === null || userData[key] === user[key]) {
-                              delete userData[key];
-                          }
-                      }
-
-                      await user.update(userData, { transaction });
-
-                      let userDetails = {};
-                      switch (user.userType) {
-                          case 'student':
-                              userDetails = await user.getStudentDetails({ transaction });
-                              if (userData.gradYear !== userDetails.gradYear) {
-                                  await userDetails.update({ gradYear }, { transaction });
-                              }
-                              break;
-                          case 'teacher':
-                              userDetails = await user.getTeacherDetails({ transaction });
-                              if (userData.yearsExp !== userDetails.yearsExp || userData.bio !== userDetails.bio) {
-                                  await userDetails.update({ yearsExp: userData.yearsExp, bio: userData.bio }, { transaction });
-                              }
-                              break;
-                          case 'admin':
-                              userDetails = await user.getAdminDetails({ transaction });
-                              // You can add conditions here if admin has specific fields
-                              break;
-                      }
-
-                      editedUsers.push({
-                          ...userDTO(user),
-                          details: userDetails
-                      });
-                  }
-                  await transaction.commit();
-                  res.status(200).json({ success: 'File processed successfully', editedUsers });
-              } catch (err) {
-                  await transaction.rollback();
-                  res.status(500).json({ error: err.message });
-              }
-          }
-      });
-  } catch (err) {
-      res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
 
 //delete user by id
 router.delete('/users/:id', async (req, res) => {

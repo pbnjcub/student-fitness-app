@@ -1,8 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const { sequelize } = require('../models');  // Ensure you import the sequelize instance.
-const { User, StudentDetail, StudentAnthro, StudentAssignedPerformanceTest, StudentPerformanceGrade } = require('../models');
+const { sequelize } = require('../models'); 
+const { User, StudentDetail, StudentAnthro, StudentHistAnthro, StudentAssignedPerformanceTest, StudentPerformanceGrade } = require('../models');
+
+function userDTO(user) {
+  return {
+      id: user.id,
+      email: user.email,
+      lastName: user.lastName,
+      firstName: user.firstName,
+      birthDate: user.birthDate,
+      genderIdentity: user.genderIdentity,
+      pronouns: user.pronouns,
+      userType: user.userType,
+      photoUrl: user.photoUrl,
+      isArchived: user.isArchived,
+      dateArchived: user.dateArchived
+  };
+}
 
 // Retrieve all student users
 router.get('/students', async (req, res) => {
@@ -11,6 +27,33 @@ router.get('/students', async (req, res) => {
       where: {
         userType: 'student'
       },
+      include: [{
+        model: StudentDetail,
+        as: 'studentDetails'
+      }]
+    });
+
+    const studentsDTO = students.map(student => {
+      const studentDTO = userDTO(student);
+      studentDTO.studentDetails = student.studentDetails;
+      return studentDTO;
+    });
+
+    res.json(studentsDTO);
+
+  } catch (err) {
+    console.error('Error fetching students:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+
+//get student by id
+router.get('/students/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const student = await User.findByPk(id, {
       include: [{
         model: StudentDetail,
         as: 'studentDetails'
@@ -29,24 +72,93 @@ router.get('/students', async (req, res) => {
       }]
     });
 
-    res.json(students);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    if (student.userType !== 'student') {
+      return res.status(404).json({ error: 'User is not a student' });
+    }
+
+    const studentDTO = userDTO(student);
+    studentDTO.studentDetails = student.studentDetails;
+    studentDTO.studentAnthro = student.studentAnthro;
+    studentDTO.studentAssignedPerformanceTest = student.studentAssignedPerformanceTest;
+    studentDTO.studentPerformanceGrade = student.studentPerformanceGrade;
+
+    res.json(studentDTO);
+
   } catch (err) {
-    console.error('Error fetching students:', err);
+    console.error('Error fetching student:', err);
     res.status(500).send('Server error');
   }
 });
 
-// Other student-specific routes can go here...
+// create student anthro
+router.post('/students/:id/add-anthro', async (req, res) => {
+  console.log('hit create student anthro')
+  const student_id = req.params.id;
+  const studentAnthro = req.body;
+
+  if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
+
+  try {
+    const student = await User.findByPk(student_id);
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Check if a studentAnthro entry exists
+    const existingStudentAnthro = await StudentAnthro.findOne({
+      where: {
+        studentUserId: student_id,
+      },
+    });
+
+    if (existingStudentAnthro) {
+      // Create a new entry in StudentHistAnthro with the existing data
+      await StudentHistAnthro.create({
+        originalAnthroId: existingStudentAnthro.id,
+        teacherUserId: existingStudentAnthro.teacher_id,
+        studentUserId: existingStudentAnthro.student_id,
+        date_recorded: existingStudentAnthro.date_recorded,
+        height: existingStudentAnthro.height,
+        weight: existingStudentAnthro.weight,
+      });
+
+      // Update the existing studentAnthro entry with the new data
+      const updatedStudentAnthro = await existingStudentAnthro.update(studentAnthro);
+      res.status(200).json(updatedStudentAnthro);
+    } else {
+      // Add teacher and student IDs to the studentAnthro data
+      const newStudentAnthroData = {
+        ...studentAnthro,
+        teacherUserId: studentAnthro.teacherUserId,
+        studentUserId: student_id,
+      };
+
+      // Create a new studentAnthro entry
+      const newStudentAnthro = await StudentAnthro.create(newStudentAnthroData);
+      res.status(201).json(newStudentAnthro);
+    }
+
+  } catch (err) {
+    console.error('Error creating or updating student anthro:', err);
+    res.status(500).send('Server error');
+  }
+});
+
 
 router.patch('/students/:id', async (req, res) => {
-  const { id } = req.params; // Extracting student ID from the route parameter.
-  const { password, studentDetails } = req.body; // Extracting password and studentDetails from the request body.
+  const { id } = req.params;
+  const { password, studentDetails } = req.body;
 
   if (!id) return res.status(400).json({ error: 'Student ID is required' });
 
   try {
     const transaction = await sequelize.transaction();
-    // Find the student by ID and include the associated StudentDetail.
+
     const student = await User.findByPk(id, {
       include: [{
         model: StudentDetail,
