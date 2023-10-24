@@ -1,8 +1,13 @@
 const express = require('express');
-const router = express.Router();
 const bcrypt = require('bcrypt');
-const { sequelize } = require('../models'); 
-const { User, StudentDetail, StudentAnthro, StudentHistAnthro, StudentAssignedPerformanceTest, StudentPerformanceGrade } = require('../models');
+const multer = require('multer');
+const Papa = require('papaparse');
+
+const { User, StudentDetail, StudentAnthro, StudentHistAnthro, StudentAssignedPerformanceTest, StudentPerformanceGrade, sequelize } = require('../models');
+
+const router = express.Router();
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 function userDTO(user) {
   return {
@@ -18,6 +23,31 @@ function userDTO(user) {
       isArchived: user.isArchived,
       dateArchived: user.dateArchived
   };
+}
+
+function newAnthroDTO(anthro) {
+  return {
+    id: anthro.id,
+    teacherUserId: anthro.teacherUserId,
+    studentUserId: anthro.studentUserId,
+    date_recorded: anthro.date_recorded,
+    height: anthro.height,
+    weight: anthro.weight
+  };
+}
+
+const checkRequiredAnthro = (anthroData) => {
+  const { teacherUserId, studentUserId, date_recorded, height, weight } = anthroData;
+
+  const missingFields = [];
+  
+  if (!teacherUserId) missingFields.push('Teacher ID');
+  if (!studentUserId) missingFields.push('Student ID');
+  if (!date_recorded) missingFields.push('Date Recorded');
+  if (!height) missingFields.push('Height');
+  if (!weight) missingFields.push('Weight');
+
+  return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
 }
 
 // Retrieve all student users
@@ -96,7 +126,6 @@ router.get('/students/:id', async (req, res) => {
 
 // create student anthro
 router.post('/students/:id/add-anthro', async (req, res) => {
-  console.log('hit create student anthro')
   const student_id = req.params.id;
   const studentAnthro = req.body;
 
@@ -118,6 +147,7 @@ router.post('/students/:id/add-anthro', async (req, res) => {
 
     if (existingStudentAnthro) {
       // Create a new entry in StudentHistAnthro with the existing data
+
       await StudentHistAnthro.create({
         originalAnthroId: existingStudentAnthro.id,
         teacherUserId: existingStudentAnthro.teacher_id,
@@ -140,13 +170,64 @@ router.post('/students/:id/add-anthro', async (req, res) => {
 
       // Create a new studentAnthro entry
       const newStudentAnthro = await StudentAnthro.create(newStudentAnthroData);
-      res.status(201).json(newStudentAnthro);
+      res.status(201).json(newAnthroDTO(newStudentAnthro));
     }
 
   } catch (err) {
     console.error('Error creating or updating student anthro:', err);
     res.status(500).send('Server error');
   }
+});
+
+router.post('/students/upload-anthro', upload.single('file'), async (req, res) => {
+  try {
+    const buffer = req.file.buffer;
+    const content = buffer.toString();
+
+    const newAnthros = [];
+    const errors = [];
+
+    Papa.parse(content, {
+      header: true,
+      dynamicTyping: true,
+      complete: async (results) => {
+        const transaction = await sequelize.transaction();
+        try {
+          for (const anthroData of results.data) {
+            const requiredCheckAnthro = checkRequiredAnthro(anthroData);
+            if (requiredCheckAnthro !== true) {
+              errors.push(`Row ${anthroData.row}: ${requiredCheckAnthro}`);
+              continue;
+            } else {
+              try {
+                const newAnthro = await StudentAnthro.create(anthroData, transaction);
+                if (!newAnthro) {
+                  errors.push(`Row ${anthroData.row}: Error creating student anthro`);
+                } else {
+                  newAnthros.push(newAnthroDTO(newAnthro));
+              }
+            } catch (error) {
+              errors.push(`Row ${anthroData.row}: ${error.message}`);
+            }
+          }
+        }
+        if (errors.length > 0) {
+          await transaction.rollback();
+          res.status(400).json({ errors });
+        } else {
+          await transaction.commit();
+          res.status(201).json({ newAnthros });
+        }
+      } catch (error) {
+        await transaction.rollback();
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    }
+  });
+} catch (error) {
+  console.error('Error uploading student anthro:', error);
+  res.status(500).json({ error: 'Internal Server Error' });
+}
 });
 
 
