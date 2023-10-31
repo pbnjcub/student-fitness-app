@@ -34,7 +34,7 @@ module.exports = (sequelize) => {
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE'
         },
-        date_taken: {
+        dateTaken: {
             type: DataTypes.DATEONLY,
             allowNull: false,
             defaultValue: DataTypes.NOW // Sets the default value to the current date

@@ -1,10 +1,11 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
-const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize } = require('../models');
 const Papa = require('papaparse');
-const router = express.Router();
 
+const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize } = require('../models');
+
+const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -41,9 +42,13 @@ const checkRequired = (userData) => {
   return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
 }
 
-
 async function createUser(userData, transaction = null) {
-
+  const requiredCheck = checkRequired(userData);
+  
+  if (requiredCheck) {
+    throw new Error(requiredCheck); // Throw an error if required fields are missing.
+  }
+  
   const hashedPassword = await bcrypt.hash(userData.password, 10);
 
   const mainUserData = {
@@ -151,22 +156,6 @@ async function hashPassword(password) {
   return await bcrypt.hash(password, 10);
 }
 
-async function updateUserDetails(user, userData, transaction) {
-  switch (user.userType) {
-      case 'student':
-          await user.getStudentDetails({ transaction }).then(details => details.update(userData, { transaction }));
-          break;
-      case 'teacher':
-          await user.getTeacherDetails({ transaction }).then(details => details.update(userData, { transaction }));
-          break;
-      case 'admin':
-          await user.getAdminDetails({ transaction }).then(details => details.update(userData, { transaction }));
-          break;
-  }
-}
-
-
-
 
 //routes
 //create user
@@ -220,7 +209,6 @@ router.get('/users', async (req, res) => {
 
 //bulk upload
 router.post('/users/upload', upload.single('file'), async (req, res) => {
-  console.log("Bulk upload route triggered.");
 
   try {
     const buffer = req.file.buffer;

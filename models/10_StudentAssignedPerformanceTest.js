@@ -34,7 +34,7 @@ module.exports = (sequelize) => {
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE'
         },
-        date_assigned: {
+        dateAssigned: {
             type: DataTypes.DATEONLY,
             allowNull: true,
         },

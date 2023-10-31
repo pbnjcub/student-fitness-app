@@ -30,20 +30,20 @@ function newAnthroDTO(anthro) {
     id: anthro.id,
     teacherUserId: anthro.teacherUserId,
     studentUserId: anthro.studentUserId,
-    date_recorded: anthro.date_recorded,
+    dateRecorded: anthro.dateRecorded,
     height: anthro.height,
     weight: anthro.weight
   };
 }
 
 const checkRequiredAnthro = (anthroData) => {
-  const { teacherUserId, studentUserId, date_recorded, height, weight } = anthroData;
+  const { teacherUserId, studentUserId, dateRecorded, height, weight } = anthroData;
 
   const missingFields = [];
   
   if (!teacherUserId) missingFields.push('Teacher ID');
   if (!studentUserId) missingFields.push('Student ID');
-  if (!date_recorded) missingFields.push('Date Recorded');
+  if (!dateRecorded) missingFields.push('Date Recorded');
   if (!height) missingFields.push('Height');
   if (!weight) missingFields.push('Weight');
 
@@ -131,6 +131,11 @@ router.post('/students/:id/add-anthro', async (req, res) => {
 
   if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
 
+  const requiredCheckAnthro = checkRequiredAnthro(studentAnthro);
+  if (requiredCheckAnthro !== true) {
+    return res.status(400).json({ error: requiredCheckAnthro });
+  }
+
   try {
     const student = await User.findByPk(student_id);
 
@@ -152,7 +157,7 @@ router.post('/students/:id/add-anthro', async (req, res) => {
         originalAnthroId: existingStudentAnthro.id,
         teacherUserId: existingStudentAnthro.teacher_id,
         studentUserId: existingStudentAnthro.student_id,
-        date_recorded: existingStudentAnthro.date_recorded,
+        dateRecorded: existingStudentAnthro.dateRecorded,
         height: existingStudentAnthro.height,
         weight: existingStudentAnthro.weight,
       });
@@ -183,7 +188,6 @@ router.post('/students/upload-anthro', upload.single('file'), async (req, res) =
   try {
     const buffer = req.file.buffer;
     const content = buffer.toString();
-
     const newAnthros = [];
     const errors = [];
 
@@ -194,41 +198,102 @@ router.post('/students/upload-anthro', upload.single('file'), async (req, res) =
         const transaction = await sequelize.transaction();
         try {
           for (const anthroData of results.data) {
+            // Look up the student ID based on the email address
+            const student = await User.findOne({ where: { email: anthroData.email } });
+            if (!student) {
+              errors.push(`No student found with email ${anthroData.email}`);
+              continue;
+            }
+
+            // Add the student ID to the anthroData object
+            anthroData.studentUserId = parseInt(student.id);
             const requiredCheckAnthro = checkRequiredAnthro(anthroData);
             if (requiredCheckAnthro !== true) {
-              errors.push(`Row ${anthroData.row}: ${requiredCheckAnthro}`);
+              errors.push(`${anthroData.firstName} ${anthroData.lastName}: ${requiredCheckAnthro}`);
               continue;
             } else {
               try {
-                const newAnthro = await StudentAnthro.create(anthroData, transaction);
+                const newAnthro = await StudentAnthro.create(anthroData, { transaction });
                 if (!newAnthro) {
-                  errors.push(`Row ${anthroData.row}: Error creating student anthro`);
+                  errors.push(`${anthroData.firstName} ${anthroData.lastName}: Error creating student anthro`);
                 } else {
                   newAnthros.push(newAnthroDTO(newAnthro));
+                }
+              } catch (error) {
+                errors.push(`${anthroData.email}: ${error.message}`);
               }
-            } catch (error) {
-              errors.push(`Row ${anthroData.row}: ${error.message}`);
             }
           }
-        }
-        if (errors.length > 0) {
+          if (errors.length > 0) {
+            await transaction.rollback();
+            res.status(400).json({ errors });
+          } else {
+            await transaction.commit();
+            res.status(201).json({ newAnthros });
+          }
+        } catch (error) {
           await transaction.rollback();
-          res.status(400).json({ errors });
-        } else {
-          await transaction.commit();
-          res.status(201).json({ newAnthros });
+          res.status(500).json({ error: 'Internal Server Error' });
         }
-      } catch (error) {
-        await transaction.rollback();
-        res.status(500).json({ error: 'Internal Server Error' });
       }
-    }
-  });
-} catch (error) {
-  console.error('Error uploading student anthro:', error);
-  res.status(500).json({ error: 'Internal Server Error' });
-}
+    });
+  } catch (error) {
+    console.error('Error uploading student anthro:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
+
+
+// router.post('/students/upload-anthro', upload.single('file'), async (req, res) => {
+//   try {
+//     const buffer = req.file.buffer;
+//     const content = buffer.toString();
+
+//     const newAnthros = [];
+//     const errors = [];
+
+//     Papa.parse(content, {
+//       header: true,
+//       dynamicTyping: true,
+//       complete: async (results) => {
+//         const transaction = await sequelize.transaction();
+//         try {
+//           for (const anthroData of results.data) {
+//             const requiredCheckAnthro = checkRequiredAnthro(anthroData);
+//             if (requiredCheckAnthro !== true) {
+//               errors.push(`${anthroData.firstName} ${anthroData.lastName}: ${requiredCheckAnthro}`);
+//               continue;
+//             } else {
+//               try {
+//                 const newAnthro = await StudentAnthro.create(anthroData, transaction);
+//                 if (!newAnthro) {
+//                   errors.push(`${anthroData.firstName} ${anthroData.lastName}: Error creating student anthro`);
+//                 } else {
+//                   newAnthros.push(newAnthroDTO(newAnthro));
+//               }
+//             } catch (error) {
+//               errors.push(`Row ${anthroData.row}: ${error.message}`);
+//             }
+//           }
+//         }
+//         if (errors.length > 0) {
+//           await transaction.rollback();
+//           res.status(400).json({ errors });
+//         } else {
+//           await transaction.commit();
+//           res.status(201).json({ newAnthros });
+//         }
+//       } catch (error) {
+//         await transaction.rollback();
+//         res.status(500).json({ error: 'Internal Server Error' });
+//       }
+//     }
+//   });
+// } catch (error) {
+//   console.error('Error uploading student anthro:', error);
+//   res.status(500).json({ error: 'Internal Server Error' });
+// }
+// });
 
 
 router.patch('/students/:id', async (req, res) => {

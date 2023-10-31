@@ -1,11 +1,11 @@
 'use strict';
 
 module.exports = {
-  up: async (queryInterface, Sequelize) => {
-    await queryInterface.renameColumn('StudentAnthros', 'date_recorded', 'dateRecorded');
+  async up(queryInterface, Sequelize) {
+    await queryInterface.renameColumn('student_anthros', 'date_recorded', 'dateRecorded');
   },
 
-  down: async (queryInterface, Sequelize) => {
-    await queryInterface.renameColumn('StudentAnthros', 'dateRecorded', 'date_recorded');
+  async down(queryInterface, Sequelize) {
+    await queryInterface.renameColumn('student_anthros', 'dateRecorded', 'date_recorded');
   }
 };

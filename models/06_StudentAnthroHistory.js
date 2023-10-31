@@ -34,7 +34,7 @@ module.exports = (sequelize) => {
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE'
     },
-    date_recorded: {
+    dateRecorded: {
       type: DataTypes.DATEONLY, // Use DATEONLY if you only want to store the date without time.
       allowNull: false,
       defaultValue: DataTypes.NOW  // Default value set to today's date.
