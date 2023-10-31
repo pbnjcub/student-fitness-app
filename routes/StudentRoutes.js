@@ -93,6 +93,10 @@ router.get('/students/:id', async (req, res) => {
         as: 'studentAnthro'
       },
       {
+        model: StudentHistAnthro,
+        as: 'studentHistAnthro'
+      },
+      {
         model: StudentAssignedPerformanceTest,
         as: 'studentAssignedPerformanceTest'
       },
@@ -113,6 +117,7 @@ router.get('/students/:id', async (req, res) => {
     const studentDTO = userDTO(student);
     studentDTO.studentDetails = student.studentDetails;
     studentDTO.studentAnthro = student.studentAnthro;
+    studentDTO.studentHistAnthro = student.studentHistAnthro;
     studentDTO.studentAssignedPerformanceTest = student.studentAssignedPerformanceTest;
     studentDTO.studentPerformanceGrade = student.studentPerformanceGrade;
 
@@ -124,7 +129,37 @@ router.get('/students/:id', async (req, res) => {
   }
 });
 
-// create student anthro
+//check if anthro exists for student
+router.post('/students/:id/check-anthro', async (req, res) => {
+  const student_id = req.params.id;
+
+  if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
+
+  try {
+    const existingStudentAnthro = await StudentAnthro.findOne({
+      where: {
+        studentUserId: student_id,
+      },
+    });
+
+    if (existingStudentAnthro) {
+      return res.status(200).json({
+        warning: true,
+        message: `This student's anthro was last updated on ${existingStudentAnthro.dateRecorded}. Do you want to proceed?`,
+      });
+    } else {
+      return res.status(200).json({
+        warning: false,
+        message: 'No existing anthro record found for this student.',
+      });
+    }
+  } catch (err) {
+    console.error('Error checking for existing student anthro:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+//add new student anthro and send existing anthro to history
 router.post('/students/:id/add-anthro', async (req, res) => {
   const student_id = req.params.id;
   const studentAnthro = req.body;
@@ -152,11 +187,10 @@ router.post('/students/:id/add-anthro', async (req, res) => {
 
     if (existingStudentAnthro) {
       // Create a new entry in StudentHistAnthro with the existing data
-
       await StudentHistAnthro.create({
         originalAnthroId: existingStudentAnthro.id,
-        teacherUserId: existingStudentAnthro.teacher_id,
-        studentUserId: existingStudentAnthro.student_id,
+        teacherUserId: existingStudentAnthro.teacherUserId,
+        studentUserId: existingStudentAnthro.studentUserId,
         dateRecorded: existingStudentAnthro.dateRecorded,
         height: existingStudentAnthro.height,
         weight: existingStudentAnthro.weight,
@@ -177,12 +211,72 @@ router.post('/students/:id/add-anthro', async (req, res) => {
       const newStudentAnthro = await StudentAnthro.create(newStudentAnthroData);
       res.status(201).json(newAnthroDTO(newStudentAnthro));
     }
-
   } catch (err) {
     console.error('Error creating or updating student anthro:', err);
     res.status(500).send('Server error');
   }
 });
+
+
+// create student anthro
+// router.post('/students/:id/add-anthro', async (req, res) => {
+//   const student_id = req.params.id;
+//   const studentAnthro = req.body;
+
+//   if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
+
+//   const requiredCheckAnthro = checkRequiredAnthro(studentAnthro);
+//   if (requiredCheckAnthro !== true) {
+//     return res.status(400).json({ error: requiredCheckAnthro });
+//   }
+
+//   try {
+//     const student = await User.findByPk(student_id);
+
+//     if (!student) {
+//       return res.status(404).json({ error: 'Student not found' });
+//     }
+
+//     // Check if a studentAnthro entry exists
+//     const existingStudentAnthro = await StudentAnthro.findOne({
+//       where: {
+//         studentUserId: student_id,
+//       },
+//     });
+
+//     if (existingStudentAnthro) {
+//       // Create a new entry in StudentHistAnthro with the existing data
+
+//       await StudentHistAnthro.create({
+//         originalAnthroId: existingStudentAnthro.id,
+//         teacherUserId: existingStudentAnthro.teacher_id,
+//         studentUserId: existingStudentAnthro.student_id,
+//         dateRecorded: existingStudentAnthro.dateRecorded,
+//         height: existingStudentAnthro.height,
+//         weight: existingStudentAnthro.weight,
+//       });
+
+//       // Update the existing studentAnthro entry with the new data
+//       const updatedStudentAnthro = await existingStudentAnthro.update(studentAnthro);
+//       res.status(200).json(updatedStudentAnthro);
+//     } else {
+//       // Add teacher and student IDs to the studentAnthro data
+//       const newStudentAnthroData = {
+//         ...studentAnthro,
+//         teacherUserId: studentAnthro.teacherUserId,
+//         studentUserId: student_id,
+//       };
+
+//       // Create a new studentAnthro entry
+//       const newStudentAnthro = await StudentAnthro.create(newStudentAnthroData);
+//       res.status(201).json(newAnthroDTO(newStudentAnthro));
+//     }
+
+//   } catch (err) {
+//     console.error('Error creating or updating student anthro:', err);
+//     res.status(500).send('Server error');
+//   }
+// });
 
 router.post('/students/upload-anthro', upload.single('file'), async (req, res) => {
   try {
