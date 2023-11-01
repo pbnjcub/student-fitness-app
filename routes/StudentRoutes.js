@@ -50,6 +50,18 @@ const checkRequiredAnthro = (anthroData) => {
   return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
 }
 
+//find student anthro by student id
+const findAnthroById = async (student_id) => {
+  const existingAnthro = await StudentAnthro.findOne({
+    where: {
+      studentUserId: student_id,
+    },
+  });
+
+  return existingAnthro;
+};
+
+
 // Retrieve all student users
 router.get('/students', async (req, res) => {
   try {
@@ -136,11 +148,7 @@ router.post('/students/:id/check-anthro', async (req, res) => {
   if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
 
   try {
-    const existingStudentAnthro = await StudentAnthro.findOne({
-      where: {
-        studentUserId: student_id,
-      },
-    });
+    const existingStudentAnthro = await findAnthroById(student_id);
 
     if (existingStudentAnthro) {
       return res.status(200).json({
@@ -150,7 +158,7 @@ router.post('/students/:id/check-anthro', async (req, res) => {
     } else {
       return res.status(200).json({
         warning: false,
-        message: 'No existing anthro record found for this student.',
+        message: 'No existing anthro record found for this student. This will be the initial record.',
       });
     }
   } catch (err) {
@@ -158,6 +166,7 @@ router.post('/students/:id/check-anthro', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
+
 
 //add new student anthro and send existing anthro to history
 router.post('/students/:id/add-anthro', async (req, res) => {
@@ -279,11 +288,9 @@ router.post('/students/upload-anthro', upload.single('file'), async (req, res) =
 
 //update anthro
 router.patch('/students/:id/edit-anthro', async (req, res) => {
-  console.log('Inside edit anthro route')
   const student_id = req.params.id;
-  console.log('student_id', student_id)
   const studentAnthro = req.body;
-  console.log('studentAnthro', studentAnthro)
+  
   if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
 
   const requiredCheckAnthro = checkRequiredAnthro(studentAnthro);
