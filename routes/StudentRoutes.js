@@ -218,66 +218,6 @@ router.post('/students/:id/add-anthro', async (req, res) => {
 });
 
 
-// create student anthro
-// router.post('/students/:id/add-anthro', async (req, res) => {
-//   const student_id = req.params.id;
-//   const studentAnthro = req.body;
-
-//   if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
-
-//   const requiredCheckAnthro = checkRequiredAnthro(studentAnthro);
-//   if (requiredCheckAnthro !== true) {
-//     return res.status(400).json({ error: requiredCheckAnthro });
-//   }
-
-//   try {
-//     const student = await User.findByPk(student_id);
-
-//     if (!student) {
-//       return res.status(404).json({ error: 'Student not found' });
-//     }
-
-//     // Check if a studentAnthro entry exists
-//     const existingStudentAnthro = await StudentAnthro.findOne({
-//       where: {
-//         studentUserId: student_id,
-//       },
-//     });
-
-//     if (existingStudentAnthro) {
-//       // Create a new entry in StudentHistAnthro with the existing data
-
-//       await StudentHistAnthro.create({
-//         originalAnthroId: existingStudentAnthro.id,
-//         teacherUserId: existingStudentAnthro.teacher_id,
-//         studentUserId: existingStudentAnthro.student_id,
-//         dateRecorded: existingStudentAnthro.dateRecorded,
-//         height: existingStudentAnthro.height,
-//         weight: existingStudentAnthro.weight,
-//       });
-
-//       // Update the existing studentAnthro entry with the new data
-//       const updatedStudentAnthro = await existingStudentAnthro.update(studentAnthro);
-//       res.status(200).json(updatedStudentAnthro);
-//     } else {
-//       // Add teacher and student IDs to the studentAnthro data
-//       const newStudentAnthroData = {
-//         ...studentAnthro,
-//         teacherUserId: studentAnthro.teacherUserId,
-//         studentUserId: student_id,
-//       };
-
-//       // Create a new studentAnthro entry
-//       const newStudentAnthro = await StudentAnthro.create(newStudentAnthroData);
-//       res.status(201).json(newAnthroDTO(newStudentAnthro));
-//     }
-
-//   } catch (err) {
-//     console.error('Error creating or updating student anthro:', err);
-//     res.status(500).send('Server error');
-//   }
-// });
-
 router.post('/students/upload-anthro', upload.single('file'), async (req, res) => {
   try {
     const buffer = req.file.buffer;
@@ -337,59 +277,49 @@ router.post('/students/upload-anthro', upload.single('file'), async (req, res) =
   }
 });
 
+//update anthro
+router.patch('/students/:id/edit-anthro', async (req, res) => {
+  console.log('Inside edit anthro route')
+  const student_id = req.params.id;
+  console.log('student_id', student_id)
+  const studentAnthro = req.body;
+  console.log('studentAnthro', studentAnthro)
+  if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
 
-// router.post('/students/upload-anthro', upload.single('file'), async (req, res) => {
-//   try {
-//     const buffer = req.file.buffer;
-//     const content = buffer.toString();
+  const requiredCheckAnthro = checkRequiredAnthro(studentAnthro);
+  if (requiredCheckAnthro !== true) {
+    return res.status(400).json({ error: requiredCheckAnthro });
+  }
 
-//     const newAnthros = [];
-//     const errors = [];
+  try {
+    const student = await User.findByPk(student_id);
 
-//     Papa.parse(content, {
-//       header: true,
-//       dynamicTyping: true,
-//       complete: async (results) => {
-//         const transaction = await sequelize.transaction();
-//         try {
-//           for (const anthroData of results.data) {
-//             const requiredCheckAnthro = checkRequiredAnthro(anthroData);
-//             if (requiredCheckAnthro !== true) {
-//               errors.push(`${anthroData.firstName} ${anthroData.lastName}: ${requiredCheckAnthro}`);
-//               continue;
-//             } else {
-//               try {
-//                 const newAnthro = await StudentAnthro.create(anthroData, transaction);
-//                 if (!newAnthro) {
-//                   errors.push(`${anthroData.firstName} ${anthroData.lastName}: Error creating student anthro`);
-//                 } else {
-//                   newAnthros.push(newAnthroDTO(newAnthro));
-//               }
-//             } catch (error) {
-//               errors.push(`Row ${anthroData.row}: ${error.message}`);
-//             }
-//           }
-//         }
-//         if (errors.length > 0) {
-//           await transaction.rollback();
-//           res.status(400).json({ errors });
-//         } else {
-//           await transaction.commit();
-//           res.status(201).json({ newAnthros });
-//         }
-//       } catch (error) {
-//         await transaction.rollback();
-//         res.status(500).json({ error: 'Internal Server Error' });
-//       }
-//     }
-//   });
-// } catch (error) {
-//   console.error('Error uploading student anthro:', error);
-//   res.status(500).json({ error: 'Internal Server Error' });
-// }
-// });
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Check if a studentAnthro entry exists
+    const existingStudentAnthro = await StudentAnthro.findOne({
+      where: {
+        studentUserId: student_id,
+      },
+    });
+
+    if (existingStudentAnthro) {
+      // Update the existing studentAnthro entry with the new data
+      const updatedStudentAnthro = await existingStudentAnthro.update(studentAnthro);
+      res.status(200).json(updatedStudentAnthro);
+    } else {
+      return res.status(404).json({ error: 'Student anthro not found' });
+    }
+  } catch (err) {
+    console.error('Error updating student anthro:', err);
+    res.status(500).send('Server error');
+  }
+});
 
 
+// Update a student
 router.patch('/students/:id', async (req, res) => {
   const { id } = req.params;
   const { password, studentDetails } = req.body;
