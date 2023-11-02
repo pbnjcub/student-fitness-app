@@ -3,7 +3,7 @@ const { Model, DataTypes } = require('sequelize');
 module.exports = (sequelize) => {
     class StudentAssignedPerformanceTestHistory extends Model { }
 
-    StudentAssignedPerformanceTest.init({
+    StudentAssignedPerformanceTestHistory.init({
         originalAssignedPerformanceTestId: {
             type: DataTypes.INTEGER,
             allowNull: false,

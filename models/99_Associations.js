@@ -7,6 +7,7 @@ const Sequelize = require('sequelize');
 module.exports = (db) => {
   console.log("Contents of the db object:", Object.keys(db));
   
+  //student associations
   console.log("Setting up User-StudentDetail association.");
   db.User.hasOne(db.StudentDetail, {
     foreignKey: 'userId',
@@ -43,24 +44,15 @@ module.exports = (db) => {
     foreignKey: 'studentUserId'
   });
 
-  console.log("Setting up User-StudentPerformanceGrade association.");
-  db.User.hasMany(db.StudentPerformanceGrade, {
+  db.User.hasMany(db.StudentAssignedPerformanceTestHistory, {
     foreignKey: 'studentUserId',
-    as: 'studentPerformanceGrade'
+    as: 'studentAssignedPerformanceTestHistory'
   });
-  db.StudentPerformanceGrade.belongsTo(db.User, {
+  db.StudentAssignedPerformanceTestHistory.belongsTo(db.User, {
     foreignKey: 'studentUserId'
   });
 
-  console.log("Setting up User-StudentPerformanceGradeHistory association.");
-  db.User.hasMany(db.StudentPerformanceGradesHistory, {
-    foreignKey: 'studentUserId',
-    as: 'studentPerformanceGradesHistory'
-  });
-  db.StudentPerformanceGradesHistory.belongsTo(db.User, {
-    foreignKey: 'studentUserId'
-  });
-
+  //teacher associations
   console.log("Setting up User-TeacherDetail association.");
   db.User.hasOne(db.TeacherDetail, {
     foreignKey: 'userId',
@@ -97,24 +89,16 @@ module.exports = (db) => {
     foreignKey: 'teacherUserId'
   });
 
-  console.log("Setting up User-StudentPerformanceGrade for teachers association.");
-  db.User.hasMany(db.StudentPerformanceGrade, {
+  console.log("Setting up User-StudentAssignedPerformanceTest association.");
+  db.User.hasMany(db.StudentAssignedPerformanceTestHistory, {
     foreignKey: 'teacherUserId',
-    as: 'teacherPerformanceGrade'
+    as: 'teacherAssignedPerformanceTestHistory'
   });
-  db.StudentPerformanceGrade.belongsTo(db.User, {
+  db.StudentAssignedPerformanceTestHistory.belongsTo(db.User, {
     foreignKey: 'teacherUserId'
   });
 
-  console.log("Setting up User-StudentPerformanceGradesHistory for teachers association.");
-  db.User.hasMany(db.StudentPerformanceGradesHistory, {
-    foreignKey: 'teacherUserId',
-    as: 'teacherPerformanceGradesHistory'
-  });
-  db.StudentPerformanceGradesHistory.belongsTo(db.User, {
-    foreignKey: 'teacherUserId'
-  });
-
+  //admin associations
   console.log("Setting up User-AdminDetail association.");
   db.User.hasOne(db.AdminDetail, {
     foreignKey: 'userId',
@@ -124,30 +108,47 @@ module.exports = (db) => {
     foreignKey: 'userId'
   });
 
-  console.log("Setting up StudentPerformanceType-StudentPerformanceGrade association.");
-  db.StudentPerformanceType.hasMany(db.StudentPerformanceGrade, {
-    foreignKey: 'performanceTypeId',
-    as: 'performanceGrade'
-  });
-  db.StudentPerformanceGrade.belongsTo(db.StudentPerformanceType, {
-    foreignKey: 'performanceTypeId'
-  });
-
-  console.log("Setting up StudentPerformanceType-StudentPerformanceGradeHistory association.");
-  db.StudentPerformanceType.hasMany(db.StudentPerformanceGradesHistory, {
-    foreignKey: 'performanceTypeId',
-    as: 'performanceGradeHistory'
-  });
-  db.StudentPerformanceGradesHistory.belongsTo(db.StudentPerformanceType, {
-    foreignKey: 'performanceTypeId'
-  });
-
+  //student performance type associations
   console.log("Setting up StudentPerformanceType-StudentAssignedPerformanceTest association.");
   db.StudentPerformanceType.hasMany(db.StudentAssignedPerformanceTest, {
     foreignKey: 'performanceTypeId',
-    as: 'studentAssignedPerformanceTest'
+    as: 'performanceTypeAssignedPerformanceTest'
   });
   db.StudentAssignedPerformanceTest.belongsTo(db.StudentPerformanceType, {
     foreignKey: 'performanceTypeId'
   });
+ 
+  console.log("Setting up StudentPerformanceType-StudentAssignedPerformanceTestHistory association.");
+  db.StudentPerformanceType.hasMany(db.StudentAssignedPerformanceTestHistory, {
+    foreignKey: 'performanceTypeId',
+    as: 'performanceTypeAssignedPerformanceTestHistory'
+  });
+  db.StudentAssignedPerformanceTestHistory.belongsTo(db.StudentPerformanceType, {
+    foreignKey: 'performanceTypeId'
+  });
+
+  //assigned performance test associations
+  console.log("Setting up StudentAssignedPerformanceTest-studentPerformanceGrade association.");
+  db.StudentAssignedPerformanceTest.hasOne(db.StudentPerformanceGrade, {
+    foreignKey: 'assignedPerformanceTestId',
+    as: 'assignedPerformanceGrade'
+  });
+  db.StudentPerformanceGrade.belongsTo(db.StudentAssignedPerformanceTest, {
+    foreignKey: 'assignedPerformanceTestId'
+  });
+
+  //assigned performance test history associations
+  console.log("Setting up StudentAssignedPerformanceTestHistory-studentPerformanceGradeHistory association.");
+  // In the associations file
+  db.StudentAssignedPerformanceTestHistory.hasOne(db.StudentPerformanceGradesHistory, {
+    foreignKey: 'assignedPerformanceTestId',
+    targetKey: 'originalAssignedPerformanceTestId',
+    as: 'assignedPerformanceGradeHistory'
+  });
+  db.StudentPerformanceGradesHistory.belongsTo(db.StudentAssignedPerformanceTestHistory, {
+    foreignKey: 'assignedPerformanceTestId',
+    targetKey: 'originalAssignedPerformanceTestId',
+    as: 'assignedTestHistory'
+  });
+
 };
