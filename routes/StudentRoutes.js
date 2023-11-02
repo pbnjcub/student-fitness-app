@@ -9,6 +9,59 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+//middleware
+const checkStudentId = (req, res, next) => {
+  const student_id = req.params.id;
+  if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
+  next();
+};
+
+//differentiate include by route
+function getIncludeOption(route) {
+  switch(route) {
+    case '/students/:id':
+      return [{
+        model: StudentDetail,
+        as: 'studentDetails'
+      },
+      {
+        model: StudentAnthro,
+        as: 'studentAnthro'
+      },
+      {
+        model: StudentHistAnthro,
+        as: 'studentHistAnthro'
+      },
+      {
+        model: StudentAssignedPerformanceTest,
+        as: 'studentAssignedPerformanceTest'
+      },
+      {
+        model: StudentPerformanceGrade,
+        as: 'studentPerformanceGrade'
+      }];
+    case '/students/:id/add-anthro':
+    case '/students/:id/edit-anthro':
+    case '/students/:id/assign-performance-test':
+      return [];
+    default:
+      return null;
+  }
+}
+
+async function findUserByIdWithInclude(id, route) {
+  const includeOption = getIncludeOption(route);
+  // Handle the case where no additional data is needed
+  if (!includeOption) {
+    const user = await User.findByPk(id);
+    return user;
+  } else {
+    const user = await User.findByPk(id, { include: includeOption });
+    return user;
+  }
+}
+
+//build userDTO
 function userDTO(user) {
   return {
       id: user.id,
@@ -25,6 +78,26 @@ function userDTO(user) {
   };
 }
 
+//build studentDTO
+function buildStudentDTO(student, studentDTO) {
+  if (student.studentDetails) {
+    studentDTO.studentDetails = student.studentDetails;
+  }
+  if (student.studentAnthro) {
+    studentDTO.studentAnthro = student.studentAnthro;
+  }
+  if (student.studentHistAnthro) {
+    studentDTO.studentHistAnthro = student.studentHistAnthro;
+  }
+  if (student.studentAssignedPerformanceTest) {
+    studentDTO.studentAssignedPerformanceTest = student.studentAssignedPerformanceTest;
+  }
+  if (student.studentPerformanceGrade) {
+    studentDTO.studentPerformanceGrade = student.studentPerformanceGrade;
+  }
+}
+
+//build anthroDTO
 function newAnthroDTO(anthro) {
   return {
     id: anthro.id,
@@ -36,6 +109,7 @@ function newAnthroDTO(anthro) {
   };
 }
 
+//check required fields for anthro
 const checkRequiredAnthro = (anthroData) => {
   const { teacherUserId, studentUserId, dateRecorded, height, weight } = anthroData;
 
@@ -47,8 +121,7 @@ const checkRequiredAnthro = (anthroData) => {
   if (!height) missingFields.push('Height');
   if (!weight) missingFields.push('Weight');
 
-  return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
-}
+  return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;}
 
 //find student anthro by student id
 const findAnthroById = async (student_id) => {
@@ -61,6 +134,29 @@ const findAnthroById = async (student_id) => {
   return existingAnthro;
 };
 
+//find latest assigned test by student id and performance type id
+const findLatestAssignedByIdAndType = async (student_id, performanceTypeId) => {
+  const existingAssigned = await StudentAssignedPerformanceTest.findOne({
+    where: {
+      studentUserId: student_id,
+      performanceTypeId: performanceTypeId,
+    },
+    order: [['dateAssigned', 'DESC']]
+  });
+
+  return existingAssigned;
+};
+
+//find grade by test id
+const findGradeByTestId = async (testId) => {
+  const existingGrade = await StudentPerformanceGrade.findOne({
+    where: {
+      assignedPerformanceTestId: testId,
+    },
+  });
+
+  return existingGrade;
+};
 
 // Retrieve all student users
 router.get('/students', async (req, res) => {
@@ -89,34 +185,13 @@ router.get('/students', async (req, res) => {
   }
 });
 
-
 //get student by id
-router.get('/students/:id', async (req, res) => {
+router.get('/students/:id', checkStudentId, async (req, res) => {
   const { id } = req.params;
+  const route = req.route.path;
 
   try {
-    const student = await User.findByPk(id, {
-      include: [{
-        model: StudentDetail,
-        as: 'studentDetails'
-      },
-      {
-        model: StudentAnthro,
-        as: 'studentAnthro'
-      },
-      {
-        model: StudentHistAnthro,
-        as: 'studentHistAnthro'
-      },
-      {
-        model: StudentAssignedPerformanceTest,
-        as: 'studentAssignedPerformanceTest'
-      },
-      {
-        model: StudentPerformanceGrade,
-        as: 'studentPerformanceGrade'
-      }]
-    });
+    const student = await findUserByIdWithInclude(id, route);
 
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
@@ -127,11 +202,7 @@ router.get('/students/:id', async (req, res) => {
     }
 
     const studentDTO = userDTO(student);
-    studentDTO.studentDetails = student.studentDetails;
-    studentDTO.studentAnthro = student.studentAnthro;
-    studentDTO.studentHistAnthro = student.studentHistAnthro;
-    studentDTO.studentAssignedPerformanceTest = student.studentAssignedPerformanceTest;
-    studentDTO.studentPerformanceGrade = student.studentPerformanceGrade;
+    buildStudentDTO(student, studentDTO);
 
     res.json(studentDTO);
 
@@ -142,10 +213,8 @@ router.get('/students/:id', async (req, res) => {
 });
 
 //check if anthro exists for student
-router.post('/students/:id/check-anthro', async (req, res) => {
+router.post('/students/:id/check-anthro', checkStudentId, async (req, res) => {
   const student_id = req.params.id;
-
-  if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
 
   try {
     const existingStudentAnthro = await findAnthroById(student_id);
@@ -167,13 +236,11 @@ router.post('/students/:id/check-anthro', async (req, res) => {
   }
 });
 
-
 //add new student anthro and send existing anthro to history
-router.post('/students/:id/add-anthro', async (req, res) => {
+router.post('/students/:id/add-anthro', checkStudentId, async (req, res) => {
   const student_id = req.params.id;
   const studentAnthro = req.body;
-
-  if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
+  const route = req.route.path;
 
   const requiredCheckAnthro = checkRequiredAnthro(studentAnthro);
   if (requiredCheckAnthro !== true) {
@@ -181,7 +248,7 @@ router.post('/students/:id/add-anthro', async (req, res) => {
   }
 
   try {
-    const student = await User.findByPk(student_id);
+    const student = await await findUserByIdWithInclude(student_id, route);
 
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
@@ -209,10 +276,9 @@ router.post('/students/:id/add-anthro', async (req, res) => {
       const updatedStudentAnthro = await existingStudentAnthro.update(studentAnthro);
       res.status(200).json(updatedStudentAnthro);
     } else {
-      // Add teacher and student IDs to the studentAnthro data
+      // Add student IDs to the studentAnthro data
       const newStudentAnthroData = {
         ...studentAnthro,
-        teacherUserId: studentAnthro.teacherUserId,
         studentUserId: student_id,
       };
 
@@ -225,7 +291,6 @@ router.post('/students/:id/add-anthro', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
-
 
 router.post('/students/upload-anthro', upload.single('file'), async (req, res) => {
   try {
@@ -287,19 +352,18 @@ router.post('/students/upload-anthro', upload.single('file'), async (req, res) =
 });
 
 //update anthro
-router.patch('/students/:id/edit-anthro', async (req, res) => {
+router.patch('/students/:id/edit-anthro', checkStudentId, async (req, res) => {
   const student_id = req.params.id;
   const studentAnthro = req.body;
+  const route = req.route.path;
   
-  if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
-
   const requiredCheckAnthro = checkRequiredAnthro(studentAnthro);
   if (requiredCheckAnthro !== true) {
     return res.status(400).json({ error: requiredCheckAnthro });
   }
 
   try {
-    const student = await User.findByPk(student_id);
+    const student = await findUserByIdWithInclude(student_id, route);
 
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
@@ -321,6 +385,71 @@ router.patch('/students/:id/edit-anthro', async (req, res) => {
     }
   } catch (err) {
     console.error('Error updating student anthro:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+//check if performance test was assigned to student.
+router.post('/students/:id/check-assigned-performance', checkStudentId, async (req, res) => {
+  const student_id = req.params.id;
+
+  try {
+    const existingAssigned = await findLatestAssignedByIdAndType(student_id, req.body.performanceTypeId);
+
+    if (existingAssigned) {
+      // Check if the test has been graded
+      const existingGrade = await findGradeByTestId(existingAssigned.id);
+
+      const dateAssigned = existingAssigned.dateAssigned.toISOString().slice(0, 10);
+
+      if (existingGrade) {
+        return res.status(200).json({
+          warning: true,
+          message: `This student's performance test was last assigned on ${dateAssigned} and has already been graded. Do you want to proceed?`,
+        });
+      } else {
+        return res.status(200).json({
+          warning: true,
+          message: `This student's performance test was last assigned on ${dateAssigned} and is ungraded. Do you want to proceed?`,
+        });
+      }
+    } else {
+      return res.status(200).json({
+        warning: false,
+        message: 'No existing test record found for this student. This will be the initial record.',
+      });
+    }
+  } catch (err) {
+    console.error('Error checking for existing student test:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+
+//assign performance test to student
+router.post('/students/:id/assign-performance-test', checkStudentId, async (req, res) => {
+  const student_id = req.params.id;
+  const performanceTest = req.body;
+  const route = req.route.path;
+
+  try {
+    const student = await findUserByIdWithInclude(student_id, route);
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Add teacher and student IDs to the performanceTest data
+    const newPerformanceTestData = {
+      ...performanceTest,
+      studentUserId: student_id,
+    };
+
+    // Create a new performanceTest entry
+    const newPerformanceTest = await StudentAssignedPerformanceTest.create(newPerformanceTestData);
+    res.status(201).json(newPerformanceTest);
+  } catch (err) {
+    console.error('Error creating student performance test:', err);
     res.status(500).send('Server error');
   }
 });

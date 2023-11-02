@@ -14,31 +14,11 @@ module.exports = (sequelize) => {
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE'
         },
-        performanceTypeId: {
+        assignedPerformanceTestId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'student_performance_types',
-                key: 'id'
-            },
-            onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
-        },
-        teacherUserId: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'users',
-                key: 'id'
-            },
-            onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
-        },
-        studentUserId: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'users',
+                model: 'student_assigned_performance_test',
                 key: 'id'
             },
             onUpdate: 'CASCADE',
