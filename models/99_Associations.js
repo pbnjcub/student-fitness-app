@@ -130,8 +130,8 @@ module.exports = (db) => {
   //assigned performance test associations
   console.log("Setting up StudentAssignedPerformanceTest-studentPerformanceGrade association.");
   db.StudentAssignedPerformanceTest.hasOne(db.StudentPerformanceGrade, {
-    foreignKey: 'assignedPerformanceTestId',
-    as: 'assignedPerformanceGrade'
+    foreignKey: 'assignedPerformanceTestId'
+    // as: 'assignedPerformanceGrade'
   });
   db.StudentPerformanceGrade.belongsTo(db.StudentAssignedPerformanceTest, {
     foreignKey: 'assignedPerformanceTestId'
@@ -139,15 +139,15 @@ module.exports = (db) => {
 
   //assigned performance test history associations
   console.log("Setting up StudentAssignedPerformanceTestHistory-studentPerformanceGradeHistory association.");
-  // In the associations file
+
   db.StudentAssignedPerformanceTestHistory.hasOne(db.StudentPerformanceGradesHistory, {
     foreignKey: 'assignedPerformanceTestId',
-    targetKey: 'originalAssignedPerformanceTestId',
+    targetKey: 'originalPerformanceId',
     as: 'assignedPerformanceGradeHistory'
   });
   db.StudentPerformanceGradesHistory.belongsTo(db.StudentAssignedPerformanceTestHistory, {
     foreignKey: 'assignedPerformanceTestId',
-    targetKey: 'originalAssignedPerformanceTestId',
+    targetKey: 'originalPerformanceId',
     as: 'assignedTestHistory'
   });
 

@@ -4,7 +4,7 @@ module.exports = (sequelize) => {
     class StudentAssignedPerformanceTestHistory extends Model { }
 
     StudentAssignedPerformanceTestHistory.init({
-        originalAssignedPerformanceTestId: {
+        originalPerformanceId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {

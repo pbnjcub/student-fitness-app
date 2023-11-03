@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const multer = require('multer');
 const Papa = require('papaparse');
 
-const { User, StudentDetail, StudentAnthro, StudentHistAnthro, StudentAssignedPerformanceTest, StudentPerformanceGrade, sequelize } = require('../models');
+const { User, StudentDetail, StudentAnthro, StudentHistAnthro, StudentAssignedPerformanceTest, StudentAssignedPerformanceTestHistory, StudentPerformanceGrade, StudentPerformanceGradesHistory, sequelize } = require('../models');
 
 const router = express.Router();
 const storage = multer.memoryStorage();
@@ -18,9 +18,12 @@ const checkStudentId = (req, res, next) => {
 
 //differentiate include by route
 function getIncludeOption(route) {
+let options;
+
   switch(route) {
     case '/students/:id':
-      return [{
+      options = [
+        {
         model: StudentDetail,
         as: 'studentDetails'
       },
@@ -34,19 +37,29 @@ function getIncludeOption(route) {
       },
       {
         model: StudentAssignedPerformanceTest,
-        as: 'studentAssignedPerformanceTest'
+        as: 'studentAssignedPerformanceTest',
+        include: [{ 
+          model: StudentPerformanceGrade
+        }]
       },
       {
-        model: StudentPerformanceGrade,
-        as: 'studentPerformanceGrade'
+        model: StudentAssignedPerformanceTestHistory,
+        as: 'studentAssignedPerformanceTestHistory',
+        include: [{ 
+          model: StudentPerformanceGradesHistory,
+          as: 'assignedPerformanceGradeHistory'
+        }]
       }];
+      break;
     case '/students/:id/add-anthro':
     case '/students/:id/edit-anthro':
     case '/students/:id/assign-performance-test':
-      return [];
+      options = [];
     default:
-      return null;
+      options = null;
   }
+  console.log("options: ", options)
+  return options;
 }
 
 async function findUserByIdWithInclude(id, route) {
@@ -92,8 +105,8 @@ function buildStudentDTO(student, studentDTO) {
   if (student.studentAssignedPerformanceTest) {
     studentDTO.studentAssignedPerformanceTest = student.studentAssignedPerformanceTest;
   }
-  if (student.studentPerformanceGrade) {
-    studentDTO.studentPerformanceGrade = student.studentPerformanceGrade;
+  if (student.studentAssignedPerformanceTestHistory) {
+    studentDTO.studentAssignedPerformanceTestHistory = student.studentAssignedPerformanceTestHistory;
   }
 }
 
@@ -192,7 +205,7 @@ router.get('/students/:id', checkStudentId, async (req, res) => {
 
   try {
     const student = await findUserByIdWithInclude(id, route);
-
+    console.log("student: ", student)
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
     }
@@ -202,7 +215,14 @@ router.get('/students/:id', checkStudentId, async (req, res) => {
     }
 
     const studentDTO = userDTO(student);
+    console.log("studentDTO: ", studentDTO)
     buildStudentDTO(student, studentDTO);
+    console.log("studentDTO: ", studentDTO)
+    console.log("studentDTO.studentAssignedPerformanceTest[0].assignedperformanceGrade: ", studentDTO.studentAssignedPerformanceTest[0].StudentPerformanceGrade)
+    console.log("studentDTO.studentAssignedPerformanceTest[0].assignedperformanceGrade.assignedPerformanceId: ", studentDTO.studentAssignedPerformanceTest[0].StudentPerformanceGrade.assignedPerformanceTestId)
+    console.log("studentDTO.studentAssignedPerformanceTest[0].assignedperformanceGrade.dateTaken: ", studentDTO.studentAssignedPerformanceTest[0].StudentPerformanceGrade.dateTaken)
+    console.log("studentDTO.studentAssignedPerformanceTest[0].assignedperformanceGrade.comment: ", studentDTO.studentAssignedPerformanceTest[0].StudentPerformanceGrade.comment)
+
 
     res.json(studentDTO);
 
@@ -392,15 +412,18 @@ router.patch('/students/:id/edit-anthro', checkStudentId, async (req, res) => {
 //check if performance test was assigned to student.
 router.post('/students/:id/check-assigned-performance', checkStudentId, async (req, res) => {
   const student_id = req.params.id;
+  console.log("student_id: ", student_id);
+  console.log("req.body.performanceTypeId: ", req.body.performanceTypeId);
 
   try {
     const existingAssigned = await findLatestAssignedByIdAndType(student_id, req.body.performanceTypeId);
-
+    console.log("existingAssigned: ", existingAssigned)
     if (existingAssigned) {
       // Check if the test has been graded
       const existingGrade = await findGradeByTestId(existingAssigned.id);
-
-      const dateAssigned = existingAssigned.dateAssigned.toISOString().slice(0, 10);
+      console.log("existingGrade: ", existingGrade)
+      console.log("existingAssigned.dateAssigned: ", existingAssigned.dateAssigned)
+      const dateAssigned = existingAssigned.dateAssigned;
 
       if (existingGrade) {
         return res.status(200).json({
@@ -451,6 +474,25 @@ router.post('/students/:id/assign-performance-test', checkStudentId, async (req,
   } catch (err) {
     console.error('Error creating student performance test:', err);
     res.status(500).send('Server error');
+  }
+});
+
+//check if performance test was assigned
+//check if assigned performance test works
+//check if assigned performance test history works
+//check if assigned performance test grade works
+
+router.get('/get-performance-grades', async (req, res) => {
+  try {
+    // If needed, include related data by adding an include option
+    const tests = await StudentPerformanceGrade.findAll({
+      // include: [{ model: AnotherModel, as: 'alias' }],
+    });
+
+    res.json(tests);
+  } catch (err) {
+    console.error('Error fetching performance grades:', err.message); // Log the error message for debugging purposes
+    res.status(500).send('An error occurred while fetching performance grades.'); // Send a generic error message to the client
   }
 });
 
