@@ -38,17 +38,10 @@ let options;
       {
         model: StudentAssignedPerformanceTest,
         as: 'studentAssignedPerformanceTest',
-        include: [{ 
-          model: StudentPerformanceGrade
-        }]
       },
       {
         model: StudentAssignedPerformanceTestHistory,
         as: 'studentAssignedPerformanceTestHistory',
-        include: [{ 
-          model: StudentPerformanceGradesHistory,
-          as: 'assignedPerformanceGradeHistory'
-        }]
       }];
       break;
     case '/students/:id/add-anthro':
@@ -58,9 +51,10 @@ let options;
     default:
       options = null;
   }
-  console.log("options: ", options)
   return options;
 }
+
+
 
 async function findUserByIdWithInclude(id, route) {
   const includeOption = getIncludeOption(route);
@@ -90,6 +84,10 @@ function userDTO(user) {
       dateArchived: user.dateArchived
   };
 }
+
+
+
+  
 
 //build studentDTO
 function buildStudentDTO(student, studentDTO) {
@@ -168,8 +166,34 @@ const findGradeByTestId = async (testId) => {
     },
   });
 
+
   return existingGrade;
 };
+
+async function getGrades(studentDTO) {
+  // Check if the array is not empty
+  if (!studentDTO.studentAssignedPerformanceTest || studentDTO.studentAssignedPerformanceTest.length === 0) {
+    return;
+  }
+
+  // Use Promise.all to wait for all the findGradeByTestId promises to resolve
+  const gradesPromises = studentDTO.studentAssignedPerformanceTest.map(async (test) => {
+    const gradeObj = await findGradeByTestId(test.id);
+    if (gradeObj) {
+      const testJson = test.toJSON();
+      testJson.performanceGrade = gradeObj;
+      return testJson;
+    }
+    return test.toJSON();
+  });
+
+  // Resolve all promises
+  const assignedPerformanceWithGrades = await Promise.all(gradesPromises);
+
+  // Re-assign the enriched array back to the studentDTO
+  studentDTO.studentAssignedPerformanceTest = assignedPerformanceWithGrades;
+}
+
 
 // Retrieve all student users
 router.get('/students', async (req, res) => {
@@ -193,7 +217,6 @@ router.get('/students', async (req, res) => {
     res.json(studentsDTO);
 
   } catch (err) {
-    console.error('Error fetching students:', err);
     res.status(500).send('Server error');
   }
 });
@@ -205,7 +228,6 @@ router.get('/students/:id', checkStudentId, async (req, res) => {
 
   try {
     const student = await findUserByIdWithInclude(id, route);
-    console.log("student: ", student)
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
     }
@@ -215,19 +237,13 @@ router.get('/students/:id', checkStudentId, async (req, res) => {
     }
 
     const studentDTO = userDTO(student);
-    console.log("studentDTO: ", studentDTO)
-    buildStudentDTO(student, studentDTO);
-    console.log("studentDTO: ", studentDTO)
-    console.log("studentDTO.studentAssignedPerformanceTest[0].assignedperformanceGrade: ", studentDTO.studentAssignedPerformanceTest[0].StudentPerformanceGrade)
-    console.log("studentDTO.studentAssignedPerformanceTest[0].assignedperformanceGrade.assignedPerformanceId: ", studentDTO.studentAssignedPerformanceTest[0].StudentPerformanceGrade.assignedPerformanceTestId)
-    console.log("studentDTO.studentAssignedPerformanceTest[0].assignedperformanceGrade.dateTaken: ", studentDTO.studentAssignedPerformanceTest[0].StudentPerformanceGrade.dateTaken)
-    console.log("studentDTO.studentAssignedPerformanceTest[0].assignedperformanceGrade.comment: ", studentDTO.studentAssignedPerformanceTest[0].StudentPerformanceGrade.comment)
 
+    buildStudentDTO(student, studentDTO);
+    await getGrades(studentDTO);
 
     res.json(studentDTO);
 
   } catch (err) {
-    console.error('Error fetching student:', err);
     res.status(500).send('Server error');
   }
 });
@@ -251,7 +267,6 @@ router.post('/students/:id/check-anthro', checkStudentId, async (req, res) => {
       });
     }
   } catch (err) {
-    console.error('Error checking for existing student anthro:', err);
     res.status(500).send('Server error');
   }
 });
@@ -307,7 +322,6 @@ router.post('/students/:id/add-anthro', checkStudentId, async (req, res) => {
       res.status(201).json(newAnthroDTO(newStudentAnthro));
     }
   } catch (err) {
-    console.error('Error creating or updating student anthro:', err);
     res.status(500).send('Server error');
   }
 });
@@ -366,7 +380,6 @@ router.post('/students/upload-anthro', upload.single('file'), async (req, res) =
       }
     });
   } catch (error) {
-    console.error('Error uploading student anthro:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -404,7 +417,6 @@ router.patch('/students/:id/edit-anthro', checkStudentId, async (req, res) => {
       return res.status(404).json({ error: 'Student anthro not found' });
     }
   } catch (err) {
-    console.error('Error updating student anthro:', err);
     res.status(500).send('Server error');
   }
 });
@@ -412,17 +424,13 @@ router.patch('/students/:id/edit-anthro', checkStudentId, async (req, res) => {
 //check if performance test was assigned to student.
 router.post('/students/:id/check-assigned-performance', checkStudentId, async (req, res) => {
   const student_id = req.params.id;
-  console.log("student_id: ", student_id);
-  console.log("req.body.performanceTypeId: ", req.body.performanceTypeId);
 
   try {
     const existingAssigned = await findLatestAssignedByIdAndType(student_id, req.body.performanceTypeId);
-    console.log("existingAssigned: ", existingAssigned)
     if (existingAssigned) {
       // Check if the test has been graded
       const existingGrade = await findGradeByTestId(existingAssigned.id);
-      console.log("existingGrade: ", existingGrade)
-      console.log("existingAssigned.dateAssigned: ", existingAssigned.dateAssigned)
+
       const dateAssigned = existingAssigned.dateAssigned;
 
       if (existingGrade) {
@@ -443,7 +451,6 @@ router.post('/students/:id/check-assigned-performance', checkStudentId, async (r
       });
     }
   } catch (err) {
-    console.error('Error checking for existing student test:', err);
     res.status(500).send('Server error');
   }
 });
@@ -472,7 +479,6 @@ router.post('/students/:id/assign-performance-test', checkStudentId, async (req,
     const newPerformanceTest = await StudentAssignedPerformanceTest.create(newPerformanceTestData);
     res.status(201).json(newPerformanceTest);
   } catch (err) {
-    console.error('Error creating student performance test:', err);
     res.status(500).send('Server error');
   }
 });
@@ -491,7 +497,6 @@ router.get('/get-performance-grades', async (req, res) => {
 
     res.json(tests);
   } catch (err) {
-    console.error('Error fetching performance grades:', err.message); // Log the error message for debugging purposes
     res.status(500).send('An error occurred while fetching performance grades.'); // Send a generic error message to the client
   }
 });
@@ -548,7 +553,6 @@ router.patch('/students/:id', async (req, res) => {
     res.status(200).json(student);
 
   } catch (error) {
-    console.error('Error in updating student:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
