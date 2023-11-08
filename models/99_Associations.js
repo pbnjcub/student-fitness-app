@@ -130,8 +130,8 @@ module.exports = (db) => {
   //assigned performance test associations
   console.log("Setting up StudentAssignedPerformanceTest-studentPerformanceGrade association.");
   db.StudentAssignedPerformanceTest.hasOne(db.StudentPerformanceGrade, {
-    foreignKey: 'assignedPerformanceTestId'
-    // as: 'assignedPerformanceGrade'
+    foreignKey: 'assignedPerformanceTestId',
+    onDelete: 'CASCADE'
   });
   db.StudentPerformanceGrade.belongsTo(db.StudentAssignedPerformanceTest, {
     foreignKey: 'assignedPerformanceTestId'

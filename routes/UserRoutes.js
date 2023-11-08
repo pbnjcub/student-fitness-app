@@ -43,12 +43,7 @@ const checkRequired = (userData) => {
 }
 
 async function createUser(userData, transaction = null) {
-  const requiredCheck = checkRequired(userData);
-  
-  if (requiredCheck) {
-    throw new Error(requiredCheck); // Throw an error if required fields are missing.
-  }
-  
+
   const hashedPassword = await bcrypt.hash(userData.password, 10);
 
   const mainUserData = {

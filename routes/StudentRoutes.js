@@ -455,7 +455,6 @@ router.post('/students/:id/check-assigned-performance', checkStudentId, async (r
   }
 });
 
-
 //assign performance test to student
 router.post('/students/:id/assign-performance-test', checkStudentId, async (req, res) => {
   const student_id = req.params.id;
@@ -483,23 +482,82 @@ router.post('/students/:id/assign-performance-test', checkStudentId, async (req,
   }
 });
 
-//check if performance test was assigned
-//check if assigned performance test works
+
+//add grade to performance test
+router.post('/students/:id/add-performance-grade', checkStudentId, async (req, res) => {
+  const student_id = req.params.id;
+  const performanceGrade = req.body;
+  const route = req.route.path;
+
+  try {
+    const student = await findUserByIdWithInclude(student_id, route);
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Add teacher and student IDs to the performanceTest data
+    const newPerformanceGradeData = {
+      ...performanceGrade,
+    };
+
+    // Create a new performanceTest entry
+    const newPerformanceGrade = await StudentPerformanceGrade.create(newPerformanceGradeData);
+    res.status(201).json(newPerformanceGrade);
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
+});
 //check if assigned performance test history works
 //check if assigned performance test grade works
 
-router.get('/get-performance-grades', async (req, res) => {
-  try {
-    // If needed, include related data by adding an include option
-    const tests = await StudentPerformanceGrade.findAll({
-      // include: [{ model: AnotherModel, as: 'alias' }],
-    });
+//delete performance grade
+router.delete('/students/:id/delete-performance-grade/:gradeId', checkStudentId, async (req, res) => {
+  const student_id = req.params.id;
+  const grade_id = req.params.gradeId;
+  const route = req.route.path;
 
-    res.json(tests);
+  try {
+    const student = await findUserByIdWithInclude(student_id, route);
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    
+    const grade = await StudentPerformanceGrade.findByPk(grade_id);
+
+    if (!grade) {
+      return res.status(404).json({ error: 'Grade not found' });
+    }
+
+    await grade.destroy();
+    res.status(200).json({ message: 'Grade deleted' });
   } catch (err) {
-    res.status(500).send('An error occurred while fetching performance grades.'); // Send a generic error message to the client
+    res.status(500).send('Server error');
   }
 });
+
+//delete performance test and associated grade
+router.delete('/students/:id/delete-performance-test/:testId', checkStudentId, async (req, res) => {
+  console.log('delete performance test');
+  const test_id = req.params.testId;
+
+  try {
+    const test = await StudentAssignedPerformanceTest.findByPk(test_id);
+
+    if (!test) {
+      return res.status(404).json({ error: 'Test not found' });
+    }
+
+    // This will also delete associated StudentPerformanceGrade due to the CASCADE setup
+    await test.destroy();
+    res.status(200).json({ message: 'Test deleted' });
+  } catch (err) {
+    console.error(err); // It's a good practice to log the actual error
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 
 
 // Update a student
