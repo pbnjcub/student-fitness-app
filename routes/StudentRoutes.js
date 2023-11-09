@@ -521,6 +521,8 @@ router.post('/students/:id/assign-performance-test', checkStudentId, async (req,
       studentUserId: student_id,
     };
 
+
+
     const requiredCheckAssignedPerformance = checkRequiredAssignedPerformance(newPerformanceTestData);
     if (requiredCheckAssignedPerformance !== true) {
       return res.status(400).json({ error: requiredCheckAssignedPerformance });
@@ -535,6 +537,37 @@ router.post('/students/:id/assign-performance-test', checkStudentId, async (req,
   }
 });
 
+
+//edit assigned performance test
+router.patch('/students/:id/edit-assigned-performance/:testId', checkStudentId, async (req, res) => {
+  const student_id = req.params.id;
+  const test_id = req.params.testId;
+  const assignedPerformance = req.body;
+  const route = req.route.path;
+  
+  const requiredCheckAssignedPerformance = checkRequiredAssignedPerformance(assignedPerformance);
+  if (requiredCheckAssignedPerformance !== true) {
+    return res.status(400).json({ error: requiredCheckAssignedPerformance });
+  }
+
+  try {
+    const student = await findUserByIdWithInclude(student_id, route);
+
+    // Check if an assigned performance entry exists
+    const assignedTest = await StudentAssignedPerformanceTest.findByPk(test_id);
+
+    if (!assignedTest) {
+      return res.status(404).json({ error: 'Performance test not found' });
+    }
+
+    // Update the existing assigned Performance
+    const updatedAssignedPerformance = await assignedTest.update(assignedPerformance);
+    res.status(200).json(updatedAssignedPerformance);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send('Server error');
+  }
+});
 
 //add grade to performance test
 router.post('/students/:id/add-performance-grade', checkStudentId, async (req, res) => {
