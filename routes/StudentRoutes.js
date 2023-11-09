@@ -574,6 +574,44 @@ router.post('/students/:id/add-performance-grade', checkStudentId, async (req, r
   }
 });
 
+//edit performance grade
+router.patch('/students/:id/edit-performance-grade/:gradeId', checkStudentId, async (req, res) => {
+  const student_id = req.params.id;
+  const grade_id = req.params.gradeId;
+  const performanceGrade = req.body;
+  const route = req.route.path;
+  
+  const requiredCheckPerformanceGrade = checkRequiredPerformanceGrade(performanceGrade);
+  if (requiredCheckPerformanceGrade !== true) {
+    return res.status(400).json({ error: requiredCheckPerformanceGrade });
+  }
+
+  try {
+    const student = await findUserByIdWithInclude(student_id, route);
+
+    // Check if a performanceTest entry exists
+    const assignedTest = await StudentAssignedPerformanceTest.findByPk(performanceGrade.assignedPerformanceTestId);
+
+    if (!assignedTest) {
+      return res.status(404).json({ error: 'Performance test not found' });
+    }
+
+    const existingGrade = await StudentPerformanceGrade.findByPk(grade_id);
+
+    if (!existingGrade) {
+      return res.status(404).json({ error: 'Grade not found' });
+    }
+
+    // Update the existing performanceGrade entry with the new data
+    const updatedPerformanceGrade = await existingGrade.update(performanceGrade);
+    res.status(200).json(updatedPerformanceGrade);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send('Server error');
+  }
+});
+
+
 
 //delete performance grade
 router.delete('/students/:id/delete-performance-grade/:gradeId', checkStudentId, async (req, res) => {
