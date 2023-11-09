@@ -58,15 +58,36 @@ let options;
 
 async function findUserByIdWithInclude(id, route) {
   const includeOption = getIncludeOption(route);
-  // Handle the case where no additional data is needed
+  
+  let user;
+
+  try {
   if (!includeOption) {
-    const user = await User.findByPk(id);
-    return user;
+    user = await User.findByPk(id);
   } else {
-    const user = await User.findByPk(id, { include: includeOption });
-    return user;
+    user = await User.findByPk(id, { include: includeOption });
   }
+
+  if (!user) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Check if the retrieved user is a student
+  if (user.userType !== 'student') {
+    const error = new Error('User is not a student');
+    error.statusCode = 404;
+    throw error;
+  }
+} catch (err) {
+  throw err;
 }
+
+  return user;
+}
+
+
 
 //build userDTO
 function userDTO(user) {
@@ -85,9 +106,6 @@ function userDTO(user) {
   };
 }
 
-
-
-  
 
 //build studentDTO
 function buildStudentDTO(student, studentDTO) {
@@ -132,7 +150,8 @@ const checkRequiredAnthro = (anthroData) => {
   if (!height) missingFields.push('Height');
   if (!weight) missingFields.push('Weight');
 
-  return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;}
+  return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
+}
 
 //find student anthro by student id
 const findAnthroById = async (student_id) => {
@@ -144,6 +163,33 @@ const findAnthroById = async (student_id) => {
 
   return existingAnthro;
 };
+
+const checkRequiredAssignedPerformance = (performanceData) => {
+  const { performanceTypeId, teacherUserId, studentUserId, dateAssigned } = performanceData;
+
+  const missingFields = [];
+  
+  if (!teacherUserId) missingFields.push('Teacher ID');
+  if (!studentUserId) missingFields.push('Student ID');
+  if (!dateAssigned) missingFields.push('Date Assigned');
+  if (!performanceTypeId) missingFields.push('Performance Type ID');
+
+  return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
+}
+
+//check required fields for performance grade
+const checkRequiredPerformanceGrade = (performanceGradeData) => {
+  const { assignedPerformanceTestId, dateTaken, grade } = performanceGradeData;
+
+  const missingFields = [];
+
+  if (!assignedPerformanceTestId) missingFields.push('Assigned Performance Test ID');
+  if (!dateTaken) missingFields.push('Date Taken');
+  if (!grade) missingFields.push('Grade');
+
+  return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
+}
+
 
 //find latest assigned test by student id and performance type id
 const findLatestAssignedByIdAndType = async (student_id, performanceTypeId) => {
@@ -228,13 +274,13 @@ router.get('/students/:id', checkStudentId, async (req, res) => {
 
   try {
     const student = await findUserByIdWithInclude(id, route);
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
+    // if (!student) {
+    //   return res.status(404).json({ error: 'Student not found' });
+    // }
 
-    if (student.userType !== 'student') {
-      return res.status(404).json({ error: 'User is not a student' });
-    }
+    // if (student.userType !== 'student') {
+    //   return res.status(404).json({ error: 'User is not a student' });
+    // }
 
     const studentDTO = userDTO(student);
 
@@ -277,17 +323,23 @@ router.post('/students/:id/add-anthro', checkStudentId, async (req, res) => {
   const studentAnthro = req.body;
   const route = req.route.path;
 
-  const requiredCheckAnthro = checkRequiredAnthro(studentAnthro);
+  //add student id to anthro data
+  const newStudentAnthro = {
+    ...studentAnthro,
+    studentUserId: student_id,
+  };
+
+  const requiredCheckAnthro = checkRequiredAnthro(newStudentAnthro);
   if (requiredCheckAnthro !== true) {
     return res.status(400).json({ error: requiredCheckAnthro });
   }
 
   try {
-    const student = await await findUserByIdWithInclude(student_id, route);
+    const student = await findUserByIdWithInclude(student_id, route);
 
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
+    // if (!student) {
+    //   return res.status(404).json({ error: 'Student not found' });
+    // }
 
     // Check if a studentAnthro entry exists
     const existingStudentAnthro = await StudentAnthro.findOne({
@@ -308,21 +360,16 @@ router.post('/students/:id/add-anthro', checkStudentId, async (req, res) => {
       });
 
       // Update the existing studentAnthro entry with the new data
-      const updatedStudentAnthro = await existingStudentAnthro.update(studentAnthro);
+      const updatedStudentAnthro = await existingStudentAnthro.update(newStudentAnthro);
       res.status(200).json(updatedStudentAnthro);
     } else {
-      // Add student IDs to the studentAnthro data
-      const newStudentAnthroData = {
-        ...studentAnthro,
-        studentUserId: student_id,
-      };
 
       // Create a new studentAnthro entry
-      const newStudentAnthro = await StudentAnthro.create(newStudentAnthroData);
+      const newStudentAnthro = await StudentAnthro.create(newStudentAnthro);
       res.status(201).json(newAnthroDTO(newStudentAnthro));
     }
   } catch (err) {
-    res.status(500).send('Server error');
+    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
   }
 });
 
@@ -389,18 +436,21 @@ router.patch('/students/:id/edit-anthro', checkStudentId, async (req, res) => {
   const student_id = req.params.id;
   const studentAnthro = req.body;
   const route = req.route.path;
+
+    //add student id to anthro data
+    const editedStudentAnthro = {
+      ...studentAnthro,
+      studentUserId: student_id,
+    };
   
-  const requiredCheckAnthro = checkRequiredAnthro(studentAnthro);
+  
+  const requiredCheckAnthro = checkRequiredAnthro(editedStudentAnthro);
   if (requiredCheckAnthro !== true) {
     return res.status(400).json({ error: requiredCheckAnthro });
   }
 
   try {
     const student = await findUserByIdWithInclude(student_id, route);
-
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
 
     // Check if a studentAnthro entry exists
     const existingStudentAnthro = await StudentAnthro.findOne({
@@ -411,13 +461,13 @@ router.patch('/students/:id/edit-anthro', checkStudentId, async (req, res) => {
 
     if (existingStudentAnthro) {
       // Update the existing studentAnthro entry with the new data
-      const updatedStudentAnthro = await existingStudentAnthro.update(studentAnthro);
+      const updatedStudentAnthro = await existingStudentAnthro.update(editedStudentAnthro);
       res.status(200).json(updatedStudentAnthro);
     } else {
       return res.status(404).json({ error: 'Student anthro not found' });
     }
   } catch (err) {
-    res.status(500).send('Server error');
+    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
   }
 });
 
@@ -451,6 +501,7 @@ router.post('/students/:id/check-assigned-performance', checkStudentId, async (r
       });
     }
   } catch (err) {
+    console.error(err);
     res.status(500).send('Server error');
   }
 });
@@ -464,21 +515,23 @@ router.post('/students/:id/assign-performance-test', checkStudentId, async (req,
   try {
     const student = await findUserByIdWithInclude(student_id, route);
 
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-
     // Add teacher and student IDs to the performanceTest data
     const newPerformanceTestData = {
       ...performanceTest,
       studentUserId: student_id,
     };
 
+    const requiredCheckAssignedPerformance = checkRequiredAssignedPerformance(newPerformanceTestData);
+    if (requiredCheckAssignedPerformance !== true) {
+      return res.status(400).json({ error: requiredCheckAssignedPerformance });
+    }
+
     // Create a new performanceTest entry
     const newPerformanceTest = await StudentAssignedPerformanceTest.create(newPerformanceTestData);
     res.status(201).json(newPerformanceTest);
   } catch (err) {
-    res.status(500).send('Server error');
+    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+
   }
 });
 
@@ -489,27 +542,38 @@ router.post('/students/:id/add-performance-grade', checkStudentId, async (req, r
   const performanceGrade = req.body;
   const route = req.route.path;
 
+  const requiredCheckPerformanceGrade = checkRequiredPerformanceGrade(performanceGrade);
+  if (requiredCheckPerformanceGrade !== true) {
+    return res.status(400).json({ error: requiredCheckPerformanceGrade });
+  }
+
   try {
     const student = await findUserByIdWithInclude(student_id, route);
 
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
+    // Check if a performanceTest entry exists
+    const assignedTest = await StudentAssignedPerformanceTest.findByPk(performanceGrade.assignedPerformanceTestId);
+
+    if (!assignedTest) {
+      return res.status(404).json({ error: 'Performance test not found' });
     }
 
-    // Add teacher and student IDs to the performanceTest data
-    const newPerformanceGradeData = {
-      ...performanceGrade,
-    };
+    const existingGrade = await StudentPerformanceGrade.findOne({
+      where: { assignedPerformanceTestId: performanceGrade.assignedPerformanceTestId }
+    });
+
+    if (existingGrade) {
+      return res.status(400).json({ error: 'A grade has already been recorded for this assigned performance test' });
+    }
 
     // Create a new performanceTest entry
-    const newPerformanceGrade = await StudentPerformanceGrade.create(newPerformanceGradeData);
+    const newPerformanceGrade = await StudentPerformanceGrade.create(performanceGrade);
     res.status(201).json(newPerformanceGrade);
   } catch (err) {
+    console.log(err);
     res.status(500).send('Server error');
   }
 });
-//check if assigned performance test history works
-//check if assigned performance test grade works
+
 
 //delete performance grade
 router.delete('/students/:id/delete-performance-grade/:gradeId', checkStudentId, async (req, res) => {
@@ -519,10 +583,6 @@ router.delete('/students/:id/delete-performance-grade/:gradeId', checkStudentId,
 
   try {
     const student = await findUserByIdWithInclude(student_id, route);
-
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
     
     const grade = await StudentPerformanceGrade.findByPk(grade_id);
 
@@ -533,13 +593,14 @@ router.delete('/students/:id/delete-performance-grade/:gradeId', checkStudentId,
     await grade.destroy();
     res.status(200).json({ message: 'Grade deleted' });
   } catch (err) {
-    res.status(500).send('Server error');
+    console.error(err);
+    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+
   }
 });
 
 //delete performance test and associated grade
 router.delete('/students/:id/delete-performance-test/:testId', checkStudentId, async (req, res) => {
-  console.log('delete performance test');
   const test_id = req.params.testId;
 
   try {
@@ -549,16 +610,13 @@ router.delete('/students/:id/delete-performance-test/:testId', checkStudentId, a
       return res.status(404).json({ error: 'Test not found' });
     }
 
-    // This will also delete associated StudentPerformanceGrade due to the CASCADE setup
     await test.destroy();
     res.status(200).json({ message: 'Test deleted' });
   } catch (err) {
-    console.error(err); // It's a good practice to log the actual error
+    console.error(err); 
     res.status(500).json({ error: 'Server error' });
   }
 });
-
-
 
 // Update a student
 router.patch('/students/:id', async (req, res) => {
@@ -579,6 +637,7 @@ router.patch('/students/:id', async (req, res) => {
 
     if (!student) {
       await transaction.rollback();
+      console.log('Student not found');
       return res.status(404).json({ error: 'Student not found' });
     }
 
@@ -593,10 +652,8 @@ router.patch('/students/:id', async (req, res) => {
       pronouns: req.body.pronouns || student.pronouns,
       photoUrl: req.body.photoUrl || student.photoUrl
     }
-    // Update the student's fields if they are provided.
     await student.update(updateFields, { transaction });
 
-    // Update fields in the associated StudentDetail.
     if (student.studentDetails && studentDetails) { // Ensure studentDetails from req.body is also not undefined.
       const studentDetailUpdates = {
         gradYear: studentDetails.gradYear || student.studentDetails.gradYear // Fixed semicolon here.
@@ -604,6 +661,7 @@ router.patch('/students/:id', async (req, res) => {
       await student.studentDetails.update(studentDetailUpdates, { transaction });
     } else {
       await transaction.rollback();
+      console.log('Student details not found');
       return res.status(404).json({ error: 'Student details not found' });
     }
 
@@ -611,6 +669,7 @@ router.patch('/students/:id', async (req, res) => {
     res.status(200).json(student);
 
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
