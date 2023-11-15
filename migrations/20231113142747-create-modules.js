@@ -9,15 +9,14 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      moduleCode: {
-        type: Sequelize.STRING,
-        allowNull: false,
-        unique: true, 
-      },
       title: {
         type: Sequelize.STRING,
         allowNull: false,
         unique: true,
+      },
+      moduleLevel: {
+        type: Sequelize.ENUM('upper school', 'middle school', 'lower school'),
+        allowNull: false,
       },
       description: {
         type: Sequelize.TEXT,

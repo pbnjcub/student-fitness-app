@@ -29,6 +29,14 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
+      enrollmentBeginDate: {
+        type: Sequelize.DATEONLY,
+        allowNull: true,
+      },
+      enrollmentEndDate: {
+        type: Sequelize.DATEONLY,
+        allowNull: true,
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
@@ -48,9 +56,23 @@ module.exports = {
       type: 'unique',
       name: 'section_enrollments_moduleId_sectionId_unique_constraint'
     });
+
+    await queryInterface.addConstraint('section_enrollments', {
+      fields: ['enrollmentBeginDate', 'enrollmentEndDate'],
+      type: 'check',
+      name: 'enrollment_dates_validity_check',
+      where: {
+        enrollmentEndDate: {
+          [Sequelize.Op.gte]: Sequelize.col('enrollmentBeginDate')
+        }
+      }
+    });
   },
 
   async down(queryInterface, Sequelize) {
+
+    await queryInterface.removeConstraint('section_enrollments', 'enrollment_dates_validity_check');
+
     // Remove the unique constraint
     await queryInterface.removeConstraint('section_enrollments', 'section_enrollments_moduleId_sectionId_unique_constraint');
 
