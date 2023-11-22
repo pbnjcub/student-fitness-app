@@ -14,11 +14,11 @@ module.exports = (sequelize) => {
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE'
         },
-        teacherUserId: {
+        sectionId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'users',
+                model: 'sections',
                 key: 'id'
             },
             onUpdate: 'CASCADE',
@@ -27,10 +27,26 @@ module.exports = (sequelize) => {
         enrollmentBeginDate: {
             type: DataTypes.DATEONLY,
             allowNull: true,
+            validate: {
+                isDate: true,
+                isValidDate(value) {
+                    if (this.enrollmentEndDate && value > this.enrollmentEndDate) {
+                        throw new Error('Enrollment begin date must be before enrollment end date.');
+                    }
+                }
+            }
         },
         enrollmentEndDate: {
             type: DataTypes.DATEONLY,
             allowNull: true,
+            validate: {
+                isDate: true,
+                isValidDate(value) {
+                    if (this.enrollmentBeginDate && value < this.enrollmentBeginDate) {
+                        throw new Error('Enrollment end date must be after enrollment begin date.');
+                    }
+                }
+            }
         },
     }, { 
         sequelize, 

@@ -151,4 +151,40 @@ module.exports = (db) => {
     as: 'assignedTestHistory'
   });
 
+  db.Module.belongsToMany(db.Section, {
+    through: db.SectionEnrollment,
+    foreignKey: 'moduleId',
+    otherKey: 'sectionId'
+  });
+  
+  db.Section.belongsToMany(db.Module, {
+    through: db.SectionEnrollment,
+    foreignKey: 'sectionId',
+    otherKey: 'moduleId'
+  });
+
+  db.User.belongsToMany(db.SectionEnrollment, {
+    through: db.TeacherAssignment,
+    foreignKey: 'teacherUserId',
+    otherKey: 'sectionEnrollmentId'
+  });
+  
+  db.SectionEnrollment.belongsToMany(db.User, {
+    through: db.TeacherAssignment,
+    foreignKey: 'sectionEnrollmentId',
+    otherKey: 'teacherUserId'
+  });
+
+  db.User.belongsToMany(db.Section, {
+    through: db.SectionRoster,
+    foreignKey: 'studentUserId',
+    otherKey: 'sectionId'
+    });
+
+  db.Section.belongsToMany(db.User, {
+    through: db.SectionRoster,
+    foreignKey: 'sectionId',
+    otherKey: 'studentUserId'
+  });
+
 };
