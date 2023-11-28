@@ -20,13 +20,39 @@ module.exports = (sequelize) => {
                 }
             },
         },
+        moduleLevel: {
+            type: DataTypes.ENUM('upper school', 'middle school', 'lower school'),
+            allowNull: false,
+            validate: {
+                notNull: {
+                    msg: 'Module level is required'
+                },
+                notEmpty: {
+                    msg: 'Please provide a module level'
+                },
+                isIn: {
+                    args: [['upper school', 'middle school', 'lower school']],
+                    msg: 'Module level must be either "upper school", "middle school", or "lower school"'
+                }
+            },
+        },
         description: {
             type: DataTypes.STRING(250),
             allowNull: true,
             validate: {
                 len: {
-                    args: [1, 250],
+                    args: [0, 250],
                     msg: 'Module description must be between 1 and 250 characters in length'
+                }
+            },
+        },
+        isActive: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true,
+            validate: {
+                isBoolean: {
+                    msg: 'Module active status must be a boolean value'
                 }
             },
         },

@@ -55,8 +55,8 @@ module.exports = {
     await queryInterface.removeConstraint('section_rosters', 'section_rosters_studentUserId_sectionId_unique_constraint');
 
     // Remove the indexes
-    await queryInterface.removeIndex('section_rosters', 'section_rosters_studentUserId_idx'); // replace with actual index name if different
-    await queryInterface.removeIndex('section_rosters', 'section_rosters_sectionId_idx'); // replace with actual index name if different
+    await queryInterface.removeIndex('section_rosters', 'studentUserId'); // replace with actual index name if different
+    await queryInterface.removeIndex('section_rosters', 'sectionId'); // replace with actual index name if different
 
     await queryInterface.dropTable('section_rosters');
   }

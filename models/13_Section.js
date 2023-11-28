@@ -1,58 +1,31 @@
 const { Model, DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
-    class StudentAssignedPerformanceTestHistory extends Model { }
+    class Section extends Model { }
 
-    StudentAssignedPerformanceTestHistory.init({
-        originalPerformanceId: {
-            type: DataTypes.INTEGER,
+    Section.init({
+        sectionCode: {
+            type: DataTypes.STRING(10),
             allowNull: false,
-            references: {
-                model: 'student_assigned_performance_test',
-                key: 'id'
+            validate: {
+                notNull: {
+                    msg: 'Section code is required'
+                },
+                notEmpty: {
+                    msg: 'Please provide a section code'
+                },
+                len: {
+                    args: [1, 10],
+                    msg: 'Section code must be between 1 and 10 characters in length'
+                }
             },
-            onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
         },
-        performanceTypeId: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'student_performance_types',
-                key: 'id'
-            },
-            onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
-        },
-        teacherUserId: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'users',
-                key: 'id'
-            },
-            onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
-        },
-        studentUserId: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'users',
-                key: 'id'
-            },
-            onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
-        },
-        dateAssigned: {
-            type: DataTypes.DATEONLY,
-            allowNull: true,
-        },
-    }, { 
+    },
+    { 
         sequelize, 
-        modelName: 'StudentAssignedPerformanceTestHistory', 
-        tableName: 'assigned_hist_performances',
+        modelName: 'Section', 
+        tableName: 'sections',
     });
 
-    return StudentAssignedPerformanceTestHistory;
+    return Section;
 };

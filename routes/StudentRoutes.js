@@ -274,14 +274,7 @@ router.get('/students/:id', checkStudentId, async (req, res) => {
 
   try {
     const student = await findUserByIdWithInclude(id, route);
-    // if (!student) {
-    //   return res.status(404).json({ error: 'Student not found' });
-    // }
-
-    // if (student.userType !== 'student') {
-    //   return res.status(404).json({ error: 'User is not a student' });
-    // }
-
+ 
     const studentDTO = userDTO(student);
 
     buildStudentDTO(student, studentDTO);
@@ -336,10 +329,6 @@ router.post('/students/:id/add-anthro', checkStudentId, async (req, res) => {
 
   try {
     const student = await findUserByIdWithInclude(student_id, route);
-
-    // if (!student) {
-    //   return res.status(404).json({ error: 'Student not found' });
-    // }
 
     // Check if a studentAnthro entry exists
     const existingStudentAnthro = await StudentAnthro.findOne({

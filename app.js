@@ -18,6 +18,7 @@ const userRoutes = require('./routes/UserRoutes');
 const studentRoutes = require('./routes/StudentRoutes');
 const teacherRoutes = require('./routes/TeacherRoutes');
 const adminRoutes = require('./routes/AdminRoutes');
+const moduleRoutes = require('./routes/ModuleRoutes');
 const sessionsRoutes = require('./routes/SessionsRoutes');
 
 //Import models and setup associations
@@ -51,6 +52,7 @@ app.use('/api', userRoutes);
 app.use('/api', studentRoutes);
 app.use('/api', teacherRoutes);
 app.use('/api', adminRoutes);
+app.use('/api', moduleRoutes);
 app.use('/api', sessionsRoutes);
 
 
