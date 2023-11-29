@@ -32,6 +32,25 @@ const checkRequired = (moduleData) => {
     return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
   }
 
+  // Helper function to create a module
+async function createModule(moduleData, transaction) {
+    const { title, moduleLevel, description, isActive } = moduleData;
+
+    try {
+        const newModule = await Module.create({
+            title,
+            moduleLevel,
+            description,
+            isActive
+        }, { transaction });
+
+        return { newModule, error: null };
+    } catch (error) {
+        return { newModule: null, error: error.message };
+    }
+}
+
+
 // Retrieve all modules
 router.get('/modules', async (req, res) => {
     console.log(`Starting GET /modules...`);
@@ -63,26 +82,31 @@ router.get('/modules/active', async (req, res) => {
 
 //add module
 router.post('/modules', async (req, res) => {
-  const { title, moduleLevel, description, isActive } = req.body;
-
-  if (!title) return res.status(400).json({ error: 'Module name is required' });
-  if (!moduleLevel) return res.status(400).json({ error: 'Module level is required' });
-
   try {
+    const requiredCheck = checkRequired(req.body);
+    if (requiredCheck !== true) {
+        return res.status(400).json({ error: requiredCheck });
+    }
+
+    const existingModule = await Module.findOne({ where: { title: req.body.title } });
+    if (existingModule) {
+        return res.status(400).json({ error: `Module with title ${req.body.title} already exists` });
+    }
+
     const transaction = await sequelize.transaction();
 
-    const module = await Module.create({
-      title,
-      moduleLevel,
-      description,
-      isActive
-    }, { transaction });
+    const { newModule, error } = await createModule(req.body, transaction);
+
+    if (error) {
+        await transaction.rollback();
+        throw new Error(error);
+    }
 
     await transaction.commit();
 
-    res.status(201).json(module);
-  } catch (err) {
-    console.error('Error creating module:', err);
+    res.status(201).json(moduleDTO(newModule));
+  } catch (error) {
+    console.error('Error creating module:', error);
     res.status(500).send('Server error');
   }
 });
@@ -118,7 +142,13 @@ router.post('/modules/upload', upload.single('file'), async (req, res) => {
                             continue; // Skip to the next iteration
                         }
 
-                        const newModule = await Module.create(moduleData, { transaction });
+                        const { newModule, error } = await createModule(moduleData, transaction);
+
+                        if (error) {
+                            errors.push({ moduleData, error });
+                            continue; // Skip to the next iteration
+                        }
+
                         newModules.push(moduleDTO(newModule));
                     }
 
@@ -143,52 +173,26 @@ router.post('/modules/upload', upload.single('file'), async (req, res) => {
 });
 
 
-// router.post('/modules/upload', upload.single('file'), async (req, res) => {
-//   const buffer = req.file.buffer;
-//   const content = buffer.toString();
+//retrieve module by id
+router.get('/modules/:id', async (req, res) => {
+  const { id } = req.params;
 
-//   const newModules = [];
-//   const errors = [];
+  console.log(`Starting GET /modules/${id}...`);
 
-//   Papa.parse(content, {
-//     header: true,
-//     dynamicTyping: true,
-//     complete: async (results) => {
-//         const transaction = await sequelize.transaction();
-//         try {
-//             for (const moduleData of results.data) {
-//                 const requiredCheck = checkRequired(moduleData);
-//                 if (requiredCheck !== true) {
-//                     errors.push({ moduleData, error: requiredCheck });
-//                 } else {
-//                     try {
-//                         const newModule = await Module.create(moduleData, { transaction });
-//                         if (!newModule) {
-//                             errors.push({ moduleData, error: `Module with title ${moduleData.title} already exists` });
-//                         } else {
-//                             newModules.push(moduleDTO(newModule));
-//                         } 
-//                     } catch (error) {
-//                             errors.push({ moduleData, error: error.message });
-//                         }
-//                     } 
-//                 }
+  try {
+    const module = await Module.findByPk(id);
 
-//                 if (errors.length > 0) {
-//                     await transaction.rollback();
-//                     res.status(400).json({error: 'Some modules could not be processed', details: errors });
-//                 } else {
-//                     await transaction.commit();
-//                     res.status(201).json({ success: 'File uploaded and processed successfully', newModules });
-//                 } 
-//             } catch (error) {
-//                 await transaction.rollback();
-//                 console.error('Error creating modules:', error);
-//                 res.status(500).json({ error: 'Internal Server error' });
-//             }
-//         }
-//     });
-// });
+    if (!module) {
+      console.log(`Module with ID ${id} not found.`);
+      return res.status(404).json({ error: 'Module not found' });
+    }
+
+    res.json(module);
+  } catch (err) {
+    console.error('Error fetching module:', err);
+    res.status(500).send('Server error');
+  }
+});
 
 //edit module
 router.patch('/modules/:id', async (req, res) => {
@@ -229,6 +233,38 @@ router.patch('/modules/:id', async (req, res) => {
     res.status(200).json(module);
   } catch (err) {
     console.error('Error updating module:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+//delete module
+router.delete('/modules/:id', async (req, res) => {
+  const { id } = req.params;
+
+  console.log(`Starting DELETE /modules/${id}...`);
+
+  if (!id) return res.status(400).json({ error: 'Module ID is required' });
+
+  try {
+    const transaction = await sequelize.transaction();
+
+    const module = await Module.findByPk(id, { transaction });
+
+    if (!module) {
+      await transaction.rollback();
+      console.log(`Module with ID ${id} not found.`);
+      return res.status(404).json({ error: 'Module not found' });
+    }
+
+    console.log(`Found module:`, module.toJSON());
+
+    await module.destroy({ transaction });
+
+    await transaction.commit();
+
+    res.status(200).json({ success: `Module with ID ${id} deleted successfully` });
+  } catch (err) {
+    console.error('Error deleting module:', err);
     res.status(500).send('Server error');
   }
 });
