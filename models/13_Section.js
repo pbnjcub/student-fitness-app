@@ -20,6 +20,16 @@ module.exports = (sequelize) => {
                 }
             },
         },
+        isActive: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true,
+            validate: {
+                isBoolean: {
+                    msg: 'Section active status must be a boolean value'
+                }
+            },
+        },
     },
     { 
         sequelize, 

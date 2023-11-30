@@ -50,6 +50,12 @@ async function createModule(moduleData, transaction) {
     }
 }
 
+//Helper function to check if module exists
+async function moduleExists(title) {
+    const module = await Module.findOne({ where: { title } });
+    return module ? true : false;
+}
+
 
 // Retrieve all modules
 router.get('/modules', async (req, res) => {
@@ -88,8 +94,8 @@ router.post('/modules', async (req, res) => {
         return res.status(400).json({ error: requiredCheck });
     }
 
-    const existingModule = await Module.findOne({ where: { title: req.body.title } });
-    if (existingModule) {
+    const existingModule = await moduleExists(req.body.title);
+    if (existingModule === true) {
         return res.status(400).json({ error: `Module with title ${req.body.title} already exists` });
     }
 
@@ -113,8 +119,6 @@ router.post('/modules', async (req, res) => {
 
 //add modules from csv
 router.post('/modules/upload', upload.single('file'), async (req, res) => {
-    console.log('Starting POST /modules/upload...')
-    console.log('Received request body:', req.body);
 
     try {
         const buffer = req.file.buffer;
@@ -136,8 +140,8 @@ router.post('/modules/upload', upload.single('file'), async (req, res) => {
                             continue; // Skip to the next iteration
                         }
 
-                        const existingModule = await Module.findOne({ where: { title: moduleData.title } });
-                        if (existingModule) {
+                        const existingModule = await moduleExists(moduleData.title);
+                        if (existingModule === true) {
                             errors.push({ moduleData, error: `Module with title ${moduleData.title} already exists` });
                             continue; // Skip to the next iteration
                         }
@@ -200,8 +204,6 @@ router.patch('/modules/:id', async (req, res) => {
 
   const { title, moduleLevel, description, isActive } = req.body;
 
-  console.log(`Starting PATCH /modules/${id}...`);
-  console.log(`Received request body:`, req.body);
 
   if (!id) return res.status(400).json({ error: 'Module ID is required' });
 
