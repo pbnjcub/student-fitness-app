@@ -20,6 +20,22 @@ module.exports = (sequelize) => {
                 }
             },
         },
+        gradeLevel: {
+            type: DataTypes.ENUM('6', '7', '8', '9', '10-11-12'),
+            allowNull: false,
+            validate: {
+                notNull: {
+                    msg: 'Grade level is required'
+                },
+                notEmpty: {
+                    msg: 'Please provide a grade level'
+                },
+                isIn: {
+                    args: [['6', '7', '8', '9', '10-11-12']],
+                    msg: 'Grade level must be either "6", "7", "8", "9", or "10-11-12"'
+                }
+            },
+        },
         isActive: {
             type: DataTypes.BOOLEAN,
             allowNull: false,

@@ -14,25 +14,28 @@ function sectionDTO(section) {
     return {
         id: section.id,
         sectionCode: section.sectionCode,
+        gradeLevel: section.gradeLevel,
+        isActive: section.isActive
     }
 }
 
 const checkRequired = (sectionData) => {
-    const { sectionCode } = sectionData;
+    const { sectionCode, gradeLevel } = sectionData;
   
     const missingFields = [];
     
     if (!sectionCode) missingFields.push('Section Code');
+    if (!gradeLevel) missingFields.push('Grade Level');
   
     return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
   }
 
   // Helper function to create a section
 async function createSection(sectionData, transaction) {
-    const { sectionCode } = sectionData;
+    const { sectionCode, gradeLevel, isActive } = sectionData;
 
     try {
-        const newSection = await Section.create({ sectionCode }, { transaction });
+        const newSection = await Section.create({ sectionCode, gradeLevel, isActive }, { transaction });
 
         return { newSection, error: null };
     } catch (error) {
@@ -107,7 +110,7 @@ router.post('/sections', async (req, res) => {
   }
 });
 
-//add modules from csv
+//add sections from csv
 router.post('/sections/upload', upload.single('file'), async (req, res) => {
 
     try {
@@ -210,6 +213,8 @@ router.patch('/sections/:id', async (req, res) => {
 
     const updatedValues = {};
     if (req.body.sectionCode) updatedValues.sectionCode = req.body.sectionCode;
+    if (req.body.gradeLevel) updatedValues.gradeLevel = req.body.gradeLevel;
+    if (req.body.isActive) updatedValues.isActive = req.body.isActive;
 
     await section.update(updatedValues, { transaction });
 
