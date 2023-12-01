@@ -18,8 +18,7 @@ module.exports = (sequelize) => {
         sequelize,
         modelName: 'StudentPerformanceType',
         tableName: 'student_performance_types',
-        timestamps: false,
-    });
+     });
 
     return StudentPerformanceType;
 };

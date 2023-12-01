@@ -28,7 +28,6 @@ module.exports = (sequelize) => {
         sequelize, 
         modelName: 'SectionRoster', 
         tableName: 'section_rosters',
-        timestamps: false,
     });
 
     return SectionRoster;

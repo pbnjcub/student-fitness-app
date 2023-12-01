@@ -51,7 +51,6 @@ module.exports = (sequelize) => {
         sequelize, 
         modelName: 'Section', 
         tableName: 'sections',
-        timestamps: false,
     });
 
     return Section;

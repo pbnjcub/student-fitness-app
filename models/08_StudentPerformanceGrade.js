@@ -32,7 +32,6 @@ module.exports = (sequelize) => {
         sequelize, 
         modelName: 'StudentPerformanceGrade', 
         tableName: 'student_performance_grades',
-        timestamps: false,
     });
 
     return StudentPerformanceGrade;

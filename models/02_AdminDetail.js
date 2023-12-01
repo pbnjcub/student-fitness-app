@@ -26,7 +26,6 @@ module.exports = (sequelize) => {
     sequelize,
     modelName: 'AdminDetail',
     tableName: 'admin_details',
-    timestamps: false,
   });
 
   return AdminDetail;

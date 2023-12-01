@@ -43,7 +43,6 @@ module.exports = (sequelize) => {
     sequelize,
     modelName: 'StudentAnthro',
     tableName: 'student_anthros',
-    timestamps: false,
   });
 
   return StudentAnthro;

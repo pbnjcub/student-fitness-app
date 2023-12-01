@@ -65,8 +65,7 @@ module.exports = (sequelize) => {
     sequelize,
     modelName: 'User',
     tableName: 'users',
-    timestamps: false,
-  });
+   });
 
   console.log("Inside User model file");
 

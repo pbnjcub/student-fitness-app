@@ -164,7 +164,7 @@ module.exports = (db) => {
     otherKey: 'moduleId'
   });
 
-  //associations between User and SectionEnrollment
+  //associations between Teacher and SectionEnrollment
   db.User.belongsToMany(db.SectionEnrollment, {
     through: db.TeacherAssignment,
     foreignKey: 'teacherUserId',
@@ -180,15 +180,18 @@ module.exports = (db) => {
   //associations between User and Section, through SectionRoster
   // User and SectionRoster Associations (One-to-One)
 db.User.hasOne(db.SectionRoster, {
-  foreignKey: 'studentUserId'
+  foreignKey: 'studentUserId',
+  as: 'sectionRoster'
 });
 db.SectionRoster.belongsTo(db.User, {
-  foreignKey: 'studentUserId'
+  foreignKey: 'studentUserId',
+  as: 'student'
 });
 
 // Section and SectionRoster Associations (One-to-Many)
 db.Section.hasMany(db.SectionRoster, {
   foreignKey: 'sectionId',
+  as: 'sectionRoster'
 });
 db.SectionRoster.belongsTo(db.Section, {
   foreignKey: 'sectionId'

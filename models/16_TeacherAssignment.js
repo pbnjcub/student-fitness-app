@@ -28,7 +28,6 @@ module.exports = (sequelize) => {
         sequelize, 
         modelName: 'TeacherAssignment', 
         tableName: 'teacher_assignments',
-        timestamps: false,
     });
 
     return TeacherAssignment;

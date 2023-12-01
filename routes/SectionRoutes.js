@@ -19,6 +19,36 @@ function sectionDTO(section) {
     }
 }
 
+//
+function sectionByIdDTO(section) {
+  return {
+      id: section.id,
+      sectionCode: section.sectionCode,
+      gradeLevel: section.gradeLevel,
+      isActive: section.isActive,
+      sectionRoster: section.sectionRoster.map(sectionRoster => {
+          return {
+              id: sectionRoster.id,
+              studentUserId: sectionRoster.studentUserId,
+              sectionId: sectionRoster.sectionId,
+              student: {
+                  id: sectionRoster.student.id,
+                  firstName: sectionRoster.student.firstName,
+                  lastName: sectionRoster.student.lastName,
+                  birthDate: sectionRoster.student.birthDate,
+                  userType: sectionRoster.student.userType,
+                  studentDetails: {
+                      id: sectionRoster.student.studentDetails.id,
+                      gradYear: sectionRoster.student.studentDetails.gradYear
+                  }
+              }
+          }
+      })
+  };
+}
+
+
+
 const checkRequired = (sectionData) => {
     const { sectionCode, gradeLevel } = sectionData;
   
@@ -116,40 +146,6 @@ router.get('/sections/active', async (req, res) => {
   }
 });
 
-router.get('/sections/:id', async (req, res) => {
-  const { id } = req.params;
-
-  console.log(`Starting GET /sections/${id}...`);
-
-  try {
-      const section = await Section.findByPk(id, {
-          include: [{
-              model: SectionRoster,
-              // Remove the 'as' if you haven't defined an alias in the association
-              include: [{
-                  model: User, // Assuming User model is associated with SectionRoster
-                  // Remove the 'as' if you haven't defined an alias in the association
-                  include: [{
-                      model: StudentDetail, // Assuming this association is defined in User
-                      as: 'studentDetails' // Use the alias if it's defined
-                  }]
-              }]
-          }]
-      });
-
-      if (!section) {
-          console.log(`Section with ID ${id} not found.`);
-          return res.status(404).json({ error: 'Section not found' });
-      }
-
-      res.json(section);
-  } catch (error) {
-      console.error('Error fetching section:', error);
-      res.status(500).send('Server error');
-  }
-});
-
-
 //add section
 router.post('/sections', async (req, res) => {
   try {
@@ -240,25 +236,37 @@ router.post('/sections/upload', upload.single('file'), async (req, res) => {
     }
 });
 
-
-//retrieve section by id
 router.get('/sections/:id', async (req, res) => {
   const { id } = req.params;
 
   console.log(`Starting GET /sections/${id}...`);
 
   try {
-    const section = await Section.findByPk(id);
+      const section = await Section.findByPk(id, {
+          include: [{
+              model: SectionRoster,
+              as: 'sectionRoster',
+              include: [{
+                  model: User,
+                  as: 'student',
+                  include: [{
+                      model: StudentDetail, // Assuming this association is defined in User
+                      as: 'studentDetails' // Use the alias if it's defined
+                  }]
+              }]
+          }]
+      });
 
-    if (!section) {
-      console.log(`Section with ID ${id} not found.`);
-      return res.status(404).json({ error: 'Section not found' });
-    }
+      if (!section) {
+          console.log(`Section with ID ${id} not found.`);
+          return res.status(404).json({ error: 'Section not found' });
+      }
 
-    res.json(section);
+
+      res.json(sectionByIdDTO(section));
   } catch (error) {
-    console.error('Error fetching section:', error);
-    res.status(500).send('Server error');
+      console.error('Error fetching section:', error);
+      res.status(500).send('Server error');
   }
 });
 

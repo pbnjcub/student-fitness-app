@@ -38,8 +38,7 @@ module.exports = (sequelize) => {
         sequelize,
         modelName: 'StudentPerformanceGradesHistory',
         tableName: 'student_performance_grades_history',
-        timestamps: false,
-    });
+     });
 
     return StudentPerformanceGradesHistory;
 };
