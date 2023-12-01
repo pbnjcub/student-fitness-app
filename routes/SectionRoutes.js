@@ -6,7 +6,7 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const { sequelize } = require('../models');
-const { User, Section } = require('../models');
+const { User, Section, SectionRoster, StudentDetail } = require('../models');
 
 
 //helper functions
@@ -49,8 +49,45 @@ async function sectionExists(sectionCode) {
     return section ? true : false;
 }
 
+//find current academic year
+function getAcademicYear() { 
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
+  if (currentMonth >= 8) {
+      return currentYear + 1;
+  } else {
+      return currentYear;
+  }
+}
 
-// Retrieve all modules
+//find current grade level of student user
+function getGradeLevel(studentUser) {
+  const studentGradYear = studentUser.studentDetails.gradYear;
+
+  if (typeof studentGradYear !== 'number' || studentGradYear < new Date().getFullYear()) {
+      // Handle invalid or past graduation year
+      return 'Invalid or past graduation year';
+  }
+
+  const currentAcademicYear = getAcademicYear();
+  const yearsRemaining = studentGradYear - currentAcademicYear;
+
+  if (yearsRemaining < 0) {
+      // Student has already graduated
+      return 'Graduated';
+  } else if (yearsRemaining > 12) {
+      // Student is younger than 1st grade
+      return 'Pre-Grade 1';
+  }
+
+  const currentGradeLevel = 12 - yearsRemaining;
+  return currentGradeLevel <= 0 ? 'Kindergarten or younger' : currentGradeLevel;
+}
+
+
+
+// Retrieve all sections
 router.get('/sections', async (req, res) => {
 
   try {
@@ -63,7 +100,7 @@ router.get('/sections', async (req, res) => {
   }
 });
 
-//retrieve only active modules
+//retrieve only active sections
 router.get('/sections/active', async (req, res) => {
   try {
     const sections = await Section.findAll({
@@ -258,5 +295,137 @@ router.delete('/sections/:id', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
+
+//route to roster a student user to a section
+router.post('/sections/:sectionId/roster-student', async (req, res) => {
+  const { sectionId } = req.params;
+  const { studentUserId } = req.body;
+
+  console.log(`Starting POST /sections/${sectionId}/roster...`);
+  console.log(`Received request body:`, req.body);
+
+  if (!sectionId) return res.status(400).json({ error: 'Section ID is required' });
+  if (!studentUserId) return res.status(400).json({ error: 'Student User ID is required' });
+
+  try {
+      const transaction = await sequelize.transaction();
+
+      const section = await Section.findByPk(sectionId, { transaction });
+      if (!section) {
+          await transaction.rollback();
+          console.log(`Section with ID ${sectionId} not found.`);
+          return res.status(404).json({ error: 'Section not found' });
+      }
+      console.log(`Found section:`, section.toJSON());
+
+      const student = await User.findByPk(studentUserId, {
+        include: [{ model: StudentDetail, as: 'studentDetails' }],
+        transaction
+      });
+      if (!student || student.userType !== 'student') {
+          await transaction.rollback();
+          console.log(`Student with ID ${studentUserId} not found or not a student.`);
+          return res.status(404).json({ error: 'Student not found or not a student' });
+      }
+      console.log(`Found student:`, student.toJSON());
+
+      // Check if the student's grade level matches the section's grade level
+      const studentGradeLevel = getGradeLevel(student);
+      if (typeof studentGradeLevel !== 'number' || studentGradeLevel.toString() !== section.gradeLevel) {
+          await transaction.rollback();
+          return res.status(400).json({ 
+              error: `Student's grade level does not match the section's grade level` 
+          });
+      }
+
+      const sectionRoster = await SectionRoster.create({
+          studentUserId: studentUserId,
+          sectionId: sectionId
+      }, { transaction });
+
+      await transaction.commit();
+      res.json(sectionRoster);
+  } catch (error) {
+      console.error('Error rostering student:', error);
+      res.status(500).send('Server error');
+  }
+});
+
+//roster students from csv
+router.post('/sections/:sectionId/roster-students/upload', upload.single('file'), async (req, res) => {
+  const { sectionId } = req.params;
+
+  console.log(`Starting POST /sections/${sectionId}/roster-students/upload...`);
+  console.log(`Received request body:`, req.body);
+
+  if (!sectionId) return res.status(400).json({ error: 'Section ID is required' });
+
+  try {
+      const transaction = await sequelize.transaction();
+
+      const section = await Section.findByPk(sectionId, { transaction });
+      if (!section) {
+          await transaction.rollback();
+          console.log(`Section with ID ${sectionId} not found.`);
+          return res.status(404).json({ error: 'Section not found' });
+      }
+      console.log(`Found section:`, section.toJSON());
+
+      const buffer = req.file.buffer;
+      const content = buffer.toString();
+
+      const newRosterEntries = [];
+      const errors = [];
+
+      Papa.parse(content, {
+          header: true,
+          dynamicTyping: true,
+          complete: async (results) => {
+              try {
+                  for (const rosterData of results.data) {
+                      const { studentUserId } = rosterData;
+
+                      const student = await User.findByPk(studentUserId, { transaction });
+                      if (!student || student.userType !== 'student') {
+                          errors.push({ rosterData, error: `Student with ID ${studentUserId} not found or not a student` });
+                          continue; // Skip to the next iteration
+                      }
+
+                      // Check if the student's grade level matches the section's grade level
+                      const studentGradeLevel = getGradeLevel(student);
+                      if (typeof studentGradeLevel !== 'number' || studentGradeLevel.toString() !== section.gradeLevel) {
+                          errors.push({ rosterData, error: `Student's grade level does not match the section's grade level` });
+                          continue; // Skip to the next iteration
+                      }
+
+                      const sectionRoster = await SectionRoster.create({
+                          studentUserId: studentUserId,
+                          sectionId: sectionId
+                      }, { transaction });
+
+                      newRosterEntries.push(sectionRoster);
+                  }
+
+                  if (errors.length > 0) {
+                      await transaction.rollback();
+                      res.status(400).json({ error: 'Some students could not be rostered', details: errors });
+                  } else {
+                      await transaction.commit();
+                      res.status(201).json({ success : 'File uploaded and processed successfully', newRosterEntries });
+                  }
+              } catch (error) {
+                  await transaction.rollback();
+                  console.error('Error processing file:', error);
+                  res.status(500).json({ error: 'Internal Server Error' });
+              }
+          }
+      });
+  } catch (error) {
+      console.error('Error uploading file:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+);
+
 
 module.exports = router;
