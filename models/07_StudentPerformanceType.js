@@ -14,7 +14,12 @@ module.exports = (sequelize) => {
             allowNull: true,
             unique: true
         }
-    }, { sequelize, modelName: 'StudentPerformanceType', tableName: 'student_performance_types' });
+    }, {
+        sequelize,
+        modelName: 'StudentPerformanceType',
+        tableName: 'student_performance_types',
+        timestamps: false,
+    });
 
     return StudentPerformanceType;
 };

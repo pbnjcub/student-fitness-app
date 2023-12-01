@@ -61,7 +61,12 @@ module.exports = (sequelize) => {
       type: DataTypes.DATEONLY,
       allowNull: true
     }
-  }, { sequelize, modelName: 'User', tableName: 'users' });
+  }, {
+    sequelize,
+    modelName: 'User',
+    tableName: 'users',
+    timestamps: false,
+  });
 
   console.log("Inside User model file");
 

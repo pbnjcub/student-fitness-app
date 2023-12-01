@@ -52,6 +52,7 @@ module.exports = (sequelize) => {
         sequelize, 
         modelName: 'SectionEnrollment', 
         tableName: 'section_enrollments',
+        timestamps: false,
     });
 
     return SectionEnrollment;

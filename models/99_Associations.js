@@ -151,6 +151,7 @@ module.exports = (db) => {
     as: 'assignedTestHistory'
   });
 
+  //associations between Module and Sections
   db.Module.belongsToMany(db.Section, {
     through: db.SectionEnrollment,
     foreignKey: 'moduleId',
@@ -163,6 +164,7 @@ module.exports = (db) => {
     otherKey: 'moduleId'
   });
 
+  //associations between User and SectionEnrollment
   db.User.belongsToMany(db.SectionEnrollment, {
     through: db.TeacherAssignment,
     foreignKey: 'teacherUserId',
@@ -175,16 +177,21 @@ module.exports = (db) => {
     otherKey: 'teacherUserId'
   });
 
-  db.User.belongsToMany(db.Section, {
-    through: db.SectionRoster,
-    foreignKey: 'studentUserId',
-    otherKey: 'sectionId'
-    });
+  //associations between User and Section, through SectionRoster
+  // User and SectionRoster Associations (One-to-One)
+db.User.hasOne(db.SectionRoster, {
+  foreignKey: 'studentUserId'
+});
+db.SectionRoster.belongsTo(db.User, {
+  foreignKey: 'studentUserId'
+});
 
-  db.Section.belongsToMany(db.User, {
-    through: db.SectionRoster,
-    foreignKey: 'sectionId',
-    otherKey: 'studentUserId'
-  });
-
+// Section and SectionRoster Associations (One-to-Many)
+db.Section.hasMany(db.SectionRoster, {
+  foreignKey: 'sectionId',
+});
+db.SectionRoster.belongsTo(db.Section, {
+  foreignKey: 'sectionId'
+});
+    
 };

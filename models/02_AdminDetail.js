@@ -22,7 +22,12 @@ module.exports = (sequelize) => {
       type: DataTypes.TEXT,
       allowNull: true
     }
-  }, { sequelize, modelName: 'AdminDetail', tableName: 'admin_details' });
+  }, {
+    sequelize,
+    modelName: 'AdminDetail',
+    tableName: 'admin_details',
+    timestamps: false,
+  });
 
   return AdminDetail;
 };

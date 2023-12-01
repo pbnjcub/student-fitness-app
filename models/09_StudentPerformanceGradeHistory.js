@@ -34,7 +34,12 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: 0.00
         }
-    }, { sequelize, modelName: 'StudentPerformanceGradesHistory', tableName: 'student_performance_grades_history' });
+    }, {
+        sequelize,
+        modelName: 'StudentPerformanceGradesHistory',
+        tableName: 'student_performance_grades_history',
+        timestamps: false,
+    });
 
     return StudentPerformanceGradesHistory;
 };

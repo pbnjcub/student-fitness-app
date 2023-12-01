@@ -42,6 +42,7 @@ module.exports = (sequelize) => {
         sequelize, 
         modelName: 'StudentAssignedPerformanceTest', 
         tableName: 'student_assigned_performance_test',
+        timestamps: false,
         indexes: [
             {
                 unique: true,

@@ -39,7 +39,12 @@ module.exports = (sequelize) => {
       allowNull: false,
       defaultValue: 0
     },
-  }, { sequelize, modelName: 'StudentAnthro', tableName: 'student_anthros' });
+  }, {
+    sequelize,
+    modelName: 'StudentAnthro',
+    tableName: 'student_anthros',
+    timestamps: false,
+  });
 
   return StudentAnthro;
 };

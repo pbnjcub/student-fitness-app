@@ -47,7 +47,12 @@ module.exports = (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-  }, { sequelize, modelName: 'StudentHistAnthro', tableName: 'student_hist_anthros' });
+  }, {
+    sequelize,
+    modelName: 'StudentHistAnthro',
+    tableName: 'student_hist_anthros',
+    timestamps: false,
+  });
 
   return StudentHistAnthro;
 };

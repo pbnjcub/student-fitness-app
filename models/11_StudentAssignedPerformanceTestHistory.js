@@ -52,6 +52,7 @@ module.exports = (sequelize) => {
         sequelize, 
         modelName: 'StudentAssignedPerformanceTestHistory', 
         tableName: 'assigned_hist_performances',
+        timestamps: false,
     });
 
     return StudentAssignedPerformanceTestHistory;
