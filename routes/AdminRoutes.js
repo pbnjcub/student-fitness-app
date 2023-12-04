@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { sequelize } = require('../models');  // Ensure you import the sequelize instance.
+const { sequelize } = require('../models');
 const { User, AdminDetail } = require('../models');
-const bcrypt = require('bcrypt'); // Ensure you've imported bcrypt.
+const bcrypt = require('bcrypt');
 
 // Retrieve all admin users
 router.get('/admins', async (req, res) => {

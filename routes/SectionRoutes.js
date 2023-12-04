@@ -427,7 +427,12 @@ router.post('/sections/:sectionId/roster-students/upload', upload.single('file')
                   for (const rosterData of results.data) {
                       const { studentUserId } = rosterData;
 
-                      const student = await User.findByPk(studentUserId, { transaction });
+                      const student = await User.findByPk(studentUserId, {
+                        include: [{ model: StudentDetail, as: 'studentDetails' }],
+                        transaction
+                      });
+
+                    //   const student = await User.findByPk(studentUserId, { transaction });
                       if (!student || student.userType !== 'student') {
                           errors.push({ rosterData, error: `Student with ID ${studentUserId} not found or not a student` });
                           continue; // Skip to the next iteration
