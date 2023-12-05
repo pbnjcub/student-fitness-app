@@ -52,6 +52,8 @@ async function createUser(userData, transaction = null) {
       lastName: userData.lastName,
       firstName: userData.firstName,
       birthDate: userData.birthDate,
+      genderIdentity: userData.genderIdentity,
+      pronouns: userData.pronouns,
       userType: userData.userType,
       photoUrl: userData.photoUrl,
       isArchived: userData.isArchived || false,

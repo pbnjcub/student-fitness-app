@@ -340,58 +340,65 @@ router.delete('/sections/:id', async (req, res) => {
 
 //route to roster a student user to a section
 router.post('/sections/:sectionId/roster-student', async (req, res) => {
-  const { sectionId } = req.params;
-  const { studentUserId } = req.body;
+    const { sectionId } = req.params;
+    let { studentUserIds } = req.body;
 
-  console.log(`Starting POST /sections/${sectionId}/roster...`);
-  console.log(`Received request body:`, req.body);
 
-  if (!sectionId) return res.status(400).json({ error: 'Section ID is required' });
-  if (!studentUserId) return res.status(400).json({ error: 'Student User ID is required' });
+    if (!sectionId) return res.status(400).json({ error: 'Section ID is required' });
 
-  try {
-      const transaction = await sequelize.transaction();
+    // Ensure studentUserIds is an array even if only one id is provided
+    if (!Array.isArray(studentUserIds)) {
+        studentUserIds = [studentUserIds];
+    }
 
-      const section = await Section.findByPk(sectionId, { transaction });
-      if (!section) {
-          await transaction.rollback();
-          console.log(`Section with ID ${sectionId} not found.`);
-          return res.status(404).json({ error: 'Section not found' });
-      }
-      console.log(`Found section:`, section.toJSON());
+    if (studentUserIds.length === 0) return res.status(400).json({ error: 'At least one Student User ID is required' });
 
-      const student = await User.findByPk(studentUserId, {
-        include: [{ model: StudentDetail, as: 'studentDetails' }],
-        transaction
-      });
-      if (!student || student.userType !== 'student') {
-          await transaction.rollback();
-          console.log(`Student with ID ${studentUserId} not found or not a student.`);
-          return res.status(404).json({ error: 'Student not found or not a student' });
-      }
-      console.log(`Found student:`, student.toJSON());
+    try {
+        const transaction = await sequelize.transaction();
 
-      // Check if the student's grade level matches the section's grade level
-      const studentGradeLevel = getGradeLevel(student);
-      if (typeof studentGradeLevel !== 'number' || studentGradeLevel.toString() !== section.gradeLevel) {
-          await transaction.rollback();
-          return res.status(400).json({ 
-              error: `Student's grade level does not match the section's grade level` 
-          });
-      }
+        const section = await Section.findByPk(sectionId, { transaction });
+        if (!section) {
+            await transaction.rollback();
+            console.log(`Section with ID ${sectionId} not found.`);
+            return res.status(404).json({ error: 'Section not found' });
+        }
+        console.log(`Found section:`, section.toJSON());
 
-      const sectionRoster = await SectionRoster.create({
-          studentUserId: studentUserId,
-          sectionId: sectionId
-      }, { transaction });
+        let rosteredStudents = [];
+        for (const studentUserId of studentUserIds) {
+            const student = await User.findByPk(studentUserId, {
+                include: [{ model: StudentDetail, as: 'studentDetails' }],
+                transaction
+            });
 
-      await transaction.commit();
-      res.json(sectionRoster);
-  } catch (error) {
-      console.error('Error rostering student:', error);
-      res.status(500).send('Server error');
-  }
+            if (!student || student.userType !== 'student') {
+                console.log(`Student with ID ${studentUserId} not found or not a student.`);
+                continue; // Skip to the next student
+            }
+            console.log(`Found student:`, student.toJSON());
+
+            const studentGradeLevel = getGradeLevel(student);
+            if (typeof studentGradeLevel !== 'number' || studentGradeLevel.toString() !== section.gradeLevel) {
+                console.log(`Student's grade level does not match the section's grade level.`);
+                continue; // Skip to the next student
+            }
+
+            const sectionRoster = await SectionRoster.create({
+                studentUserId: studentUserId,
+                sectionId: sectionId
+            }, { transaction });
+
+            rosteredStudents.push(sectionRoster);
+        }
+
+        await transaction.commit();
+        res.json({ rosteredStudents, message: `${rosteredStudents.length} student(s) added to the roster` });
+    } catch (error) {
+        console.error('Error rostering students:', error);
+        res.status(500).send('Server error');
+    }
 });
+
 
 //roster students from csv
 router.post('/sections/:sectionId/roster-students/upload', upload.single('file'), async (req, res) => {
