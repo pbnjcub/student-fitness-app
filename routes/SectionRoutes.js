@@ -342,11 +342,11 @@ router.delete('/sections/:id', async (req, res) => {
 router.post('/sections/:sectionId/roster-student', async (req, res) => {
     const { sectionId } = req.params;
     let { studentUserIds } = req.body;
-
+    console.log(`Starting POST /sections/${sectionId}/roster...`);
+    console.log(`Received request body:`, req.body);
 
     if (!sectionId) return res.status(400).json({ error: 'Section ID is required' });
 
-    // Ensure studentUserIds is an array even if only one id is provided
     if (!Array.isArray(studentUserIds)) {
         studentUserIds = [studentUserIds];
     }
@@ -362,24 +362,20 @@ router.post('/sections/:sectionId/roster-student', async (req, res) => {
             console.log(`Section with ID ${sectionId} not found.`);
             return res.status(404).json({ error: 'Section not found' });
         }
-        console.log(`Found section:`, section.toJSON());
 
         let rosteredStudents = [];
+        let alreadyRosteredStudents = [];
         for (const studentUserId of studentUserIds) {
-            const student = await User.findByPk(studentUserId, {
-                include: [{ model: StudentDetail, as: 'studentDetails' }],
+            // ... [rest of the student processing logic]
+
+            // Check if the student is already rostered in another section
+            const existingRoster = await SectionRoster.findOne({
+                where: { studentUserId: studentUserId },
                 transaction
             });
-
-            if (!student || student.userType !== 'student') {
-                console.log(`Student with ID ${studentUserId} not found or not a student.`);
-                continue; // Skip to the next student
-            }
-            console.log(`Found student:`, student.toJSON());
-
-            const studentGradeLevel = getGradeLevel(student);
-            if (typeof studentGradeLevel !== 'number' || studentGradeLevel.toString() !== section.gradeLevel) {
-                console.log(`Student's grade level does not match the section's grade level.`);
+            if (existingRoster) {
+                console.log(`Student with ID ${studentUserId} is already rostered in another section.`);
+                alreadyRosteredStudents.push(studentUserId);
                 continue; // Skip to the next student
             }
 
@@ -389,6 +385,14 @@ router.post('/sections/:sectionId/roster-student', async (req, res) => {
             }, { transaction });
 
             rosteredStudents.push(sectionRoster);
+        }
+
+        if (alreadyRosteredStudents.length > 0) {
+            await transaction.rollback();
+            return res.status(400).json({
+                error: 'These students are already rostered in another section',
+                alreadyRosteredStudents: alreadyRosteredStudents
+            });
         }
 
         await transaction.commit();
@@ -480,6 +484,66 @@ router.post('/sections/:sectionId/roster-students/upload', upload.single('file')
   }
 }
 );
+
+//unroster student or students from section
+router.delete('/sections/:sectionId/unroster-student', async (req, res) => {
+  const { sectionId } = req.params;
+  let { studentUserIds } = req.body;
+
+  if (!sectionId) return res.status(400).json({ error: 'Section ID is required' });
+
+  // Ensure studentUserIds is an array even if only one id is provided
+  if (!Array.isArray(studentUserIds)) {
+      studentUserIds = [studentUserIds];
+  }
+
+  if (studentUserIds.length === 0) return res.status(400).json({ error: 'At least one Student User ID is required' });
+
+  try {
+      const transaction = await sequelize.transaction();
+
+      const section = await Section.findByPk(sectionId, { transaction });
+      if (!section) {
+          await transaction.rollback();
+          console.log(`Section with ID ${sectionId} not found.`);
+          return res.status(404).json({ error: 'Section not found' });
+      }
+      console.log(`Found section:`, section.toJSON());
+
+      let unrosteredStudents = [];
+      for (const studentUserId of studentUserIds) {
+          const student = await User.findByPk(studentUserId, { transaction });
+          if (!student || student.userType !== 'student') {
+              console.log(`Student with ID ${studentUserId} not found or not a student.`);
+              continue; // Skip to the next student
+          }
+          console.log(`Found student:`, student.toJSON());
+
+          const sectionRoster = await SectionRoster.findOne({
+              where: {
+                  studentUserId: studentUserId,
+                  sectionId: sectionId
+              },
+              transaction
+          });
+
+          if (!sectionRoster) {
+              console.log(`Student with ID ${studentUserId} is not rostered to section with ID ${sectionId}.`);
+              continue; // Skip to the next student
+          }
+
+          await sectionRoster.destroy({ transaction });
+
+          unrosteredStudents.push(sectionRoster);
+      }
+
+      await transaction.commit();
+      res.json({ unrosteredStudents, message: `${unrosteredStudents.length} student(s) removed from the roster` });
+  } catch (error) {
+      console.error('Error unrostering students:', error);
+      res.status(500).send('Server error');
+  }
+});
 
 
 module.exports = router;
