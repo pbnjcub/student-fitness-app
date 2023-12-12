@@ -4,6 +4,7 @@ const multer = require('multer');
 const Papa = require('papaparse');
 
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize } = require('../models');
+const { findUserById, detailedUser } = require('../utils/UserHelpers');
 
 const router = express.Router();
 const storage = multer.memoryStorage();
@@ -99,55 +100,60 @@ async function createUser(userData, transaction = null) {
   return user;
 }
 
-async function detailedUser(newUser) {
+// async function detailedUser(userData) {
 
-  let userDetails = {};
+//   let userDetails = {};
 
-  const user = await User.findByPk(newUser.id, {
-      include: [
-          {
-              model: StudentDetail,
-              as: 'studentDetails',
-              required: false
-          },
-          {
-              model: StudentAnthro,
-              as: 'studentAnthro',
-              required: false
-          },
-          {
-              model: TeacherDetail,
-              as: 'teacherDetails',
-              required: false
-          },
-          {
-              model: AdminDetail,
-              as: 'adminDetails',
-              required: false
-          }
-      ]
-  });
+//   const user = await User.findByPk(userData.id, {
+//       include: [
+//           {
+//               model: StudentDetail,
+//               as: 'studentDetails',
+//               required: false,
+//               attributes: { exclude: ['createdAt', 'updatedAt'] }
+//           },
+//           // {
+//           //     model: StudentAnthro,
+//           //     as: 'studentAnthro',
+//           //     required: false,
+//           //     attributes: { exclude: ['createdAt', 'updatedAt'] }
+//           // },
+//           {
+//               model: TeacherDetail,
+//               as: 'teacherDetails',
+//               required: false,
+//               attributes: { exclude: ['createdAt', 'updatedAt'] }
+//           },
+//           {
+//               model: AdminDetail,
+//               as: 'adminDetails',
+//               required: false,
+//               attributes: { exclude: ['createdAt', 'updatedAt'] }
+//           }
+//       ]
+//   });
   
-  if (user && user.userType === 'student') {
-      userDetails = {
-          ...user.studentDetails ? user.studentDetails.toJSON() : null,
-          ...user.studentAnthro ? user.studentAnthro.toJSON() : null
-      };
-  } else if (user.userType === 'teacher') {
-      userDetails = {
-          ...user.teacherDetails ? user.teacherDetails.toJSON() : null
-      };
-  } else if (user.userType === 'admin') {
-      userDetails = {
-          ...user.adminDetails ? user.adminDetails.toJSON() : null
-      };
-  }
+//   if (user && user.userType === 'student') {
+//       userDetails = {
+//         ...user.studentDetails ? user.studentDetails.toJSON() : null
+//           // ...user.studentDetails ? user.studentDetails.toJSON() : null,
+//           // ...user.studentAnthro ? user.studentAnthro.toJSON() : null
+//       };
+//   } else if (user.userType === 'teacher') {
+//       userDetails = {
+//           ...user.teacherDetails ? user.teacherDetails.toJSON() : null
+//       };
+//   } else if (user.userType === 'admin') {
+//       userDetails = {
+//           ...user.adminDetails ? user.adminDetails.toJSON() : null
+//       };
+//   }
 
-  return {
-      ...newUser,
-      details: userDetails
-  };
-}
+//   return {
+//       ...userData.toJSON(),
+//       details: userDetails
+//   };
+// }
 
 async function hashPassword(password) {
   return await bcrypt.hash(password, 10);
@@ -179,30 +185,43 @@ router.post('/users/register', async (req, res) => {
   }
 });
 
-
-
-
 //get users
 router.get('/users', async (req, res) => {
   try {
-    const users = await User.findAll();
-    const mainUsers = [];
 
-    for (const user of users) {
-      mainUsers.push(userDTO(user));
-    }
+    const users = await User.findAll({
+      attributes: { exclude: ['password', 'createdAt', 'updatedAt']}
+    })
 
-    const detailedUsers = [];
+    const detailedUsers = await Promise.all(users.map(user => detailedUser(user)));
 
-    for (const user of mainUsers) {
-      detailedUsers.push(await detailedUser(user));
-    }
-  
     res.json(detailedUsers);
   } catch (err) {
     res.status(500).send('Server error');
   }
 });
+
+//get user by id
+router.get('/users/:id', async (req, res) => {
+  console.log(`Starting GET /users/${req.params.id}...`);
+  const { id } = req.params;
+
+  try {
+    const user = await findUserById(id);
+
+    console.log(`Found user:`, user.toJSON())
+    if (!user) {
+      return res.status(404).json({ error: `User with ID ${id} not found` });
+    }
+    console.log(`Starting detailedUser(${user.id})...`);
+    const userWithDetail = await detailedUser(user);
+    console.log(`Detailed user:`, detailedUser)
+    res.json(userWithDetail);
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
+});
+
 
 //bulk upload
 router.post('/users/upload', upload.single('file'), async (req, res) => {
