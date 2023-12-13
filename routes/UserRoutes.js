@@ -3,15 +3,17 @@ const bcrypt = require('bcrypt');
 const multer = require('multer');
 const Papa = require('papaparse');
 
+//import models
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize } = require('../models');
-const { findUserById, detailedUser } = require('../utils/UserHelpers');
+
+//import helper functions
+const { findUserById, detailedUser, updateUserDetails } = require('../utils/UserHelpers');
 
 const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 //helper functions
-
 function userDTO(user) {
   return {
       id: user.id,
@@ -100,65 +102,10 @@ async function createUser(userData, transaction = null) {
   return user;
 }
 
-// async function detailedUser(userData) {
-
-//   let userDetails = {};
-
-//   const user = await User.findByPk(userData.id, {
-//       include: [
-//           {
-//               model: StudentDetail,
-//               as: 'studentDetails',
-//               required: false,
-//               attributes: { exclude: ['createdAt', 'updatedAt'] }
-//           },
-//           // {
-//           //     model: StudentAnthro,
-//           //     as: 'studentAnthro',
-//           //     required: false,
-//           //     attributes: { exclude: ['createdAt', 'updatedAt'] }
-//           // },
-//           {
-//               model: TeacherDetail,
-//               as: 'teacherDetails',
-//               required: false,
-//               attributes: { exclude: ['createdAt', 'updatedAt'] }
-//           },
-//           {
-//               model: AdminDetail,
-//               as: 'adminDetails',
-//               required: false,
-//               attributes: { exclude: ['createdAt', 'updatedAt'] }
-//           }
-//       ]
-//   });
-  
-//   if (user && user.userType === 'student') {
-//       userDetails = {
-//         ...user.studentDetails ? user.studentDetails.toJSON() : null
-//           // ...user.studentDetails ? user.studentDetails.toJSON() : null,
-//           // ...user.studentAnthro ? user.studentAnthro.toJSON() : null
-//       };
-//   } else if (user.userType === 'teacher') {
-//       userDetails = {
-//           ...user.teacherDetails ? user.teacherDetails.toJSON() : null
-//       };
-//   } else if (user.userType === 'admin') {
-//       userDetails = {
-//           ...user.adminDetails ? user.adminDetails.toJSON() : null
-//       };
-//   }
-
-//   return {
-//       ...userData.toJSON(),
-//       details: userDetails
-//   };
-// }
 
 async function hashPassword(password) {
   return await bcrypt.hash(password, 10);
 }
-
 
 //routes
 //create user
@@ -188,40 +135,39 @@ router.post('/users/register', async (req, res) => {
 //get users
 router.get('/users', async (req, res) => {
   try {
-
     const users = await User.findAll({
-      attributes: { exclude: ['password', 'createdAt', 'updatedAt']}
-    })
+      attributes: { exclude: ['password', 'createdAt', 'updatedAt'] },
+      include: [
+        { model: StudentDetail, as: 'studentDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
+        { model: TeacherDetail, as: 'teacherDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
+        { model: AdminDetail, as: 'adminDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
+      ]
+    });
 
-    const detailedUsers = await Promise.all(users.map(user => detailedUser(user)));
-
-    res.json(detailedUsers);
+    res.json(users);
   } catch (err) {
+    console.error('Error in GET /users:', err);
     res.status(500).send('Server error');
   }
 });
 
+
 //get user by id
 router.get('/users/:id', async (req, res) => {
-  console.log(`Starting GET /users/${req.params.id}...`);
   const { id } = req.params;
 
   try {
     const user = await findUserById(id);
-
-    console.log(`Found user:`, user.toJSON())
-    if (!user) {
-      return res.status(404).json({ error: `User with ID ${id} not found` });
+    res.json(user);
+  } catch (error) {
+    if (error.message.includes('not found')) {
+      res.status(404).json({ error: error.message });
+    } else {
+      console.error('Error in GET /users/:id', error);
+      res.status(500).send('Server error');
     }
-    console.log(`Starting detailedUser(${user.id})...`);
-    const userWithDetail = await detailedUser(user);
-    console.log(`Detailed user:`, detailedUser)
-    res.json(userWithDetail);
-  } catch (err) {
-    res.status(500).send('Server error');
   }
 });
-
 
 //bulk upload
 router.post('/users/upload', upload.single('file'), async (req, res) => {
@@ -276,79 +222,41 @@ router.post('/users/upload', upload.single('file'), async (req, res) => {
 
 //edit user by id
 router.patch('/users/:id', async (req, res) => {
-
   const { id } = req.params;
-
   const {
-      email, password, lastName, firstName, birthDate, genderIdentity,
-      pronouns, photoUrl, userType, isArchived, dateArchived, gradYear, yearsExp, bio
+    email, password, lastName, firstName, birthDate, genderIdentity,
+    pronouns, photoUrl, userType, isArchived, dateArchived, studentDetails, teacherDetails, adminDetails
   } = req.body;
 
   try {
-      const user = await User.findByPk(id);
+    const user = await findUserById(id);
+    const updatedUserValues = { email, lastName, firstName, birthDate, genderIdentity, pronouns, photoUrl, userType, isArchived, dateArchived };
+    if (password) updatedUserValues.password = await hashPassword(password);
+    await user.update(updatedUserValues);
 
-      if (!user) {
-          return res.status(404).json({ error: `User with ID ${id} not found` });
-      }
+    // Object containing all types of detail updates
+    const detailUpdates = {
+      studentDetails: req.body.studentDetails,
+      teacherDetails: req.body.teacherDetails,
+      adminDetails: req.body.adminDetails
+    };
 
-      // Prepare an object to hold the updated values
-      const updatedValues = {};
-      if (email && email !== user.email) updatedValues.email = email;
-      if (password) updatedValues.password = await hashPassword(password);
-      if (lastName && lastName !== user.lastName) updatedValues.lastName = lastName;
-      if (firstName && firstName !== user.firstName) updatedValues.firstName = firstName;
-      if (birthDate && birthDate !== user.birthDate) updatedValues.birthDate = birthDate;
-      if (genderIdentity && genderIdentity !== user.genderIdentity) updatedValues.genderIdentity = genderIdentity;
-      if (pronouns && pronouns !== user.pronouns) updatedValues.pronouns = pronouns;
-      if (photoUrl && photoUrl !== user.photoUrl) updatedValues.photoUrl = photoUrl;
-      if (userType && userType !== user.userType) updatedValues.userType = userType;
-      if (isArchived !== undefined && isArchived !== user.isArchived) updatedValues.isArchived = isArchived;
-      if (dateArchived && dateArchived !== user.dateArchived) updatedValues.dateArchived = dateArchived;
-
-      await user.update(updatedValues);
-
-      let userDetails = {};
-      switch (userType) {
-          case 'student':
-              userDetails = await user.getStudentDetails();
-              if (gradYear && gradYear !== userDetails.gradYear) {
-                  await userDetails.update({ gradYear });
-              }
-              break;
-          case 'teacher':
-              userDetails = await user.getTeacherDetails();
-              if ((yearsExp && yearsExp !== userDetails.yearsExp) || (bio && bio !== userDetails.bio)) {
-                  await userDetails.update({ yearsExp, bio });
-              }
-              break;
-          case 'admin':
-              userDetails = await user.getAdminDetails();
-              if ((yearsExp && yearsExp !== userDetails.yearsExp) || (bio && bio !== userDetails.bio)) {
-                await userDetails.update({ yearsExp, bio });
-            }
-              break;
-      }
-
-      res.status(200).json({
-          ...userDTO(user),
-          details: userDetails
-      });
-  } catch (err) {
-      res.status(500).json({ error: 'Internal Server Error' });
+    await updateUserDetails(user, detailUpdates);
+  
+    const updatedUser = await findUserById(id); // Fetch updated user
+    res.status(200).json(updatedUser.toJSON());
+  } catch (error) {
+    console.error('Error in PATCH /users/:id:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 //delete user by id
 router.delete('/users/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const user = await User.findByPk(id);
-
-    if (!user) {
-      return res.status(404).json({ error: `User with ID ${id} not found` });
-    }
+    const user = await findUserById(id);
 
     await user.destroy();
     res.status(204).json("User successfully deleted");
