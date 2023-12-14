@@ -3,122 +3,29 @@ const bcrypt = require('bcrypt');
 const multer = require('multer');
 const Papa = require('papaparse');
 
+
 //import models
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize } = require('../models');
 
 //import helper functions
-const { findUserById, detailedUser, updateUserDetails } = require('../utils/UserHelpers');
+const { createUser, findUserById, detailedUser, updateUserDetails } = require('../utils/UserHelpers');
+const UserDTO = require('../utils/UserDTO');
 
 const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-//helper functions
-function userDTO(user) {
-  return {
-      id: user.id,
-      email: user.email,
-      lastName: user.lastName,
-      firstName: user.firstName,
-      birthDate: user.birthDate,
-      genderIdentity: user.genderIdentity,
-      pronouns: user.pronouns,
-      userType: user.userType,
-      photoUrl: user.photoUrl,
-      isArchived: user.isArchived,
-      dateArchived: user.dateArchived
-  };
-}
-
-const checkRequired = (userData) => {
-  const { email, password, lastName, firstName, birthDate, userType } = userData;
-
-  const missingFields = [];
-  
-  if (!email) missingFields.push('Email');
-  if (!password) missingFields.push('Password');
-  if (!lastName) missingFields.push('Last name');
-  if (!firstName) missingFields.push('First name');
-  if (!birthDate) missingFields.push('Birth date');
-  if (!userType) missingFields.push('User type');
-
-  return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
-}
-
-async function createUser(userData, transaction = null) {
-
-  const hashedPassword = await bcrypt.hash(userData.password, 10);
-
-  const mainUserData = {
-      email: userData.email,
-      password: hashedPassword,
-      lastName: userData.lastName,
-      firstName: userData.firstName,
-      birthDate: userData.birthDate,
-      genderIdentity: userData.genderIdentity,
-      pronouns: userData.pronouns,
-      userType: userData.userType,
-      photoUrl: userData.photoUrl,
-      isArchived: userData.isArchived || false,
-      dateArchived: userData.dateArchived || null
-  };
-
-  const [user, created] = await User.findOrCreate({
-      where: { email: userData.email },
-      defaults: mainUserData,
-      transaction
-  });
-
-  if (!created) {
-      return null;
-  }
-
-  // Create user details
-  switch (userData.userType) {
-      case 'student':
-          await StudentDetail.create({
-              userId: user.id,
-              gradYear: userData.gradYear || null
-          }, { transaction });
-          break;
-      case 'teacher':
-          await TeacherDetail.create({
-              userId: user.id,
-              yearsExp: userData.yearsExp || null,
-              bio: userData.bio || null
-          }, { transaction });
-          break;
-      case 'admin':
-          await AdminDetail.create({
-              userId: user.id,
-              yearsExp: userData.yearsExp || null,
-              bio: userData.bio || null
-          }, { transaction });
-          break;
-      default:
-          throw new Error("Invalid user type");
-  }
-
-  return user;
-}
-
-
-async function hashPassword(password) {
-  return await bcrypt.hash(password, 10);
-}
+//validation middleware
+const { userValidationRules } = require('../utils/ValidationRules');
+const validate = require('../utils/ValidationMiddleware');
 
 //routes
 //create user
-router.post('/users/register', async (req, res) => {
+router.post('/users/register', userValidationRules(), validate, async (req, res) => {
   try {
-    const requiredCheck = checkRequired(req.body);
-    if (requiredCheck !== true) {
-      return res.status(400).json({ error: requiredCheck });
-    }
-
     const user = await createUser(req.body);
-    const mainUserData = userDTO(user);
-    const userWithDetails = await detailedUser(mainUserData);
+    const userDto = new UserDTO(user);
+    const userWithDetails = await findUserById(userDto.id);
 
     return res.status(201).json(userWithDetails);
 

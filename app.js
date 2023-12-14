@@ -3,6 +3,7 @@ dotenv.config();
 
 const express = require('express');
 const bodyParser = require('body-parser');
+const { body, validationResult } = require('express-validator');
 const cors = require('cors'); // Import cors module
 const session = require('express-session');
 const cookieParser = require('cookie-parser');

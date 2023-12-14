@@ -1,4 +1,73 @@
+const Sequelize = require('sequelize');
+const bcrypt = require('bcrypt');
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail } = require('../models');
+
+//create user
+async function createUser(userData, transaction = null) {
+  try {
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+    const mainUserData = {
+        email: userData.email,
+        password: hashedPassword,
+        lastName: userData.lastName,
+        firstName: userData.firstName,
+        birthDate: userData.birthDate,
+        genderIdentity: userData.genderIdentity,
+        pronouns: userData.pronouns,
+        userType: userData.userType,
+        photoUrl: userData.photoUrl,
+        isArchived: userData.isArchived || false,
+        dateArchived: userData.dateArchived || null
+    };
+
+    const [user, created] = await User.findOrCreate({
+      where: { email: userData.email },
+      defaults: mainUserData,
+      transaction
+  });
+
+  if (!created) {
+    throw new Error('User already exists');
+  }
+
+  // Create user details
+  switch (userData.userType) {
+    case 'student':
+        await StudentDetail.create({
+            userId: user.id,
+            gradYear: userData.studentDetails.gradYear || null
+        }, { transaction });
+        break;
+    case 'teacher':
+        await TeacherDetail.create({
+            userId: user.id,
+            yearsExp: userData.teacherDetails.yearsExp || null,
+            bio: userData.teacherDetails.bio || null
+        }, { transaction });
+        break;
+    case 'admin':
+        await AdminDetail.create({
+            userId: user.id,
+            yearsExp: userData.adminDetails.yearsExp || null,
+            bio: userData.adminDetails.bio || null
+        }, { transaction });
+        break;
+    default:
+        throw new Error("Invalid user type");
+}
+
+return user;
+} catch (error) {
+    if (error instanceof Sequelize.UniqueConstraintError) {
+        throw new Error('User already exists');
+    } else if (error instanceof Sequelize.ValidationError) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  }
+}
+
 
 //find user by id
 async function findUserById(id) {
@@ -23,26 +92,25 @@ async function findUserById(id) {
 //find user by id with details
 async function detailedUser(userData) {
   let userDetails = {};
-  
-  if (userData.userType === 'student') {
-      userDetails = {
-        ...userData.studentDetails ? userData.studentDetails : null
-      };
-  } else if (userData.userType === 'teacher') {
-      userDetails = {
-          ...userData.teacherDetails ? userData.teacherDetails : null
-      };
-  } else if (userData.userType === 'admin') {
-      userDetails = {
-          ...userData.adminDetails ? userData.adminDetails : null
-      };
+
+  switch (userData.userType) {
+    case 'student':
+      userDetails = userData.studentDetails || null;
+      break;
+    case 'teacher':
+      userDetails = userData.teacherDetails || null;
+      break;
+    case 'admin':
+      userDetails = userData.adminDetails || null;
+      break;
   }
 
   return {
-      ...userData,
-      details: userDetails
+    ...userData,
+    details: userDetails
   };
 }
+
 
 //update user details
 async function updateUserDetails(user, detailUpdates) {
@@ -80,6 +148,7 @@ async function updateUserDetails(user, detailUpdates) {
 
 
 module.exports = {
+    createUser,
     findUserById,
     detailedUser,
     updateUserDetails
