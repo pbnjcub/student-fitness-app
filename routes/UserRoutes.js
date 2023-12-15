@@ -5,17 +5,19 @@ const Papa = require('papaparse');
 
 
 //import models
-const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize } = require('../models');
+const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize, Sequelize } = require('../models');
 
 //import helper functions
 const { createUser, findUserById, detailedUser, updateUserDetails } = require('../utils/UserHelpers');
 const UserDTO = require('../utils/UserDTO');
+const processCsv = require('../utils/GenCSVHandler');
+const userRowHandler = require('../utils/UserCSVRowHandler');
 
 const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-//validation middleware
+//import validation middleware
 const { userValidationRules } = require('../utils/ValidationRules');
 const validate = require('../utils/ValidationMiddleware');
 
@@ -23,8 +25,8 @@ const validate = require('../utils/ValidationMiddleware');
 //create user
 router.post('/users/register', userValidationRules(), validate, async (req, res) => {
   try {
-    const user = await createUser(req.body);
-    const userDto = new UserDTO(user);
+    const newUser = await createUser(req.body);
+    const userDto = new UserDTO(newUser);
     const userWithDetails = await findUserById(userDto.id);
 
     return res.status(201).json(userWithDetails);
@@ -77,55 +79,45 @@ router.get('/users/:id', async (req, res) => {
 });
 
 //bulk upload
-router.post('/users/upload', upload.single('file'), async (req, res) => {
+router.post('/users/register-upload-csv', upload.single('file'), async (req, res) => {
+  console.log("Inside POST /users/register-upload-csv")
+  console.log(req.file)
+  let transaction;
 
   try {
     const buffer = req.file.buffer;
     const content = buffer.toString();
 
-    const newUsers = [];
-    const errors = [];
+    const newUsers = await processCsv(content, userRowHandler);
 
-    Papa.parse(content, {
-      header: true,
-      dynamicTyping: true,
-      complete: async (results) => {
-        const transaction = await sequelize.transaction();
-        try {
-          for (const userData of results.data) {
-            const requiredCheck = checkRequired(userData);
-            if (requiredCheck !== true) {
-              errors.push({ userData, error: requiredCheck });
-            } else {
-              try {
-                const newUser = await createUser(userData, transaction);
-                if (!newUser) {
-                  errors.push({ userData, error: `User with email ${userData.email} already exists` });
-                } else {
-                  newUsers.push(userDTO(newUser));
-                }
-              } catch (error) {
-                errors.push({ userData, error: error.message });
-              }
-            }
-          }
-          if (errors.length > 0) {
-            await transaction.rollback();
-            res.status(400).json({ error: 'Some users could not be processed', details: errors });
-          } else {
-            await transaction.commit();
-            res.status(200).json({ success: 'File uploaded and processed successfully', newUsers });
-          }
-        } catch (error) {
-          await transaction.rollback(); // Rollback the transaction if there's an error
-          res.status(500).json({ error: 'Internal Server Error' });
-        }
-      }
+
+    transaction = await sequelize.transaction();
+    console.log("Transaction started:", transaction);
+    for (const user of newUsers) {
+      await createUser(user, transaction );
+    }
+
+    await transaction.commit();
+
+    const users = await User.findAll({
+      attributes: { exclude: ['password', 'createdAt', 'updatedAt'] },
+      include: [
+        { model: StudentDetail, as: 'studentDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
+        { model: TeacherDetail, as: 'teacherDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
+        { model: AdminDetail, as: 'adminDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
+      ]
     });
+
+    res.status(201).json(users);
   } catch (error) {
-    res.status(500).json({ error: 'Internal Server Error' });
+    if (transaction) await transaction.rollback();
+    console.error('Error in POST /users/register-upload-csv', error);
+
+    const statusCode = error instanceof Sequelize.UniqueConstraintError ? 409 : 500;
+    res.status(statusCode).send({ message: error.message || 'Server error' });
   }
 });
+
 
 //edit user by id
 router.patch('/users/:id', async (req, res) => {
@@ -174,3 +166,33 @@ router.delete('/users/:id', async (req, res) => {
 
 
 module.exports = router;
+
+//     Papa.parse(content, {
+//       header: true,
+//       dynamicTyping: true,
+//       complete: async (results) => {
+//         const transaction = await sequelize.transaction();
+//         try {
+//           for (const userData of results.data) {
+//               try {
+//                 const newUser = await createUser(userData, transaction);
+//                 const userDto = new UserDTO(newUser);
+//                 const userWithDetails = await findUserById(userDto.id);
+//                 newUsers.push(userWithDetails);
+//               } catch (error) {
+//                 errors.push(error.message);
+//               }
+//           }
+//           await transaction.commit();
+//           res.status(201).json({ newUsers, errors });
+//         } catch (error) {
+//           await transaction.rollback();
+//           console.error('Error in POST /users/register-upload-csv', error);
+//           res.status(500).send('Server error');
+//         }
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Error in POST /users/register-upload-csv', error);
+//     res.status(500).send('Server error');
+//   }

@@ -4,69 +4,75 @@ const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail } = requi
 
 //create user
 async function createUser(userData, transaction = null) {
+  console.log("createUser - Start. userData:", userData);
+
   try {
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
+      console.log("createUser - Hashing password");
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-    const mainUserData = {
-        email: userData.email,
-        password: hashedPassword,
-        lastName: userData.lastName,
-        firstName: userData.firstName,
-        birthDate: userData.birthDate,
-        genderIdentity: userData.genderIdentity,
-        pronouns: userData.pronouns,
-        userType: userData.userType,
-        photoUrl: userData.photoUrl,
-        isArchived: userData.isArchived || false,
-        dateArchived: userData.dateArchived || null
-    };
+      const mainUserData = {
+          email: userData.email,
+          password: hashedPassword,
+          lastName: userData.lastName,
+          firstName: userData.firstName,
+          birthDate: userData.birthDate,
+          genderIdentity: userData.genderIdentity,
+          pronouns: userData.pronouns,
+          userType: userData.userType,
+          photoUrl: userData.photoUrl,
+          isArchived: userData.isArchived || false,
+          dateArchived: userData.dateArchived || null
+      };
 
-    const [user, created] = await User.findOrCreate({
-      where: { email: userData.email },
-      defaults: mainUserData,
-      transaction
-  });
+      console.log("createUser - Transaction object:", transaction);
 
-  if (!created) {
-    throw new Error('User already exists');
-  }
+      console.log("createUser - Attempting to find or create user:", mainUserData.email);
+      const [user, created] = await User.findOrCreate({
+          where: { email: userData.email },
+          defaults: mainUserData,
+          transaction: transaction
+      });
 
-  // Create user details
-  switch (userData.userType) {
-    case 'student':
-        await StudentDetail.create({
-            userId: user.id,
-            gradYear: userData.studentDetails.gradYear || null
-        }, { transaction });
-        break;
-    case 'teacher':
-        await TeacherDetail.create({
-            userId: user.id,
-            yearsExp: userData.teacherDetails.yearsExp || null,
-            bio: userData.teacherDetails.bio || null
-        }, { transaction });
-        break;
-    case 'admin':
-        await AdminDetail.create({
-            userId: user.id,
-            yearsExp: userData.adminDetails.yearsExp || null,
-            bio: userData.adminDetails.bio || null
-        }, { transaction });
-        break;
-    default:
-        throw new Error("Invalid user type");
-}
+      console.log("createUser - User findOrCreate operation completed. Created:", created, "User:", user.toJSON());
 
-return user;
-} catch (error) {
-    if (error instanceof Sequelize.UniqueConstraintError) {
-        throw new Error('User already exists');
-    } else if (error instanceof Sequelize.ValidationError) {
-      console.error('Error creating user:', error);
+      // Create user details
+      switch (userData.userType) {
+          case 'student':
+              console.log("createUser - Creating student details");
+              await StudentDetail.create({
+                  userId: user.id,
+                  gradYear: userData.studentDetails.gradYear || null
+              }, { transaction });
+              break;
+          case 'teacher':
+              console.log("createUser - Creating teacher details");
+              await TeacherDetail.create({
+                  userId: user.id,
+                  yearsExp: userData.teacherDetails.yearsExp || null,
+                  bio: userData.teacherDetails.bio || null
+              }, { transaction });
+              break;
+          case 'admin':
+              console.log("createUser - Creating admin details");
+              await AdminDetail.create({
+                  userId: user.id,
+                  yearsExp: userData.adminDetails.yearsExp || null,
+                  bio: userData.adminDetails.bio || null
+              }, { transaction });
+              break;
+          default:
+              console.log("createUser - Invalid user type");
+              throw new Error("Invalid user type");
+      }
+
+      console.log("createUser - End. User processed:", user.toJSON());
+      return user;
+  } catch (error) {
+      console.error('Error in createUser:', error);
       throw error;
-    }
   }
 }
+
 
 
 //find user by id
