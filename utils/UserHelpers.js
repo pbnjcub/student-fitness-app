@@ -4,10 +4,8 @@ const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail } = requi
 
 //create user
 async function createUser(userData, transaction = null) {
-  console.log("createUser - Start. userData:", userData);
 
   try {
-      console.log("createUser - Hashing password");
       const hashedPassword = await bcrypt.hash(userData.password, 10);
 
       const mainUserData = {
@@ -24,28 +22,21 @@ async function createUser(userData, transaction = null) {
           dateArchived: userData.dateArchived || null
       };
 
-      console.log("createUser - Transaction object:", transaction);
-
-      console.log("createUser - Attempting to find or create user:", mainUserData.email);
       const [user, created] = await User.findOrCreate({
           where: { email: userData.email },
           defaults: mainUserData,
           transaction: transaction
       });
 
-      console.log("createUser - User findOrCreate operation completed. Created:", created, "User:", user.toJSON());
-
       // Create user details
       switch (userData.userType) {
           case 'student':
-              console.log("createUser - Creating student details");
               await StudentDetail.create({
                   userId: user.id,
                   gradYear: userData.studentDetails.gradYear || null
               }, { transaction });
               break;
           case 'teacher':
-              console.log("createUser - Creating teacher details");
               await TeacherDetail.create({
                   userId: user.id,
                   yearsExp: userData.teacherDetails.yearsExp || null,
@@ -53,7 +44,6 @@ async function createUser(userData, transaction = null) {
               }, { transaction });
               break;
           case 'admin':
-              console.log("createUser - Creating admin details");
               await AdminDetail.create({
                   userId: user.id,
                   yearsExp: userData.adminDetails.yearsExp || null,
@@ -65,7 +55,6 @@ async function createUser(userData, transaction = null) {
               throw new Error("Invalid user type");
       }
 
-      console.log("createUser - End. User processed:", user.toJSON());
       return user;
   } catch (error) {
       console.error('Error in createUser:', error);

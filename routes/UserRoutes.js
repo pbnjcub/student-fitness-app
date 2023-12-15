@@ -60,7 +60,6 @@ router.get('/users', async (req, res) => {
   }
 });
 
-
 //get user by id
 router.get('/users/:id', async (req, res) => {
   const { id } = req.params;
@@ -80,8 +79,7 @@ router.get('/users/:id', async (req, res) => {
 
 //bulk upload
 router.post('/users/register-upload-csv', upload.single('file'), async (req, res) => {
-  console.log("Inside POST /users/register-upload-csv")
-  console.log(req.file)
+
   let transaction;
 
   try {
@@ -92,7 +90,7 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
 
 
     transaction = await sequelize.transaction();
-    console.log("Transaction started:", transaction);
+
     for (const user of newUsers) {
       await createUser(user, transaction );
     }
@@ -117,7 +115,6 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
     res.status(statusCode).send({ message: error.message || 'Server error' });
   }
 });
-
 
 //edit user by id
 router.patch('/users/:id', async (req, res) => {
@@ -158,41 +155,13 @@ router.delete('/users/:id', async (req, res) => {
     const user = await findUserById(id);
 
     await user.destroy();
-    res.status(204).json("User successfully deleted");
+    // Send a 200 status code with a success message
+    res.status(200).json({ message: "User successfully deleted" });
   } catch (err) {
+    console.error('Error in DELETE /users/:id:', err); // Log the error for debugging
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
 
 module.exports = router;
-
-//     Papa.parse(content, {
-//       header: true,
-//       dynamicTyping: true,
-//       complete: async (results) => {
-//         const transaction = await sequelize.transaction();
-//         try {
-//           for (const userData of results.data) {
-//               try {
-//                 const newUser = await createUser(userData, transaction);
-//                 const userDto = new UserDTO(newUser);
-//                 const userWithDetails = await findUserById(userDto.id);
-//                 newUsers.push(userWithDetails);
-//               } catch (error) {
-//                 errors.push(error.message);
-//               }
-//           }
-//           await transaction.commit();
-//           res.status(201).json({ newUsers, errors });
-//         } catch (error) {
-//           await transaction.rollback();
-//           console.error('Error in POST /users/register-upload-csv', error);
-//           res.status(500).send('Server error');
-//         }
-//       }
-//     });
-//   } catch (error) {
-//     console.error('Error in POST /users/register-upload-csv', error);
-//     res.status(500).send('Server error');
-//   }
