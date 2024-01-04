@@ -30,6 +30,10 @@ const userValidationRules = () => {
         // photoUrl must be a string
         body('photoUrl')
             .optional({ checkFalsy: true }).isString().withMessage('Photo URL must be a string'),
+        
+        // isArchived must be a boolean
+        body('isArchived')
+            .optional({ checkFalsy: true }).isBoolean().withMessage('isArchived must be a boolean'),
     ];
 };
 

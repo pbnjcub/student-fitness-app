@@ -22,11 +22,22 @@ async function createUser(userData, transaction = null) {
           dateArchived: userData.dateArchived || null
       };
 
+      //check if user already exists
+      const existingUser = await User.findOne({ where: { email: userData.email } });
+      if (existingUser) {
+          throw new Error('User already exists.');
+      }
+
       const [user, created] = await User.findOrCreate({
           where: { email: userData.email },
           defaults: mainUserData,
           transaction: transaction
       });
+
+      //check if user was created
+      if (!created) {
+          throw new Error('User already exists.');
+      }
 
       // Create user details
       switch (userData.userType) {
@@ -56,9 +67,9 @@ async function createUser(userData, transaction = null) {
       }
 
       return user;
-  } catch (error) {
-      console.error('Error in createUser:', error);
-      throw error;
+  } catch (err) {
+      console.error('Error in createUser:', err);
+      throw err;
   }
 }
 

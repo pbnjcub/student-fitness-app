@@ -3,7 +3,8 @@ dotenv.config();
 
 const express = require('express');
 const bodyParser = require('body-parser');
-const { body, validationResult } = require('express-validator');
+// const { validationResult } = require('express-validator');
+// const { userValidationRules } = require('./utils/ValidationRules');
 const cors = require('cors'); // Import cors module
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
@@ -14,7 +15,7 @@ const jsonParser = bodyParser.json();
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
 const port = 3000;
 
-
+// Import routes
 const userRoutes = require('./routes/UserRoutes');
 const studentRoutes = require('./routes/StudentRoutes');
 const teacherRoutes = require('./routes/TeacherRoutes');

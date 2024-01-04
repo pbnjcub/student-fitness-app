@@ -45,7 +45,6 @@ function processUserData(rowData) {
     return processedData;
 }
 
-
 function userRowHandler(rowData) {
     let errors = [];
 
@@ -84,9 +83,7 @@ function userRowHandler(rowData) {
         errors.push({ field: 'birthDate', message: 'Birth date must be be formatted as YYYY-MM-DD or is not a valid date' });
     };
 
-
     //userType validation
-
     if (!['student', 'teacher', 'admin'].includes(rowData.userType)) {
         errors.push({ field: 'userType', message: 'User type must be one of the following: student, teacher, admin' });
     } else {
@@ -116,6 +113,5 @@ function userRowHandler(rowData) {
         return { data: processedDataWithDetails };
     }
 }
-
 
 module.exports = userRowHandler;

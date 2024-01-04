@@ -32,6 +32,8 @@ router.post('/users/register', userValidationRules(), validate, async (req, res)
     return res.status(201).json(userWithDetails);
 
   } catch (err) {
+    console.log('Caught Error:', err.message);
+    
     if (err.message === "User already exists.") {
       return res.status(409).json({ error: err.message });
     } else if (err.message === "Invalid user type") {
