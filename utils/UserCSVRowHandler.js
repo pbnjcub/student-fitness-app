@@ -1,5 +1,15 @@
+const {
+    isValidEmail,
+    isPasswordValid,
+    isFirstOrLastNameValid,
+    isBirthDateValid,
+    isUserTypeValid,
+    isGenderIdentityValid,
+    isPronounsValid,
+    isPhotoUrlValid,
+    isIsArchivedValid
+} = require('./CSVValidationHelpers');
 
-const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 function isFourDigitYear(year) {
     return /^\d{4}$/.test(year);
@@ -52,36 +62,77 @@ function userRowHandler(rowData) {
     if (rowData.email) {
         rowData.email = rowData.email.toLowerCase();
     }
-
-    if (!rowData.email || !isValidEmail(rowData.email)) {
-        errors.push({ field: 'email', message: 'Invalid or missing email' });
-    }
+    const emailError = isValidEmail(rowData.email);
+    if (emailError !== true) {
+        errors.push({ field: 'email', message: emailError });
+    };
 
     // Password validation
-    if (!rowData.password || rowData.password.length < 6 || rowData.password.length > 128) {
-        errors.push({ field: 'password', message: 'Password must exist or must be between 6 and 128 characters' });
+    const passwordError = isPasswordValid(rowData.password);
+    if (passwordError !== true) {
+        errors.push({ field: 'password', message: passwordError });
     }
 
-    // First name validation
-
-    if (!rowData.firstName) {
-        errors.push({ field: 'firstName', message: 'First name is required' });
+    // First and Last name validation
+    const firstNameError = isFirstOrLastNameValid(rowData.firstName);
+    if (firstNameError !== true) {
+        errors.push({ field: 'firstName', message: firstNameError });
     }
-
-    // Last name validation
-    if (!rowData.lastName) {
-        errors.push({ field: 'lastName', message: 'Last name is required' });
+    const lastNameError = isFirstOrLastNameValid(rowData.lastName);
+    if (lastNameError !== true) {
+        errors.push({ field: 'lastName', message: lastNameError });
     }
 
     // Birth date validation
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!rowData.birthDate) {
-        errors.push({ field: 'birthDate', message: 'Birth date is required' });
+    const birthDateError = isBirthDateValid(rowData.birthDate);
+    if (birthDateError !== true) {
+        errors.push({ field: 'birthDate', message: birthDateError });
     }
-    
-    if (!dateRegex.test(rowData.birthDate) || isNaN(Date.parse(rowData.birthDate))) {
-        errors.push({ field: 'birthDate', message: 'Birth date must be be formatted as YYYY-MM-DD or is not a valid date' });
-    };
+
+    // UserType validation
+    const userTypeError = isUserTypeValid(rowData.userType);
+    if (userTypeError !== true) {
+        errors.push({ field: 'userType', message: userTypeError });
+    } else {
+        switch (rowData.userType) {
+            case 'student':
+                // Validate student-specific fields
+                if (!rowData.gradYear || !isFourDigitYear(rowData.gradYear)) {
+                    errors.push({ field: 'gradYear', message: 'Graduation year (YYYY) is required for students' });
+                } else
+                break;
+            case 'teacher':
+            case 'admin':
+                // Validate teacher/admin-specific fields
+                if ( rowData.yearsExp && isNaN(parseInt(rowData.yearsExp))) {
+                    errors.push({ field: 'yearsExp', message: 'Years of experience must be a number' });                }
+                break;
+        }
+    }
+
+    //gender identity validation
+    const genderIdentityError = isGenderIdentityValid(rowData.genderIdentity);
+    if (genderIdentityError !== true) {
+        errors.push({ field: 'genderIdentity', message: genderIdentityError });
+    }
+
+    //pronouns validation
+    const pronounsError = isPronounsValid(rowData.pronouns);
+    if (pronounsError !== true) {
+        errors.push({ field: 'pronouns', message: pronounsError });
+    }
+
+    //photoUrl validation
+    const photoUrlError = isPhotoUrlValid(rowData.photoUrl);
+    if (photoUrlError !== true) {
+        errors.push({ field: 'photoUrl', message: photoUrlError });
+    }
+
+    //isArchived validation
+    const isArchivedError = isIsArchivedValid(rowData.isArchived);
+    if (isArchivedError !== true) {
+        errors.push({ field: 'isArchived', message: isArchivedError });
+    }
 
     //userType validation
     if (!['student', 'teacher', 'admin'].includes(rowData.userType)) {
