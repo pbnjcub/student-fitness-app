@@ -134,26 +134,6 @@ function userRowHandler(rowData) {
         errors.push({ field: 'isArchived', message: isArchivedError });
     }
 
-    //userType validation
-    if (!['student', 'teacher', 'admin'].includes(rowData.userType)) {
-        errors.push({ field: 'userType', message: 'User type must be one of the following: student, teacher, admin' });
-    } else {
-        switch (rowData.userType) {
-            case 'student':
-                // Validate student-specific fields
-                if (!rowData.gradYear || !isFourDigitYear(rowData.gradYear)) {
-                    errors.push({ field: 'gradYear', message: 'Graduation year (YYYY) is required for students' });
-                } else
-                break;
-            case 'teacher':
-            case 'admin':
-                // Validate teacher/admin-specific fields
-                if ( rowData.yearsExp && isNaN(parseInt(rowData.yearsExp))) {
-                    errors.push({ field: 'yearsExp', message: 'Years of experience must be a number' });                }
-                break;
-        }
-    }
-
     // Return the result
     if (errors.length > 0) {
         return { error: errors };

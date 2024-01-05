@@ -33,7 +33,7 @@ router.post('/users/register', userValidationRules(), validate, async (req, res)
 
   } catch (err) {
     console.log('Caught Error:', err.message);
-    
+
     if (err.message === "User already exists.") {
       return res.status(409).json({ error: err.message });
     } else if (err.message === "Invalid user type") {
@@ -87,18 +87,20 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
   try {
     const buffer = req.file.buffer;
     const content = buffer.toString();
+    console.log('Content - main route:', content);
 
     const newUsers = await processCsv(content, userRowHandler);
-
+    console.log('newUsers:', newUsers);
 
     transaction = await sequelize.transaction();
-
+    console.log('Transaction started - main route')
     for (const user of newUsers) {
       await createUser(user, transaction );
+      console.log('User created:', user);
     }
 
     await transaction.commit();
-
+    console.log('Transaction committed - main route')
     const users = await User.findAll({
       attributes: { exclude: ['password', 'createdAt', 'updatedAt'] },
       include: [
@@ -109,12 +111,17 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
     });
 
     res.status(201).json(users);
-  } catch (error) {
+  } catch (err) {
     if (transaction) await transaction.rollback();
-    console.error('Error in POST /users/register-upload-csv', error);
+    console.error('Error in POST /users/register-upload-csv', err);
 
-    const statusCode = error instanceof Sequelize.UniqueConstraintError ? 409 : 500;
-    res.status(statusCode).send({ message: error.message || 'Server error' });
+    if (Array.isArray(err)) {
+      console.error('Validation Errors:', err);
+      return res.status(422).json({ errors: err });
+    } else {
+      const statusCode = err instanceof Sequelize.UniqueConstraintError ? 409 : 500;
+      res.status(statusCode).send({ message: err.message || 'Server error' });
+    }
   }
 });
 

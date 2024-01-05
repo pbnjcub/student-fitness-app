@@ -1,16 +1,29 @@
 const isValidEmail = (email) => {
+    if (email === null || email === undefined || email === '') {
+        return 'Email is required';
+    }
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 const isPasswordValid = (password) => {
-  return password.length >= 4 && password.length <= 128;
-}
+    if (password === null || password === undefined || password === '') {
+        return 'Password is required';
+    }
+    return password.length >= 4 && password.length <= 128;
+};
+
 
 const isFirstOrLastNameValid = (name) => {
+    if (name === null || name === undefined || name === '') {
+        return 'First and last name are required';
+    }
   return name.length >= 2;
 }
 
 const isBirthDateValid = (date) => {
+    if (date === undefined || date === null || date === '') {
+        return 'Birth date is required';
+    }
   const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
   return dateRegex.test(date) && !isNaN(Date.parse(date));
 }

@@ -2,34 +2,30 @@
 const Papa = require('papaparse');
 
 function processCsv(content, rowHandler) {
-  console.log('Processing CSV');
-  console.log(content)
   
     return new Promise((resolve, reject) => {
     const results = [];
-    const errors = [];
+    const allErrors = [];
 
     Papa.parse(content, {
       header: true,
       dynamicTyping: true,
       step: (row, parser) => {
-        try {
-          const result = rowHandler(row.data);
-          if (result.error) {
-            errors.push(result.error);
-            parser.abort();
-          } else {
-            results.push(result.data);
-          }
-        } catch (error) {
-          errors.push({ error: error.message });
-          parser.abort();
+        const result = rowHandler(row.data);
+        if (result.error) {
+          allErrors.push(result.error);
+          // parser.abort();
+        } else {
+          results.push(result.data);
         }
       },
       complete: () => {
-        if (errors.length > 0) {
-          reject(errors);
+        if (allErrors.length > 0) {
+          console.log('errors within GenCSVHandler:', allErrors)
+          reject(allErrors);
         } else {
+          console.log('results within GenCSVHandler:', results)
+
           resolve(results);
         }
       }
