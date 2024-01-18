@@ -18,7 +18,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 //import validation middleware
-const { userValidationRules } = require('../utils/ValidationRules');
+const { userValidationRules, updateUserValidationRules } = require('../utils/ValidationRules');
 const validate = require('../utils/ValidationMiddleware');
 
 //routes
@@ -69,11 +69,11 @@ router.get('/users/:id', async (req, res) => {
   try {
     const user = await findUserById(id);
     res.json(user);
-  } catch (error) {
-    if (error.message.includes('not found')) {
-      res.status(404).json({ error: error.message });
+  } catch (err) {
+    if (err.message.includes('not found')) {
+      res.status(404).json({ error: err.message });
     } else {
-      console.error('Error in GET /users/:id', error);
+      console.error('Error in GET /users/:id', err);
       res.status(500).send('Server error');
     }
   }
@@ -126,35 +126,56 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
 });
 
 //edit user by id
-router.patch('/users/:id', async (req, res) => {
+router.patch('/users/:id', updateUserValidationRules(), validate, async (req, res) => {
   const { id } = req.params;
-  const {
-    email, password, lastName, firstName, birthDate, genderIdentity,
-    pronouns, photoUrl, userType, isArchived, dateArchived, studentDetails, teacherDetails, adminDetails
-  } = req.body;
+  const { password, ...otherFields } = req.body;
 
   try {
+    console.log("Finding user by ID...");
     const user = await findUserById(id);
-    const updatedUserValues = { email, lastName, firstName, birthDate, genderIdentity, pronouns, photoUrl, userType, isArchived, dateArchived };
-    if (password) updatedUserValues.password = await hashPassword(password);
-    await user.update(updatedUserValues);
+    if (!user) {
+      console.log(`User with ID ${id} not found`);
+      return res.status(404).json({ error: `User with ID ${id} not found` });
+    }
 
-    // Object containing all types of detail updates
-    const detailUpdates = {
-      studentDetails: req.body.studentDetails,
-      teacherDetails: req.body.teacherDetails,
-      adminDetails: req.body.adminDetails
-    };
+    if (password) {
+      console.log("Hashing password...");
+      otherFields.password = await hashPassword(password);
+    }
+    
+    console.log("Updating user basic information...");
+    await user.update(otherFields);
 
-    await updateUserDetails(user, detailUpdates);
-  
+    // Update details if present
+    if (req.body.studentDetails || req.body.teacherDetails || req.body.adminDetails) {
+      console.log("Updating user details...");
+      const detailUpdates = {
+        studentDetails: req.body.studentDetails,
+        teacherDetails: req.body.teacherDetails,
+        adminDetails: req.body.adminDetails
+      };
+      await updateUserDetails(user, detailUpdates);
+    }
+
+    console.log("Fetching updated user...");
     const updatedUser = await findUserById(id); // Fetch updated user
+    console.log("Updated user data:", updatedUser);
     res.status(200).json(updatedUser.toJSON());
-  } catch (error) {
-    console.error('Error in PATCH /users/:id:', error);
+  } catch (err) {
+    console.error('Error in PATCH /users/:id:', err);
+
+    if (err instanceof Sequelize.ValidationError) {
+      console.log("Sequelize validation error:", err);
+      return res.status(400).json({ errors: err.errors.map(e => ({ [e.path]: e.message })) });
+    }
+
+    console.log("Unhandled error:", err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
+
 
 //delete user by id
 router.delete('/users/:id', async (req, res) => {

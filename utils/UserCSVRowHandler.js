@@ -98,17 +98,35 @@ function userRowHandler(rowData) {
             case 'student':
                 // Validate student-specific fields
                 if (!rowData.gradYear || !isFourDigitYear(rowData.gradYear)) {
-                    errors.push({ field: 'gradYear', message: 'Graduation year (YYYY) is required for students' });
-                } else
+                    errors.push({ field: 'gradYear', message: 'Graduation year is required and must be in YYYY format.' });
+                } else {
+                    const currentYear = new Date().getFullYear();
+                    if (rowData.gradYear > currentYear + 20) {
+                        errors.push({ field: 'gradYear', message: 'Graduation year must be a reasonable future year.'});
+                    }
+                }
                 break;
             case 'teacher':
             case 'admin':
-                // Validate teacher/admin-specific fields
-                if ( rowData.yearsExp && isNaN(parseInt(rowData.yearsExp))) {
-                    errors.push({ field: 'yearsExp', message: 'Years of experience must be a number' });                }
+                // Validate years of experience
+                if (rowData.yearsExp === undefined || rowData.yearsExp === null || isNaN(parseInt(rowData.yearsExp))) {
+                    errors.push({ field: 'yearsExp', message: 'Years of experience is required and must be a number.' });
+                } else {
+                    const yearsExp = parseInt(rowData.yearsExp);
+                    if (yearsExp < 0 || yearsExp > 50) {
+                        errors.push({ field: 'yearsExp', message: 'Years of experience must be between 0 and 50.' });
+                    }
+                }
+            
+                // Validate bio (if you decide it's necessary)
+                if (rowData.bio && (typeof rowData.bio !== 'string' || rowData.bio.length > 500)) {
+                    errors.push({ field: 'bio', message: 'Bio must be a string and less than 500 characters.' });
+                }
                 break;
-        }
+            }
     }
+
+
 
     //gender identity validation
     const genderIdentityError = isGenderIdentityValid(rowData.genderIdentity);

@@ -1,7 +1,7 @@
 const Sequelize = require('sequelize');
 const bcrypt = require('bcrypt');
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail } = require('../models');
-
+const { validationResult } = require('express-validator');
 //create user
 async function createUser(userData, transaction = null) {
 
@@ -99,6 +99,7 @@ async function findUserById(id) {
 async function detailedUser(userData) {
   let userDetails = {};
 
+
   switch (userData.userType) {
     case 'student':
       userDetails = userData.studentDetails || null;
@@ -120,36 +121,41 @@ async function detailedUser(userData) {
 
 //update user details
 async function updateUserDetails(user, detailUpdates) {
-  let updatedDetails;
-
+  console.log("Starting updateUserDetails...");
   try {
+    console.log("User type:", user.userType);
     switch (user.userType) {
       case 'student':
+        console.log("Handling student details update...");
         if (detailUpdates.studentDetails) {
+          console.log("Student details provided:", detailUpdates.studentDetails);
           const studentDetails = await user.getStudentDetails();
-          updatedDetails = studentDetails ? await studentDetails.update(detailUpdates.studentDetails) : null;
+          return studentDetails ? await studentDetails.update(detailUpdates.studentDetails) : null;
         }
         break;
       case 'teacher':
+        console.log("Handling teacher details update...");
         if (detailUpdates.teacherDetails) {
+          console.log("Teacher details provided:", detailUpdates.teacherDetails);
           const teacherDetails = await user.getTeacherDetails();
-          updatedDetails = teacherDetails ? await teacherDetails.update(detailUpdates.teacherDetails) : null;
+          return teacherDetails ? await teacherDetails.update(detailUpdates.teacherDetails) : null;
         }
         break;
       case 'admin':
+        console.log("Handling admin details update...");
         if (detailUpdates.adminDetails) {
+          console.log("Admin details provided:", detailUpdates.adminDetails);
           const adminDetails = await user.getAdminDetails();
-          updatedDetails = adminDetails ? await adminDetails.update(detailUpdates.adminDetails) : null;
+          return adminDetails ? await adminDetails.update(detailUpdates.adminDetails) : null;
         }
         break;
     }
-  } catch (error) {
-    console.error('Error updating user details:', error);
-    throw error;
+  } catch (err) {
+    console.error('Error updating user details:', err);
+    throw err; // This will be caught by the route's catch block
   }
-
-  return updatedDetails;
 }
+
 
 
 
