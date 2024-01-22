@@ -2,78 +2,85 @@ const Sequelize = require('sequelize');
 const bcrypt = require('bcrypt');
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail } = require('../models');
 const { validationResult } = require('express-validator');
-//create user
-async function createUser(userData, transaction = null) {
 
-  try {
-      const hashedPassword = await bcrypt.hash(userData.password, 10);
-
-      const mainUserData = {
-          email: userData.email,
-          password: hashedPassword,
-          lastName: userData.lastName,
-          firstName: userData.firstName,
-          birthDate: userData.birthDate,
-          genderIdentity: userData.genderIdentity,
-          pronouns: userData.pronouns,
-          userType: userData.userType,
-          photoUrl: userData.photoUrl,
-          isArchived: userData.isArchived || false,
-          dateArchived: userData.dateArchived || null
-      };
-
-      //check if user already exists
-      const existingUser = await User.findOne({ where: { email: userData.email } });
-      if (existingUser) {
-          throw new Error('User already exists.');
+async function createUserDetails(user, userType, details, transaction) {
+  switch (userType) {
+    case 'student':
+      if (details.studentDetails) {
+        if (typeof details.studentDetails.gradYear !== 'number' || details.studentDetails.gradYear == null) {
+          throw new Error('Invalid or missing graduation year for student');
+        }
+        await StudentDetail.create({
+          userId: user.id,
+          ...details.studentDetails
+        }, { transaction });
+      } else {
+        throw new Error('Missing student details');
       }
-
-      const [user, created] = await User.findOrCreate({
-          where: { email: userData.email },
-          defaults: mainUserData,
-          transaction: transaction
-      });
-
-      //check if user was created
-      if (!created) {
-          throw new Error('User already exists.');
+      break;
+    case 'teacher':
+      if (details.teacherDetails) {
+        await TeacherDetail.create({
+          userId: user.id,
+          ...details.teacherDetails
+        }, { transaction });
       }
-
-      // Create user details
-      switch (userData.userType) {
-          case 'student':
-              await StudentDetail.create({
-                  userId: user.id,
-                  gradYear: userData.studentDetails.gradYear || null
-              }, { transaction });
-              break;
-          case 'teacher':
-              await TeacherDetail.create({
-                  userId: user.id,
-                  yearsExp: userData.teacherDetails.yearsExp || null,
-                  bio: userData.teacherDetails.bio || null
-              }, { transaction });
-              break;
-          case 'admin':
-              await AdminDetail.create({
-                  userId: user.id,
-                  yearsExp: userData.adminDetails.yearsExp || null,
-                  bio: userData.adminDetails.bio || null
-              }, { transaction });
-              break;
-          default:
-              console.log("createUser - Invalid user type");
-              throw new Error("Invalid user type");
+      break;
+    case 'admin':
+      if (details.adminDetails) {
+        await AdminDetail.create({
+          userId: user.id,
+          ...details.adminDetails
+        }, { transaction });
       }
-
-      return user;
-  } catch (err) {
-      console.error('Error in createUser:', err);
-      throw err;
+      break;
+    default:
+      console.log("createUserDetails - Invalid user type");
+      throw new Error("Invalid user type");
   }
 }
 
+//create user
+async function createUser(userData, transaction = null) {
+  try {
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    const mainUserData = {
+      email: userData.email,
+      password: hashedPassword,
+      lastName: userData.lastName,
+      firstName: userData.firstName,
+      birthDate: userData.birthDate,
+      genderIdentity: userData.genderIdentity,
+      pronouns: userData.pronouns,
+      userType: userData.userType,
+      photoUrl: userData.photoUrl,
+      isArchived: userData.isArchived || false,
+      dateArchived: userData.dateArchived || null
+    };
 
+    const existingUser = await User.findOne({ where: { email: userData.email } });
+    if (existingUser) {
+      throw new Error('User already exists.');
+    }
+
+    const [user, created] = await User.findOrCreate({
+      where: { email: userData.email },
+      defaults: mainUserData,
+      transaction: transaction
+    });
+
+    if (!created) {
+      throw new Error('User already exists.');
+    }
+
+    await createUserDetails(user, userData.userType, userData, transaction);
+
+    return user;
+  } catch (err) {
+    console.error('Error in createUser:', err);
+    throw err;
+  }
+}
 
 //find user by id
 async function findUserById(id) {
