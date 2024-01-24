@@ -8,6 +8,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors'); // Import cors module
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
+const errorHandler = require('./utils/ErrorHandler');
 
 const app = express();
 
@@ -59,6 +60,7 @@ app.use('/api', moduleRoutes);
 app.use('/api', sectionRoutes);
 app.use('/api', sessionsRoutes);
 
+app.use(errorHandler);
 
 app.get('/', (req, res) => {
   res.send('Hello from the Backend!');

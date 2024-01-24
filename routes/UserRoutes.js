@@ -23,7 +23,7 @@ const validate = require('../utils/ValidationMiddleware');
 
 //routes
 //create user
-router.post('/users/register', userValidationRules(), validate, async (req, res) => {
+router.post('/users/register', userValidationRules(), validate, async (req, res, next) => {
   try {
     const newUser = await createUser(req.body);
     const userDto = new UserDTO(newUser);
@@ -32,17 +32,20 @@ router.post('/users/register', userValidationRules(), validate, async (req, res)
     return res.status(201).json(userWithDetails);
 
   } catch (err) {
-    console.log('Caught Error:', err.message);
-
-    if (err.message === "User already exists.") {
-      return res.status(409).json({ error: err.message });
-    } else if (err.message === "Invalid user type") {
-      return res.status(400).json({ error: err.message });
-    }
-    return res.status(500).json({ error: 'Internal Server Error' });
+    next(err)
   }
+
 });
 
+  //   console.log('Caught Error:', err.message);
+
+  //   if (err.message === "User already exists.") {
+  //     return res.status(409).json({ error: err.message });
+  //   } else if (err.message === "Invalid user type") {
+  //     return res.status(400).json({ error: err.message });
+  //   }
+  //   return res.status(500).json({ error: 'Internal Server Error' });
+  // }
 //get users
 router.get('/users', async (req, res) => {
   try {
