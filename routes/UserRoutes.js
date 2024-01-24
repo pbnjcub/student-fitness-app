@@ -37,17 +37,8 @@ router.post('/users/register', userValidationRules(), validate, async (req, res,
 
 });
 
-  //   console.log('Caught Error:', err.message);
-
-  //   if (err.message === "User already exists.") {
-  //     return res.status(409).json({ error: err.message });
-  //   } else if (err.message === "Invalid user type") {
-  //     return res.status(400).json({ error: err.message });
-  //   }
-  //   return res.status(500).json({ error: 'Internal Server Error' });
-  // }
 //get users
-router.get('/users', async (req, res) => {
+router.get('/users', async (req, res, next) => {
   try {
     const users = await User.findAll({
       attributes: { exclude: ['password', 'createdAt', 'updatedAt'] },
@@ -60,25 +51,19 @@ router.get('/users', async (req, res) => {
 
     res.json(users);
   } catch (err) {
-    console.error('Error in GET /users:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
 //get user by id
-router.get('/users/:id', async (req, res) => {
+router.get('/users/:id', async (req, res, next) => {
   const { id } = req.params;
 
   try {
     const user = await findUserById(id);
     res.json(user);
   } catch (err) {
-    if (err.message.includes('not found')) {
-      res.status(404).json({ error: err.message });
-    } else {
-      console.error('Error in GET /users/:id', err);
-      res.status(500).send('Server error');
-    }
+    next(err);
   }
 });
 

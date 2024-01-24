@@ -26,6 +26,16 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ errors: err.errors.map(e => ({ [e.path]: e.message })) });
   }
 
+  // Check for "User Not Found" error
+  if (err.message.includes('not found')) {
+    return res.status(404).json({ error: err.message });
+  }
+
+  // Handle Sequelize database errors
+  else if (err instanceof Sequelize.DatabaseError) {
+    return res.status(500).json({ error: 'Database error occurred' });
+  }
+
   // Handle other errors
   else {
     console.error(err);  // Log the error for server-side reference
