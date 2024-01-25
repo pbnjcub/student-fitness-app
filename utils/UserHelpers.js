@@ -1,7 +1,9 @@
 const Sequelize = require('sequelize');
 const bcrypt = require('bcrypt');
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail } = require('../models');
-const { validationResult } = require('express-validator');
+// const { validationResult } = require('express-validator');
+
+const { UserDetailUpdateError} = require('./CustomErrors');
 
 async function createUserDetails(user, userType, details, transaction) {
   switch (userType) {
@@ -159,7 +161,7 @@ async function updateUserDetails(user, detailUpdates) {
     }
   } catch (err) {
     console.error('Error updating user details:', err);
-    throw err; // This will be caught by the route's catch block
+    throw new UserDetailUpdateError(user.userType, err.message);
   }
 }
 

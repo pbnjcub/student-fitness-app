@@ -1,4 +1,5 @@
 const Sequelize = require('sequelize');
+const { UserDetailUpdateError } = require('./CustomErrors');
 
 const errorHandler = (err, req, res, next) => {
   // Check for user already exists error
@@ -27,7 +28,7 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Check for "User Not Found" error
-  if (err.message.includes('not found')) {
+  else if (err.message.includes('not found')) {
     return res.status(404).json({ error: err.message });
   }
 
@@ -35,6 +36,10 @@ const errorHandler = (err, req, res, next) => {
   else if (err instanceof Sequelize.DatabaseError) {
     return res.status(500).json({ error: 'Database error occurred' });
   }
+
+  else if (err instanceof UserDetailUpdateError) {
+    return res.status(400).json({ error: err.message, userType: err.userType });
+}
 
   // Handle other errors
   else {
