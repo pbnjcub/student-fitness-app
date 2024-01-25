@@ -114,7 +114,7 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
 });
 
 //edit user by id
-router.patch('/users/:id', updateUserValidationRules(), validate, async (req, res) => {
+router.patch('/users/:id', updateUserValidationRules(), validate, async (req, res, next) => {
   const { id } = req.params;
   const { password, ...otherFields } = req.body;
 
@@ -150,15 +150,8 @@ router.patch('/users/:id', updateUserValidationRules(), validate, async (req, re
     console.log("Updated user data:", updatedUser);
     res.status(200).json(updatedUser.toJSON());
   } catch (err) {
-    console.error('Error in PATCH /users/:id:', err);
-
-    if (err instanceof Sequelize.ValidationError) {
-      console.log("Sequelize validation error:", err);
-      return res.status(400).json({ errors: err.errors.map(e => ({ [e.path]: e.message })) });
-    }
-
-    console.log("Unhandled error:", err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Error in PATCH /users/:id', err);
+    next(err);
   }
 });
 
