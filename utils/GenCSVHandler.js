@@ -6,13 +6,14 @@ function processCsv(content, rowHandler) {
     return new Promise((resolve, reject) => {
     const results = [];
     const allErrors = [];
+    let currentRowNumber = 0;
 
     Papa.parse(content, {
       header: true,
       dynamicTyping: true,
       step: (row, parser) => {
-        const rowNumber = row.meta.row;
-        const result = rowHandler(row.data, rowNumber);
+        currentRowNumber++;
+        const result = rowHandler(row.data, currentRowNumber);
         if (result.error) {
           allErrors.push(result.error);
           // parser.abort();
