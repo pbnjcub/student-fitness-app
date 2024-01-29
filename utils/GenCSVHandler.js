@@ -11,7 +11,8 @@ function processCsv(content, rowHandler) {
       header: true,
       dynamicTyping: true,
       step: (row, parser) => {
-        const result = rowHandler(row.data);
+        const rowNumber = row.meta.row;
+        const result = rowHandler(row.data, rowNumber);
         if (result.error) {
           allErrors.push(result.error);
           // parser.abort();

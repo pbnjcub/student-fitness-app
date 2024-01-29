@@ -68,7 +68,7 @@ router.get('/users/:id', async (req, res, next) => {
 });
 
 //bulk upload
-router.post('/users/register-upload-csv', upload.single('file'), async (req, res) => {
+router.post('/users/register-upload-csv', upload.single('file'), async (req, res, next) => {
 
   let transaction;
 
@@ -102,14 +102,7 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
   } catch (err) {
     if (transaction) await transaction.rollback();
     console.error('Error in POST /users/register-upload-csv', err);
-
-    if (Array.isArray(err)) {
-      console.error('Validation Errors:', err);
-      return res.status(422).json({ errors: err });
-    } else {
-      const statusCode = err instanceof Sequelize.UniqueConstraintError ? 409 : 500;
-      res.status(statusCode).send({ message: err.message || 'Server error' });
-    }
+    next(err);
   }
 });
 
@@ -159,7 +152,7 @@ router.patch('/users/:id', updateUserValidationRules(), validate, async (req, re
 
 
 //delete user by id
-router.delete('/users/:id', async (req, res) => {
+router.delete('/users/:id', async (req, res, next) => {
   const { id } = req.params;
 
   try {
@@ -170,7 +163,7 @@ router.delete('/users/:id', async (req, res) => {
     res.status(200).json({ message: "User successfully deleted" });
   } catch (err) {
     console.error('Error in DELETE /users/:id:', err); // Log the error for debugging
-    res.status(500).json({ error: 'Internal Server Error' });
+    next(err);
   }
 });
 
