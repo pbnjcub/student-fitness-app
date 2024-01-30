@@ -11,6 +11,52 @@ class SectionDTO extends BaseDTO {
     }
 }
 
-// class SectionByIdDTO extends BaseDTO {}
+class SectionByIdDTO extends BaseDTO {
+    constructor(section) {
+        super(section, {
+            'id': true,
+            'sectionCode': true,
+            'gradeLevel': true,
+            'isActive': true,
+            'sectionRoster': StudentRosterDTO
+        });
+    }
+}
 
-module.exports = SectionDTO;
+class StudentRosterDTO extends BaseDTO {
+    constructor(rosterItem) {
+        super(rosterItem, {
+            'id': true,
+            'studentUserId': true,
+            'sectionId': true,
+            'student': StudentDTO
+        });
+    }
+}
+
+class StudentDTO extends BaseDTO {
+    constructor(student) {
+        super(student, {
+            'id': true,
+            'firstName': true,
+            'lastName': true,
+            'birthDate': true,
+            'userType': true,
+            'studentDetails': StudentDetailsDTO
+        });
+    }
+}
+
+class StudentDetailsDTO extends BaseDTO {
+    constructor(details) {
+        super(details, {
+            'id': true,
+            'gradYear': true
+        });
+    }
+}
+
+module.exports = {
+    SectionDTO,
+    SectionByIdDTO
+};

@@ -1,9 +1,4 @@
 class BaseDTO {
-    /**
-     * Creates an instance of BaseDTO.
-     * @param {Object} object - The source object to map data from.
-     * @param {Object} fields - The fields to include in the DTO. This can now be an object with nested fields.
-     */
     constructor(object = {}, fields = {}) {
         if (typeof fields !== 'object' || typeof object !== 'object') {
             throw new Error('Invalid parameters for BaseDTO');
@@ -13,7 +8,7 @@ class BaseDTO {
             if (object[field] !== undefined) {
                 if (Array.isArray(object[field])) {
                     this[field] = object[field].map(item =>
-                        typeof fields[field] === 'function' && item instanceof fields[field]
+                        fields[field] && typeof fields[field] === 'function'
                             ? new fields[field](item)
                             : item
                     );

@@ -10,36 +10,7 @@ const { User, Section, SectionRoster, StudentDetail } = require('../models');
 
 
 //import helper functions
-const SectionDTO = require('../utils/SectionDTO');
-
-//
-function sectionByIdDTO(section) {
-    return {
-        id: section.id,
-        sectionCode: section.sectionCode,
-        gradeLevel: section.gradeLevel,
-        isActive: section.isActive,
-        sectionRoster: section.sectionRoster.map(sectionRoster => {
-            return {
-                id: sectionRoster.id,
-                studentUserId: sectionRoster.studentUserId,
-                sectionId: sectionRoster.sectionId,
-                student: {
-                    id: sectionRoster.student.id,
-                    firstName: sectionRoster.student.firstName,
-                    lastName: sectionRoster.student.lastName,
-                    birthDate: sectionRoster.student.birthDate,
-                    userType: sectionRoster.student.userType,
-                    studentDetails: {
-                        id: sectionRoster.student.studentDetails.id,
-                        gradYear: sectionRoster.student.studentDetails.gradYear
-                    }
-                }
-            }
-        })
-    };
-}
-
+const { SectionDTO, SectionByIdDTO } = require('../utils/SectionDTO');
 
 
 const checkRequired = (sectionData) => {
@@ -258,9 +229,12 @@ router.get('/sections/:id', async (req, res) => {
             console.log(`Section with ID ${id} not found.`);
             return res.status(404).json({ error: 'Section not found' });
         }
+        // Convert the section and its nested associations to plain objects
+        const plainSection = section.get({ plain: true });
 
+        const sectionWithRoster = new SectionByIdDTO(plainSection);
 
-        res.json(sectionByIdDTO(section));
+        res.json(sectionWithRoster);
     } catch (error) {
         console.error('Error fetching section:', error);
         res.status(500).send('Server error');
@@ -274,9 +248,7 @@ router.patch('/sections/:id', async (req, res) => {
     if (!id) return res.status(400).json({ error: 'Section ID is required' });
 
     try {
-
         const transaction = await sequelize.transaction();
-
         const section = await Section.findByPk(id, { transaction });
 
         if (!section) {
@@ -288,20 +260,22 @@ router.patch('/sections/:id', async (req, res) => {
         console.log(`Found section:`, section.toJSON());
 
         const updatedValues = {};
-        if (req.body.sectionCode) updatedValues.sectionCode = req.body.sectionCode;
-        if (req.body.gradeLevel) updatedValues.gradeLevel = req.body.gradeLevel;
-        if (req.body.isActive) updatedValues.isActive = req.body.isActive;
+        if ('sectionCode' in req.body) updatedValues.sectionCode = req.body.sectionCode;
+        if ('gradeLevel' in req.body) updatedValues.gradeLevel = req.body.gradeLevel;
+        if ('isActive' in req.body) updatedValues.isActive = req.body.isActive;
 
         await section.update(updatedValues, { transaction });
-
         await transaction.commit();
 
-        res.status(200).json(section);
+        const sectionDTO = new SectionDTO(section);
+
+        res.status(201).json(sectionDTO);
     } catch (error) {
-        console.error('Error updating module:', error);
+        console.error('Error updating section:', error);
         res.status(500).send('Server error');
     }
 });
+
 
 //delete section
 router.delete('/sections/:id', async (req, res) => {
