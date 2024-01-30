@@ -26,6 +26,8 @@ const validate = require('../utils/ValidationMiddleware');
 router.post('/users/register', userValidationRules(), validate, async (req, res, next) => {
   try {
     const newUser = await createUser(req.body);
+    console.log('newUser:', newUser)
+    console.log('typeof data:', typeof newUser)
     const userDto = new UserDTO(newUser);
     const userWithDetails = await findUserById(userDto.id);
 

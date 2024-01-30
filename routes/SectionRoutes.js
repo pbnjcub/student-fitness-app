@@ -9,15 +9,8 @@ const { sequelize } = require('../models');
 const { User, Section, SectionRoster, StudentDetail } = require('../models');
 
 
-//helper functions
-function sectionDTO(section) {
-    return {
-        id: section.id,
-        sectionCode: section.sectionCode,
-        gradeLevel: section.gradeLevel,
-        isActive: section.isActive
-    }
-}
+//import helper functions
+const SectionDTO = require('../utils/SectionDTO');
 
 //
 function sectionByIdDTO(section) {
@@ -170,7 +163,11 @@ router.post('/sections', async (req, res) => {
 
         await transaction.commit();
 
-        res.status(201).json(sectionDTO(newSection));
+        console.log(`Created section:`, newSection.toJSON());
+
+        const sectionDTO = new SectionDTO(newSection);
+
+        res.status(201).json(sectionDTO);
     } catch (error) {
         console.error('Error creating section:', error);
         res.status(500).send('Server error');
