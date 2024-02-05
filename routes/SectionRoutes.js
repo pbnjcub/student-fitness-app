@@ -87,7 +87,8 @@ router.get('/sections', async (req, res) => {
     try {
         const sections = await Section.findAll();
 
-        res.json(sections);
+        const sectionDTOs = sections.map(section => new SectionDTO(section));
+        res.json(sectionDTOs);
     } catch (error) {
         console.error('Error fetching sections:', error);
         res.status(500).send('Server error');
@@ -103,7 +104,9 @@ router.get('/sections/active', async (req, res) => {
             }
         });
 
-        res.json(sections);
+        const sectionDTOs = sections.map(section => new SectionDTO(section));
+
+        res.json(sectionDTOs);
     } catch (err) {
         console.error('Error fetching sections:', err);
         res.status(500).send('Server error');
