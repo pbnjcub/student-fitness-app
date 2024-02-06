@@ -79,40 +79,6 @@ const { checkRequired, createSection, sectionExists, getAcademicYear, getGradeLe
 //     return currentGradeLevel <= 0 ? 'Kindergarten or younger' : currentGradeLevel;
 // }
 
-
-
-// Retrieve all sections
-router.get('/sections', async (req, res) => {
-
-    try {
-        const sections = await Section.findAll();
-
-        const sectionDTOs = sections.map(section => new SectionDTO(section));
-        res.json(sectionDTOs);
-    } catch (error) {
-        console.error('Error fetching sections:', error);
-        res.status(500).send('Server error');
-    }
-});
-
-//retrieve only active sections
-router.get('/sections/active', async (req, res) => {
-    try {
-        const sections = await Section.findAll({
-            where: {
-                isActive: true
-            }
-        });
-
-        const sectionDTOs = sections.map(section => new SectionDTO(section));
-
-        res.json(sectionDTOs);
-    } catch (err) {
-        console.error('Error fetching sections:', err);
-        res.status(500).send('Server error');
-    }
-});
-
 //add section
 router.post('/sections', async (req, res) => {
     try {
@@ -147,6 +113,40 @@ router.post('/sections', async (req, res) => {
         res.status(500).send('Server error');
     }
 });
+
+// Retrieve all sections
+router.get('/sections', async (req, res) => {
+
+    try {
+        const sections = await Section.findAll();
+
+        const sectionDTOs = sections.map(section => new SectionDTO(section));
+        res.json(sectionDTOs);
+    } catch (error) {
+        console.error('Error fetching sections:', error);
+        res.status(500).send('Server error');
+    }
+});
+
+//retrieve only active sections
+router.get('/sections/active', async (req, res) => {
+    try {
+        const sections = await Section.findAll({
+            where: {
+                isActive: true
+            }
+        });
+
+        const sectionDTOs = sections.map(section => new SectionDTO(section));
+
+        res.json(sectionDTOs);
+    } catch (err) {
+        console.error('Error fetching sections:', err);
+        res.status(500).send('Server error');
+    }
+});
+
+
 
 //add sections from csv
 router.post('/sections/upload', upload.single('file'), async (req, res) => {

@@ -92,6 +92,50 @@ const isIsArchivedValid = (isArchived) => {
     return true; // No error if it's a boolean
 };
 
+const isSectionCodeValid = (sectionCode) => {
+    if (sectionCode === undefined || sectionCode === null || sectionCode === '') {
+        return 'Section code is required'; // Field is required, so absence is an error
+    }
+
+    if (typeof sectionCode !== 'string') {
+        return 'Section code must be a string'; // Return error message
+    }
+
+    if (sectionCode.length >= 1 && sectionCode.length <= 10) {
+        return 'Section code must be between 1 and 10 characters in length'; // Return error message
+    }
+
+    return true; // No error if it's a string
+};
+
+const isSectionGradeLevelValid = (gradeLevel) => {
+    if (gradeLevel === undefined || gradeLevel === null || gradeLevel === '') {
+        return 'Grade level is required'; // Field is required, so absence is an error
+    }
+
+    if (typeof gradeLevel !== 'string') {
+        return 'Grade level must be a string'; // Return error message
+    }
+
+    if (!['6', '7', '8', '9', '10-11-12'].includes(gradeLevel)) {
+        return 'Grade level must be either "6", "7", "8", "9", or "10-11-12"'; // Return error message
+    }
+
+    return true; // No error if it's a string
+};
+
+const isSectionActiveValid = (isActive) => {
+    if (isActive === undefined || isActive === null || isActive === '') {
+        return 'isActive is required'; // Field is required, so absence is an error
+    }
+
+    if (typeof isActive !== 'boolean') {
+        return 'isActive must be a boolean'; // Return error message
+    }
+
+    return true; // No error if it's a boolean
+}
+
 
 module.exports = {
     isValidEmail,
@@ -102,5 +146,8 @@ module.exports = {
     isPronounsValid,
     isUserTypeValid,
     isPhotoUrlValid,
-    isIsArchivedValid
+    isIsArchivedValid,
+    isSectionCodeValid,
+    isSectionGradeLevelValid,
+    isSectionActiveValid
 }
