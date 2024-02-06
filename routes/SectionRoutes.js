@@ -11,73 +11,73 @@ const { User, Section, SectionRoster, StudentDetail } = require('../models');
 
 //import helper functions
 const { SectionDTO, SectionByIdDTO } = require('../utils/SectionDTO');
+const { checkRequired, createSection, sectionExists, getAcademicYear, getGradeLevel } = require('../utils/SectionHelpers');
 
+// const checkRequired = (sectionData) => {
+//     const { sectionCode, gradeLevel } = sectionData;
 
-const checkRequired = (sectionData) => {
-    const { sectionCode, gradeLevel } = sectionData;
+//     const missingFields = [];
 
-    const missingFields = [];
+//     if (!sectionCode) missingFields.push('Section Code');
+//     if (!gradeLevel) missingFields.push('Grade Level');
 
-    if (!sectionCode) missingFields.push('Section Code');
-    if (!gradeLevel) missingFields.push('Grade Level');
+//     return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
+// }
 
-    return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
-}
+// // Helper function to create a section
+// async function createSection(sectionData, transaction) {
+//     const { sectionCode, gradeLevel, isActive } = sectionData;
 
-// Helper function to create a section
-async function createSection(sectionData, transaction) {
-    const { sectionCode, gradeLevel, isActive } = sectionData;
+//     try {
+//         const newSection = await Section.create({ sectionCode, gradeLevel, isActive }, { transaction });
 
-    try {
-        const newSection = await Section.create({ sectionCode, gradeLevel, isActive }, { transaction });
+//         return { newSection, error: null };
+//     } catch (error) {
+//         return { newSection: null, error: error.message };
+//     }
+// }
 
-        return { newSection, error: null };
-    } catch (error) {
-        return { newSection: null, error: error.message };
-    }
-}
+// //Helper function to check if section exists
+// async function sectionExists(sectionCode) {
+//     const section = await Section.findOne({ where: { sectionCode } });
+//     return section ? true : false;
+// }
 
-//Helper function to check if section exists
-async function sectionExists(sectionCode) {
-    const section = await Section.findOne({ where: { sectionCode } });
-    return section ? true : false;
-}
+// //find current academic year
+// function getAcademicYear() {
+//     const currentDate = new Date();
+//     const currentMonth = currentDate.getMonth();
+//     const currentYear = currentDate.getFullYear();
+//     if (currentMonth >= 8) {
+//         return currentYear + 1;
+//     } else {
+//         return currentYear;
+//     }
+// }
 
-//find current academic year
-function getAcademicYear() {
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth();
-    const currentYear = currentDate.getFullYear();
-    if (currentMonth >= 8) {
-        return currentYear + 1;
-    } else {
-        return currentYear;
-    }
-}
+// //find current grade level of student user
+// function getGradeLevel(studentUser) {
+//     const studentGradYear = studentUser.studentDetails.gradYear;
 
-//find current grade level of student user
-function getGradeLevel(studentUser) {
-    const studentGradYear = studentUser.studentDetails.gradYear;
+//     if (typeof studentGradYear !== 'number' || studentGradYear < new Date().getFullYear()) {
+//         // Handle invalid or past graduation year
+//         return 'Invalid or past graduation year';
+//     }
 
-    if (typeof studentGradYear !== 'number' || studentGradYear < new Date().getFullYear()) {
-        // Handle invalid or past graduation year
-        return 'Invalid or past graduation year';
-    }
+//     const currentAcademicYear = getAcademicYear();
+//     const yearsRemaining = studentGradYear - currentAcademicYear;
 
-    const currentAcademicYear = getAcademicYear();
-    const yearsRemaining = studentGradYear - currentAcademicYear;
+//     if (yearsRemaining < 0) {
+//         // Student has already graduated
+//         return 'Graduated';
+//     } else if (yearsRemaining > 12) {
+//         // Student is younger than 1st grade
+//         return 'Pre-Grade 1';
+//     }
 
-    if (yearsRemaining < 0) {
-        // Student has already graduated
-        return 'Graduated';
-    } else if (yearsRemaining > 12) {
-        // Student is younger than 1st grade
-        return 'Pre-Grade 1';
-    }
-
-    const currentGradeLevel = 12 - yearsRemaining;
-    return currentGradeLevel <= 0 ? 'Kindergarten or younger' : currentGradeLevel;
-}
+//     const currentGradeLevel = 12 - yearsRemaining;
+//     return currentGradeLevel <= 0 ? 'Kindergarten or younger' : currentGradeLevel;
+// }
 
 
 

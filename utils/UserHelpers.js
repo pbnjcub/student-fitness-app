@@ -1,7 +1,6 @@
-const Sequelize = require('sequelize');
+// const Sequelize = require('sequelize');
 const bcrypt = require('bcrypt');
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail } = require('../models');
-// const { validationResult } = require('express-validator');
 
 const { UserDetailUpdateError} = require('./CustomErrors');
 
@@ -60,10 +59,10 @@ async function createUser(userData, transaction = null) {
       dateArchived: userData.dateArchived || null
     };
 
-    const existingUser = await User.findOne({ where: { email: userData.email } });
-    if (existingUser) {
-      throw new Error('User already exists.');
-    }
+    // const existingUser = await User.findOne({ where: { email: userData.email } });
+    // if (existingUser) {
+    //   throw new Error('User already exists.');
+    // }
 
     const [user, created] = await User.findOrCreate({
       where: { email: userData.email },
@@ -87,12 +86,11 @@ async function createUser(userData, transaction = null) {
 //find user by id
 async function findUserById(id) {
     const user = await User.findByPk(id, {
-      attributes: { exclude: ['password', 'createdAt', 'updatedAt'] },
       include: [
-        { model: StudentDetail, as: 'studentDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
-        { model: TeacherDetail, as: 'teacherDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
-        { model: AdminDetail, as: 'adminDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
-        { model: StudentAnthro, as: 'studentAnthro', attributes: { exclude: ['createdAt', 'updatedAt'] } },
+        { model: StudentDetail, as: 'studentDetails'},
+        { model: TeacherDetail, as: 'teacherDetails'},
+        { model: AdminDetail, as: 'adminDetails'},
+        { model: StudentAnthro, as: 'studentAnthro'},
       ]
     });
   
@@ -130,30 +128,22 @@ async function detailedUser(userData) {
 
 //update user details
 async function updateUserDetails(user, detailUpdates) {
-  console.log("Starting updateUserDetails...");
   try {
-    console.log("User type:", user.userType);
     switch (user.userType) {
       case 'student':
-        console.log("Handling student details update...");
         if (detailUpdates.studentDetails) {
-          console.log("Student details provided:", detailUpdates.studentDetails);
           const studentDetails = await user.getStudentDetails();
           return studentDetails ? await studentDetails.update(detailUpdates.studentDetails) : null;
         }
         break;
       case 'teacher':
-        console.log("Handling teacher details update...");
         if (detailUpdates.teacherDetails) {
-          console.log("Teacher details provided:", detailUpdates.teacherDetails);
           const teacherDetails = await user.getTeacherDetails();
           return teacherDetails ? await teacherDetails.update(detailUpdates.teacherDetails) : null;
         }
         break;
       case 'admin':
-        console.log("Handling admin details update...");
         if (detailUpdates.adminDetails) {
-          console.log("Admin details provided:", detailUpdates.adminDetails);
           const adminDetails = await user.getAdminDetails();
           return adminDetails ? await adminDetails.update(detailUpdates.adminDetails) : null;
         }

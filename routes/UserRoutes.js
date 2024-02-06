@@ -26,8 +26,6 @@ const validate = require('../utils/ValidationMiddleware');
 router.post('/users/register', userValidationRules(), validate, async (req, res, next) => {
   try {
     const newUser = await createUser(req.body);
-    console.log('newUser:', newUser)
-    console.log('typeof data:', typeof newUser)
     const userDto = new UserDTO(newUser);
     const userWithDetails = await findUserById(userDto.id);
 
@@ -43,15 +41,16 @@ router.post('/users/register', userValidationRules(), validate, async (req, res,
 router.get('/users', async (req, res, next) => {
   try {
     const users = await User.findAll({
-      attributes: { exclude: ['password', 'createdAt', 'updatedAt'] },
       include: [
-        { model: StudentDetail, as: 'studentDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
-        { model: TeacherDetail, as: 'teacherDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
-        { model: AdminDetail, as: 'adminDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
+        { model: StudentDetail, as: 'studentDetails'},
+        { model: TeacherDetail, as: 'teacherDetails'},
+        { model: AdminDetail, as: 'adminDetails'},
       ]
     });
 
-    res.json(users);
+    const usersDTO = users.map(user => new UserDTO(user.toJSON()));
+
+    res.json(usersDTO);
   } catch (err) {
     next(err);
   }
@@ -63,7 +62,8 @@ router.get('/users/:id', async (req, res, next) => {
 
   try {
     const user = await findUserById(id);
-    res.json(user);
+    const userDto = new UserDTO(user);
+    res.json(userDto);
   } catch (err) {
     next(err);
   }
@@ -90,17 +90,17 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
     }
 
     await transaction.commit();
-    console.log('Transaction committed - main route')
     const users = await User.findAll({
-      attributes: { exclude: ['password', 'createdAt', 'updatedAt'] },
       include: [
-        { model: StudentDetail, as: 'studentDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
-        { model: TeacherDetail, as: 'teacherDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
-        { model: AdminDetail, as: 'adminDetails', attributes: { exclude: ['createdAt', 'updatedAt'] } },
+        { model: StudentDetail, as: 'studentDetails'},
+        { model: TeacherDetail, as: 'teacherDetails'},
+        { model: AdminDetail, as: 'adminDetails'},
       ]
     });
 
-    res.status(201).json(users);
+    const usersDTO = users.map(user => new UserDTO(user.toJSON()));
+
+    res.status(201).json(usersDTO);
   } catch (err) {
     if (transaction) await transaction.rollback();
     console.error('Error in POST /users/register-upload-csv', err);
@@ -114,24 +114,19 @@ router.patch('/users/:id', updateUserValidationRules(), validate, async (req, re
   const { password, ...otherFields } = req.body;
 
   try {
-    console.log("Finding user by ID...");
     const user = await findUserById(id);
     if (!user) {
-      console.log(`User with ID ${id} not found`);
       return res.status(404).json({ error: `User with ID ${id} not found` });
     }
 
     if (password) {
-      console.log("Hashing password...");
       otherFields.password = await hashPassword(password);
     }
     
-    console.log("Updating user basic information...");
     await user.update(otherFields);
 
     // Update details if present
     if (req.body.studentDetails || req.body.teacherDetails || req.body.adminDetails) {
-      console.log("Updating user details...");
       const detailUpdates = {
         studentDetails: req.body.studentDetails,
         teacherDetails: req.body.teacherDetails,
@@ -140,10 +135,9 @@ router.patch('/users/:id', updateUserValidationRules(), validate, async (req, re
       await updateUserDetails(user, detailUpdates);
     }
 
-    console.log("Fetching updated user...");
     const updatedUser = await findUserById(id); // Fetch updated user
-    console.log("Updated user data:", updatedUser);
-    res.status(200).json(updatedUser.toJSON());
+    const userDto = new UserDTO(user);
+    res.status(200).json(userDto);
   } catch (err) {
     console.error('Error in PATCH /users/:id', err);
     next(err);
