@@ -1,5 +1,27 @@
 const { Section, User, StudentDetail } = require('../models');
 
+const gradeLevelEnumMapping = {
+    6: '6',
+    7: '7',
+    8: '8',
+    9: '9',
+    '10-11-12': '10-11-12'
+};
+
+function convertGradeLevelToEnum(gradeLevel) {
+    // Convert numeric gradeLevel to string if it's not already a string
+    const gradeLevelStr = gradeLevel.toString();
+
+    // Use the mapping to find the corresponding enum label
+    const enumLabel = gradeLevelEnumMapping[gradeLevelStr];
+
+    if (!enumLabel) {
+        throw new Error(`Invalid grade level: ${gradeLevel}`);
+    }
+
+    return enumLabel;
+}
+
 const checkRequired = (sectionData) => {
     const { sectionCode, gradeLevel } = sectionData;
 
@@ -19,9 +41,15 @@ async function createSection(sectionData, transaction) {
             gradeLevel,
             isActive } = sectionData;
         
+        const gradeLevelEnum = convertGradeLevelToEnum(gradeLevel);
+        
         const [section, created] = await Section.findOrCreate({
             where: { sectionCode: sectionCode },
-            defaults: { sectionCode, gradeLevel, isActive },
+            defaults: {
+                sectionCode,
+                gradeLevel: gradeLevelEnum,
+                isActive
+            },
             transaction: transaction
         });
 

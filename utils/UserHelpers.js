@@ -59,11 +59,6 @@ async function createUser(userData, transaction = null) {
       dateArchived: userData.dateArchived || null
     };
 
-    // const existingUser = await User.findOne({ where: { email: userData.email } });
-    // if (existingUser) {
-    //   throw new Error('User already exists.');
-    // }
-
     const [user, created] = await User.findOrCreate({
       where: { email: userData.email },
       defaults: mainUserData,

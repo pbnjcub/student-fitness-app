@@ -12,6 +12,8 @@ const { User, Section, SectionRoster, StudentDetail } = require('../models');
 //import helper functions
 const { SectionDTO, SectionByIdDTO } = require('../utils/SectionDTO');
 const { checkRequired, createSection, sectionExists, getAcademicYear, getGradeLevel } = require('../utils/SectionHelpers');
+const processCsv = require('../utils/GenCSVHandler');
+const sectionRowHandler = require('../utils/SectionCSVRowHandler');
 
 // const checkRequired = (sectionData) => {
 //     const { sectionCode, gradeLevel } = sectionData;
@@ -103,8 +105,6 @@ router.post('/sections', async (req, res) => {
 
         await transaction.commit();
 
-        console.log(`Created section:`, newSection.toJSON());
-
         const sectionDTO = new SectionDTO(newSection);
 
         res.status(201).json(sectionDTO);
@@ -149,64 +149,37 @@ router.get('/sections/active', async (req, res) => {
 
 
 //add sections from csv
-router.post('/sections/upload', upload.single('file'), async (req, res) => {
+router.post('/sections/upload-csv', upload.single('file'), async (req, res, next) => {
+
+    let transaction;
 
     try {
         const buffer = req.file.buffer;
         const content = buffer.toString();
+        console.log('Content - main route:', content);
+        const newSections = await processCsv(content, sectionRowHandler);
+        console.log('newSections:', newSections);
+        
+        transaction = await sequelize.transaction();
+        console.log('Transaction started - main route')
+        for (const section of newSections) {
+            await createSection(section, transaction);
+            console.log('Section created:', section);
+        }
 
-        const newSections = [];
-        const errors = [];
+        await transaction.commit();
+        const sections = await Section.findAll();
 
-        Papa.parse(content, {
-            header: true,
-            dynamicTyping: true,
-            complete: async (results) => {
-                const transaction = await sequelize.transaction();
-                try {
-                    for (const sectionData of results.data) {
-                        const requiredCheck = checkRequired(sectionData);
-                        if (requiredCheck !== true) {
-                            errors.push({ sectionData, error: requiredCheck });
-                            continue; // Skip to the next iteration
-                        }
+        const sectionsDTO = sections.map(section => new SectionDTO(section.toJSON()));
 
-                        const existingSection = await sectionExists(req.body.sectionCode);
-                        if (existingSection === true) {
-                            errors.push({ sectionData, error: `Section with code ${sectionData.sectionCode} already exists` });
-                            continue; // Skip to the next iteration
-                        }
-
-                        const { newSection, error } = await createSection(sectionData, transaction);
-
-                        if (error) {
-                            errors.push({ sectionData, error });
-                            continue; // Skip to the next iteration
-                        }
-
-                        newSections.push(sectionDTO(newSection));
-                    }
-
-                    if (errors.length > 0) {
-                        await transaction.rollback();
-                        res.status(400).json({ error: 'Some sections could not be processed', details: errors });
-                    } else {
-                        await transaction.commit();
-                        res.status(201).json({ success: 'File uploaded and processed successfully', newSections });
-                    }
-                } catch (error) {
-                    await transaction.rollback();
-                    console.error('Error processing file:', error);
-                    res.status(500).json({ error: 'Internal Server Error' });
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Error uploading file:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(201).json(sectionsDTO);
+    } catch (err) {
+        if (transaction) await transaction.rollback();
+        console.error('Error in POST /sections/upload-csv', err);
+        next(err);
     }
 });
-
+ 
 router.get('/sections/:id', async (req, res) => {
     const { id } = req.params;
 
