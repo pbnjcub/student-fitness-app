@@ -69,7 +69,7 @@ router.get('/users/:id', async (req, res, next) => {
   }
 });
 
-//bulk upload
+//bulk upload from csv
 router.post('/users/register-upload-csv', upload.single('file'), async (req, res, next) => {
 
   let transaction;
@@ -77,16 +77,13 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
   try {
     const buffer = req.file.buffer;
     const content = buffer.toString();
-    console.log('Content - main route:', content);
 
     const newUsers = await processCsv(content, userRowHandler);
-    console.log('newUsers:', newUsers);
 
     transaction = await sequelize.transaction();
-    console.log('Transaction started - main route')
+
     for (const user of newUsers) {
       await createUser(user, transaction );
-      console.log('User created:', user);
     }
 
     await transaction.commit();

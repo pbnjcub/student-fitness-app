@@ -1,4 +1,4 @@
-const { Section, User, StudentDetail } = require('../models');
+const { Section, SectionRoster, User, StudentDetail } = require('../models');
 
 const gradeLevelEnumMapping = {
     6: '6',
@@ -22,16 +22,16 @@ function convertGradeLevelToEnum(gradeLevel) {
     return enumLabel;
 }
 
-const checkRequired = (sectionData) => {
-    const { sectionCode, gradeLevel } = sectionData;
+// const checkRequired = (sectionData) => {
+//     const { sectionCode, gradeLevel } = sectionData;
 
-    const missingFields = [];
+//     const missingFields = [];
 
-    if (!sectionCode) missingFields.push('Section Code');
-    if (!gradeLevel) missingFields.push('Grade Level');
+//     if (!sectionCode) missingFields.push('Section Code');
+//     if (!gradeLevel) missingFields.push('Grade Level');
 
-    return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
-}
+//     return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
+// }
 
 // Helper function to create a section
 async function createSection(sectionData, transaction) {
@@ -64,11 +64,36 @@ async function createSection(sectionData, transaction) {
     }
 }
 
-//Helper function to check if section exists
-async function sectionExists(sectionCode) {
-    const section = await Section.findOne({ where: { sectionCode } });
-    return section ? true : false;
+//find section by id
+async function findSectionById(id) {
+    const section = await Section.findByPk(id, {
+        include: [{
+            model: SectionRoster,
+            as: 'sectionRoster',
+            include: [{
+                model: User,
+                as: 'student',
+            include: [{
+                model: StudentDetail,
+                as: 'studentDetails'
+                }] 
+            }]
+        }]
+    });
+
+    if (!section) {
+        throw new Error(`Section with ID ${id} not found`);
+    }
+
+    const plainSection = section.get({ plain: true });
+
+    return plainSection;
 }
+// //Helper function to check if section exists
+// async function sectionExists(sectionCode) {
+//     const section = await Section.findOne({ where: { sectionCode } });
+//     return section ? true : false;
+// }
 
 //find current academic year
 function getAcademicYear() {

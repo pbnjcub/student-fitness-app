@@ -11,78 +11,13 @@ const { User, Section, SectionRoster, StudentDetail } = require('../models');
 
 //import helper functions
 const { SectionDTO, SectionByIdDTO } = require('../utils/SectionDTO');
-const { checkRequired, createSection, sectionExists, getAcademicYear, getGradeLevel } = require('../utils/SectionHelpers');
+const { createSection, findSectionById, sectionExists, getAcademicYear, getGradeLevel } = require('../utils/SectionHelpers');
 const processCsv = require('../utils/GenCSVHandler');
 const sectionRowHandler = require('../utils/SectionCSVRowHandler');
 
 //import validation middleware
 const { sectionValidationRules, updateSectionValidationRules } = require('../utils/ValidationRules');
 const validate = require('../utils/ValidationMiddleware');
-// const checkRequired = (sectionData) => {
-//     const { sectionCode, gradeLevel } = sectionData;
-
-//     const missingFields = [];
-
-//     if (!sectionCode) missingFields.push('Section Code');
-//     if (!gradeLevel) missingFields.push('Grade Level');
-
-//     return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
-// }
-
-// // Helper function to create a section
-// async function createSection(sectionData, transaction) {
-//     const { sectionCode, gradeLevel, isActive } = sectionData;
-
-//     try {
-//         const newSection = await Section.create({ sectionCode, gradeLevel, isActive }, { transaction });
-
-//         return { newSection, error: null };
-//     } catch (error) {
-//         return { newSection: null, error: error.message };
-//     }
-// }
-
-// //Helper function to check if section exists
-// async function sectionExists(sectionCode) {
-//     const section = await Section.findOne({ where: { sectionCode } });
-//     return section ? true : false;
-// }
-
-// //find current academic year
-// function getAcademicYear() {
-//     const currentDate = new Date();
-//     const currentMonth = currentDate.getMonth();
-//     const currentYear = currentDate.getFullYear();
-//     if (currentMonth >= 8) {
-//         return currentYear + 1;
-//     } else {
-//         return currentYear;
-//     }
-// }
-
-// //find current grade level of student user
-// function getGradeLevel(studentUser) {
-//     const studentGradYear = studentUser.studentDetails.gradYear;
-
-//     if (typeof studentGradYear !== 'number' || studentGradYear < new Date().getFullYear()) {
-//         // Handle invalid or past graduation year
-//         return 'Invalid or past graduation year';
-//     }
-
-//     const currentAcademicYear = getAcademicYear();
-//     const yearsRemaining = studentGradYear - currentAcademicYear;
-
-//     if (yearsRemaining < 0) {
-//         // Student has already graduated
-//         return 'Graduated';
-//     } else if (yearsRemaining > 12) {
-//         // Student is younger than 1st grade
-//         return 'Pre-Grade 1';
-//     }
-
-//     const currentGradeLevel = 12 - yearsRemaining;
-//     return currentGradeLevel <= 0 ? 'Kindergarten or younger' : currentGradeLevel;
-// }
 
 //add section
 router.post('/sections', sectionValidationRules(), validate, async (req, res, next) => {
@@ -99,40 +34,51 @@ router.post('/sections', sectionValidationRules(), validate, async (req, res, ne
 });
 
 // Retrieve all sections
-router.get('/sections', async (req, res) => {
-
+router.get('/sections', async (req, res, next) => {
     try {
         const sections = await Section.findAll();
 
         const sectionDTOs = sections.map(section => new SectionDTO(section));
         res.json(sectionDTOs);
-    } catch (error) {
-        console.error('Error fetching sections:', error);
-        res.status(500).send('Server error');
+    } catch (err) {
+        next(err);
     }
 });
 
 //retrieve only active sections
-router.get('/sections/active', async (req, res) => {
+router.get('/sections/active', async (req, res, next) => {
     try {
-        const sections = await Section.findAll({
+        const activeSections = await Section.findAll({
             where: {
                 isActive: true
             }
         });
 
-        const sectionDTOs = sections.map(section => new SectionDTO(section));
+        const sectionDTOs = activeSections.map(section => new SectionDTO(section));
 
         res.json(sectionDTOs);
     } catch (err) {
-        console.error('Error fetching sections:', err);
+        next(err);
+    }
+});
+
+router.get('/sections/:id', async (req, res, next) => {
+    const { id } = req.params;
+
+    try {
+        const section = await findSectionById(id);
+        // Convert the section and its nested associations to plain objects
+
+        const sectionWithRoster = new SectionByIdDTO(section);
+
+        res.json(sectionWithRoster);
+    } catch (error) {
+        console.error('Error fetching section:', error);
         res.status(500).send('Server error');
     }
 });
 
-
-
-//add sections from csv
+//bulk upload from csv
 router.post('/sections/upload-csv', upload.single('file'), async (req, res, next) => {
 
     let transaction;
@@ -140,15 +86,13 @@ router.post('/sections/upload-csv', upload.single('file'), async (req, res, next
     try {
         const buffer = req.file.buffer;
         const content = buffer.toString();
-        console.log('Content - main route:', content);
+
         const newSections = await processCsv(content, sectionRowHandler);
-        console.log('newSections:', newSections);
         
         transaction = await sequelize.transaction();
-        console.log('Transaction started - main route')
+ 
         for (const section of newSections) {
             await createSection(section, transaction);
-            console.log('Section created:', section);
         }
 
         await transaction.commit();
@@ -164,42 +108,7 @@ router.post('/sections/upload-csv', upload.single('file'), async (req, res, next
     }
 });
  
-router.get('/sections/:id', async (req, res) => {
-    const { id } = req.params;
 
-    console.log(`Starting GET /sections/${id}...`);
-
-    try {
-        const section = await Section.findByPk(id, {
-            include: [{
-                model: SectionRoster,
-                as: 'sectionRoster',
-                include: [{
-                    model: User,
-                    as: 'student',
-                    include: [{
-                        model: StudentDetail, // Assuming this association is defined in User
-                        as: 'studentDetails' // Use the alias if it's defined
-                    }]
-                }]
-            }]
-        });
-
-        if (!section) {
-            console.log(`Section with ID ${id} not found.`);
-            return res.status(404).json({ error: 'Section not found' });
-        }
-        // Convert the section and its nested associations to plain objects
-        const plainSection = section.get({ plain: true });
-
-        const sectionWithRoster = new SectionByIdDTO(plainSection);
-
-        res.json(sectionWithRoster);
-    } catch (error) {
-        console.error('Error fetching section:', error);
-        res.status(500).send('Server error');
-    }
-});
 
 //edit section
 router.patch('/sections/:id', async (req, res) => {
