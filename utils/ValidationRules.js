@@ -74,7 +74,23 @@ const updateUserValidationRules = () => {
     ];
 };
 
+const sectionValidationRules = () => {
+    return [
+        body('sectionCode')
+            .not().isEmpty().withMessage('Section code is required')
+            .isString().withMessage('Section code must be a string')
+            .isLength({ min: 2, max: 10 }).withMessage('Section code must be between 2 and 10 characters in length'),
+        body('gradeLevel')
+            .not().isEmpty().withMessage('Grade level is required')
+            .isIn(['6', '7', '8', '9', '10-11-12']).withMessage('Grade level must be either "6", "7", "8", "9", or "10-11-12"'),
+        body('isActive')
+            .not().isEmpty().withMessage('isActive is required')
+            .isBoolean().withMessage('isActive must be a boolean')
+    ];
+}
+
 module.exports = {
     userValidationRules,
-    updateUserValidationRules
+    updateUserValidationRules,
+    sectionValidationRules
 }

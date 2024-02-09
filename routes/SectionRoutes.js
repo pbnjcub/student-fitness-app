@@ -15,6 +15,9 @@ const { checkRequired, createSection, sectionExists, getAcademicYear, getGradeLe
 const processCsv = require('../utils/GenCSVHandler');
 const sectionRowHandler = require('../utils/SectionCSVRowHandler');
 
+//import validation middleware
+const { sectionValidationRules, updateSectionValidationRules } = require('../utils/ValidationRules');
+const validate = require('../utils/ValidationMiddleware');
 // const checkRequired = (sectionData) => {
 //     const { sectionCode, gradeLevel } = sectionData;
 
@@ -82,35 +85,16 @@ const sectionRowHandler = require('../utils/SectionCSVRowHandler');
 // }
 
 //add section
-router.post('/sections', async (req, res) => {
+router.post('/sections', sectionValidationRules(), validate, async (req, res, next) => {
     try {
-        const requiredCheck = checkRequired(req.body);
-        if (requiredCheck !== true) {
-            return res.status(400).json({ error: requiredCheck });
-        }
 
-        const existingSection = await sectionExists(req.body.sectionCode);
-        if (existingSection === true) {
-            return res.status(400).json({ error: `Section with code ${req.body.sectionCode} already exists` });
-        }
+        const newSection = await createSection(req.body);
+        const sectionDto = new SectionDTO(newSection);
 
-        const transaction = await sequelize.transaction();
+        return res.status(201).json(sectionDto);
 
-        const { newSection, error } = await createSection(req.body, transaction);
-
-        if (error) {
-            await transaction.rollback();
-            throw new Error(error);
-        }
-
-        await transaction.commit();
-
-        const sectionDTO = new SectionDTO(newSection);
-
-        res.status(201).json(sectionDTO);
-    } catch (error) {
-        console.error('Error creating section:', error);
-        res.status(500).send('Server error');
+    } catch (err) {
+        next(err);
     }
 });
 
