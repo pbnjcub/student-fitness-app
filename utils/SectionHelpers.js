@@ -132,9 +132,8 @@ function getGradeLevel(studentUser) {
 }
 
 module.exports = {
-    checkRequired,
+    
     createSection,
-    sectionExists,
     getAcademicYear,
     getGradeLevel
 };
