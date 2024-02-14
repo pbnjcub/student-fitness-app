@@ -3,6 +3,7 @@ const moment = require('moment');
 
 // Reusable functions for general field validation and custom logic
 function validateField(fieldName, validationType, errorMessage, options = {}, isOptional = false) {
+    console.log("fieldName is", fieldName)
     const validator = body(fieldName);
     if (isOptional) {
         return validator.optional({ checkFalsy: true })[validationType](options).withMessage(errorMessage);
@@ -23,16 +24,14 @@ function validateUserDetailsPresence(userType, detailKey) {
         .if((value, { req }) => req.body.userType === userType)
         .notEmpty().withMessage(`${detailKey} are required for userType ${userType}`)
         .bail()
-        .isObject().withMessage(`${detailKey} must be an object`);
+        .custom((value, { req }) => {
+            if (typeof value !== 'object' || value === null) {
+                throw new Error(`${detailKey} must be an object`);
+            }
+            return true;
+        });
 }
 
-// Function to validate specific fields within user details
-function validateDetailField(detailKey, field, validationType, errorMessage, conditionCallback) {
-    return body(`${detailKey}.${field}`)
-        .if((value, { req }) => conditionCallback(req))
-        .optional()
-        [validationType]().withMessage(errorMessage);
-}
 
 // Function to create a custom validator for specific conditions
 function customValidationForDetails(detailKey, customValidationLogic) {
@@ -40,6 +39,42 @@ function customValidationForDetails(detailKey, customValidationLogic) {
         .if((value, { req }) => req.body[detailKey] !== undefined)
         .custom(customValidationLogic);
 }
+
+// Adjusted function to validate if details are present and of the correct type based on userType
+// This function already handles making studentDetails not optional for students.
+// No change needed here, but ensure it's correctly implemented in the userValidationRules.
+
+// Adjust the validateDetailField function to conditionally apply validations based on userType
+function validateDetailField(detailKey, field, validationType, errorMessage, conditionCallback, options = {}) {
+    return body(`${detailKey}.${field}`)
+        .if((value, { req }) => conditionCallback(req))
+        .optional({ checkFalsy: true }) // Making it optional but conditionally validating
+        [validationType](options).withMessage(errorMessage);
+}
+
+// Use a more specific function for handling role-based conditional validations
+function roleBasedValidation(userType, detailKey, fieldName, validationType, errorMessage, options = {}, isOptional = false) {
+    // Define a common condition callback for clarity
+    const conditionCallback = req => req.body.userType === userType;
+
+
+    if (userType === 'student') {
+        // Ensure studentDetails are not optional for students
+        if (validateUserDetailsPresence(userType, detailKey)
+        //ensure studentDetails.gradYear is required and an integer
+        return validateDetailField(detailKey, fieldName, validationType, errorMessage, conditionCallback, options, isOptional);
+    }
+    //teacher and admin validation
+    if (['teacher', 'admin'].includes(userType)) {
+        return validateDetailField(detailKey, fieldName, validationType, errorMessage, conditionCallback, options, isOptional);
+    }
+
+    // Fallback or default validation if needed
+    // This could also be an error throw or any other default handling
+    console.log(`No specific validation implemented for userType: ${userType}`);
+    return body().notEmpty().withMessage(`Unhandled userType: ${userType}`);
+}
+
 
 
 const userValidationRules = () => {
@@ -54,30 +89,13 @@ const userValidationRules = () => {
         validateField('userType', 'isIn', 'Must be one of the following: student, teacher, admin', ['student', 'teacher', 'admin']),
         validateField('photoUrl', 'isString', 'Photo URL must be a string', {}, true),
         validateField('isArchived', 'isBoolean', 'isArchived must be a boolean', {}, true),
-        
-        validateUserDetailsPresence('student', 'studentDetails')
-            .custom((studentDetails) => {
-                if (typeof studentDetails.gradYear !== 'number' || studentDetails.gradYear == null) {
-                    throw new Error('Graduation year is required and must be an integer');
-                }
-                return true;
-            }),
 
-        // Validate fields within teacherDetails if present
-        validateDetailField('teacherDetails', 'yearsExp', 'isInt', 'Years of experience must be an integer', req => req.body.userType === 'teacher'),
-        validateDetailField('teacherDetails', 'bio', 'isString', 'Bio must be a string', req => req.body.teacherDetails !== undefined),
 
-        // Validate fields within adminDetails if present
-        validateDetailField('adminDetails', 'yearsExp', 'isInt', 'Years of experience must be an integer', req => req.body.adminDetails !== undefined),
-        validateDetailField('adminDetails', 'bio', 'isString', 'Bio must be a string', req => req.body.adminDetails !== undefined),
-
-        // Directly apply custom validation for gradYear within studentDetails
-        customValidationForDetails('studentDetails', (studentDetails) => {
-            if (typeof studentDetails.gradYear !== 'number' || studentDetails.gradYear == null) {
-                throw new Error('Graduation year is required and must be an integer');
-            }
-            return true;
-        }),
+        roleBasedValidation('student', 'studentDetails', 'gradYear', 'isInt', 'Graduation year must be an integer', {}, false),
+        roleBasedValidation('teacher', 'teacherDetails', 'yearsExp', 'isInt', 'Years of experience must be an integer', {}, true),
+        roleBasedValidation('teacher', 'teacherDetails', 'bio', 'isString', 'Bio must be a string', {}, true),
+        roleBasedValidation('admin', 'adminDetails', 'yearsExp', 'isInt', 'Years of experience must be an integer', {}, true),
+        roleBasedValidation('admin', 'adminDetails', 'bio', 'isString', 'Bio must be a string', {}, true),
     ];
 };
 
