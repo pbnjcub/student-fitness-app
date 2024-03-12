@@ -20,14 +20,22 @@ function customFieldValidation(fieldName, customLogic, isOptional = false) {
 }
 // Function to validate if details are present and of the correct type based on userType
 function validateUserDetailsPresence(userType, detailKey) {
+    console.log(`Validating presence for userType: ${userType}, detailKey: ${detailKey}`);
+
     return body(`${detailKey}`)
-        .if((value, { req }) => req.body.userType === userType)
+        .if((value, { req }) => {
+            const condition = req.body.userType === userType;
+            console.log(`Condition for userType ${userType} with detailKey ${detailKey}: ${condition}`);
+            return condition;
+        })
         .notEmpty().withMessage(`${detailKey} are required for userType ${userType}`)
         .bail()
         .custom((value, { req }) => {
             if (typeof value !== 'object' || value === null) {
+                console.log(`Validation failed: ${detailKey} must be an object`);
                 throw new Error(`${detailKey} must be an object`);
             }
+            console.log(`Validation passed for ${detailKey}`);
             return true;
         });
 }
@@ -54,29 +62,42 @@ function validateDetailField(detailKey, field, validationType, errorMessage, con
 
 // Use a more specific function for handling role-based conditional validations
 function roleBasedValidation(userType, detailKey, fieldName, validationType, errorMessage, options = {}, isOptional = false) {
-    // Define a common condition callback for clarity
-    const conditionCallback = req => req.body.userType === userType;
+    console.log(`roleBasedValidation called for userType: ${userType}, detailKey: ${detailKey}, fieldName: ${fieldName}`);
 
+    // Directly construct and return the validation rule based on the inputs without checking validateUserDetailsPresence
+    return body(`${detailKey}.${fieldName}`)
+        .if((value, { req }) => req.body.userType === userType) // Ensure this validation applies only for the specified userType
+        .custom((value, { req }) => {
+            if (isOptional && (value === undefined || value === '')) {
+                // If the field is optional and not provided, pass the validation
+                return true;
+            }
 
-    if (userType === 'student') {
-        // Ensure studentDetails are not optional for students
-        if (validateUserDetailsPresence(userType, detailKey)
-        //ensure studentDetails.gradYear is required and an integer
-        return validateDetailField(detailKey, fieldName, validationType, errorMessage, conditionCallback, options, isOptional);
-    }
-    //teacher and admin validation
-    if (['teacher', 'admin'].includes(userType)) {
-        return validateDetailField(detailKey, fieldName, validationType, errorMessage, conditionCallback, options, isOptional);
-    }
+            // Log to see the validation condition outcome
+            console.log(`Applying validation for ${userType}: ${detailKey}.${fieldName}`);
 
-    // Fallback or default validation if needed
-    // This could also be an error throw or any other default handling
-    console.log(`No specific validation implemented for userType: ${userType}`);
-    return body().notEmpty().withMessage(`Unhandled userType: ${userType}`);
+            // Apply specific validation based on the validationType
+            switch (validationType) {
+                case 'isInt':
+                    if (!Number.isInteger(value)) {
+                        throw new Error(errorMessage);
+                    }
+                    break;
+                case 'isString':
+                    if (typeof value !== 'string') {
+                        throw new Error(errorMessage);
+                    }
+                    break;
+                // Include other cases as necessary
+            }
+
+            return true; // Indicate that the validation passed
+        });
 }
 
 
 
+//validation rules
 const userValidationRules = () => {
     return [
         validateField('email', 'isEmail', 'Must be a valid email address', {}, false).normalizeEmail(),
@@ -89,7 +110,7 @@ const userValidationRules = () => {
         validateField('userType', 'isIn', 'Must be one of the following: student, teacher, admin', ['student', 'teacher', 'admin']),
         validateField('photoUrl', 'isString', 'Photo URL must be a string', {}, true),
         validateField('isArchived', 'isBoolean', 'isArchived must be a boolean', {}, true),
-
+        validateUserDetailsPresence('student', 'studentDetails'),
 
         roleBasedValidation('student', 'studentDetails', 'gradYear', 'isInt', 'Graduation year must be an integer', {}, false),
         roleBasedValidation('teacher', 'teacherDetails', 'yearsExp', 'isInt', 'Years of experience must be an integer', {}, true),
@@ -99,6 +120,7 @@ const userValidationRules = () => {
     ];
 };
 
+//update user validation rules
 const updateUserValidationRules = () => {
     return [
         validateField('email', 'isEmail', 'Must be a valid email address', {}, true).normalizeEmail(),
