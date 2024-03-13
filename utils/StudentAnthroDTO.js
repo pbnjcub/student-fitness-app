@@ -8,6 +8,8 @@ class StudentAnthroDTO extends BaseDTO {
             'dateRecorded': true,
             'height': true,
             'weight': true,
+            'createdAt': false,
+            'updatedAt': false,
         });
     }
 }

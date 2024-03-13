@@ -26,10 +26,10 @@ const validate = require('../utils/ValidationMiddleware');
 router.post('/users/register', userValidationRules(), validate, async (req, res, next) => {
   try {
     const newUser = await createUser(req.body);
-    const userDto = new UserDTO(newUser);
-    const userWithDetails = await findUserById(userDto.id);
+    const userWithDetails = await findUserById(newUser.id);
+    const userDto = new UserDTO(userWithDetails.toJSON());
 
-    return res.status(201).json(userWithDetails);
+    return res.status(201).json(userDto);
 
   } catch (err) {
     next(err)

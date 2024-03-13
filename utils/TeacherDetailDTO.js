@@ -5,6 +5,8 @@ class TeacherDetailDTO extends BaseDTO {
         super(teacherDetail, {
             'yearsExp': true,
             'bio': true,
+            'createdAt': false,
+            'updatedAt': false,
         });
     }
 }

@@ -5,6 +5,8 @@ class AdminDetailDTO extends BaseDTO {
         super(adminDetail, {
             'yearsExp': true,
             'bio': true,
+            'createdAt': false,
+            'updatedAt': false,
         });
     }
 }

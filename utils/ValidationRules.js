@@ -3,7 +3,6 @@ const moment = require('moment');
 
 // Reusable functions for general field validation and custom logic
 function validateField(fieldName, validationType, errorMessage, options = {}, isOptional = false) {
-    console.log("fieldName is", fieldName)
     const validator = body(fieldName);
     if (isOptional) {
         return validator.optional({ checkFalsy: true })[validationType](options).withMessage(errorMessage);
@@ -20,22 +19,18 @@ function customFieldValidation(fieldName, customLogic, isOptional = false) {
 }
 // Function to validate if details are present and of the correct type based on userType
 function validateUserDetailsPresence(userType, detailKey) {
-    console.log(`Validating presence for userType: ${userType}, detailKey: ${detailKey}`);
 
     return body(`${detailKey}`)
         .if((value, { req }) => {
             const condition = req.body.userType === userType;
-            console.log(`Condition for userType ${userType} with detailKey ${detailKey}: ${condition}`);
             return condition;
         })
         .notEmpty().withMessage(`${detailKey} are required for userType ${userType}`)
         .bail()
         .custom((value, { req }) => {
             if (typeof value !== 'object' || value === null) {
-                console.log(`Validation failed: ${detailKey} must be an object`);
                 throw new Error(`${detailKey} must be an object`);
             }
-            console.log(`Validation passed for ${detailKey}`);
             return true;
         });
 }
@@ -62,7 +57,6 @@ function validateDetailField(detailKey, field, validationType, errorMessage, con
 
 // Use a more specific function for handling role-based conditional validations
 function roleBasedValidation(userType, detailKey, fieldName, validationType, errorMessage, options = {}, isOptional = false) {
-    console.log(`roleBasedValidation called for userType: ${userType}, detailKey: ${detailKey}, fieldName: ${fieldName}`);
 
     // Directly construct and return the validation rule based on the inputs without checking validateUserDetailsPresence
     return body(`${detailKey}.${fieldName}`)
@@ -72,9 +66,6 @@ function roleBasedValidation(userType, detailKey, fieldName, validationType, err
                 // If the field is optional and not provided, pass the validation
                 return true;
             }
-
-            // Log to see the validation condition outcome
-            console.log(`Applying validation for ${userType}: ${detailKey}.${fieldName}`);
 
             // Apply specific validation based on the validationType
             switch (validationType) {
