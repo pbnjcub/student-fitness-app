@@ -2,8 +2,29 @@ const {
     isSectionCodeValid,
     isSectionGradeLevelValid,
     isSectionActiveValid
-} = require('./CSVValidationHelpers');
+} = require('../../csv_handling/CSVValidationHelpers');
 
+const gradeLevelEnumMapping = {
+    6: '6',
+    7: '7',
+    8: '8',
+    9: '9',
+    '10-11-12': '10-11-12'
+};
+
+function convertGradeLevelToEnum(gradeLevel) {
+    // Convert numeric gradeLevel to string if it's not already a string
+    const gradeLevelStr = gradeLevel.toString();
+
+    // Use the mapping to find the corresponding enum label
+    const enumLabel = gradeLevelEnumMapping[gradeLevelStr];
+
+    if (!enumLabel) {
+        throw new Error(`Invalid grade level: ${gradeLevel}`);
+    }
+
+    return enumLabel;
+}
 
 
 function sectionRowHandler(rowData, rowNumber) {

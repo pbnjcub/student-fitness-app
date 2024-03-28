@@ -10,10 +10,10 @@ const { User, Section, SectionRoster, StudentDetail } = require('../models');
 
 
 //import helper functions
-const { SectionDTO, SectionByIdDTO } = require('../utils/SectionDTO');
-const { createSection, findSectionById, sectionExists, getAcademicYear, getGradeLevel } = require('../utils/SectionHelpers');
-const processCsv = require('../utils/GenCSVHandler');
-const sectionRowHandler = require('../utils/SectionCSVRowHandler');
+const { SectionDTO, SectionByIdDTO } = require('../utils/section/section_dto/SectionDTO');
+const { createSection, findSectionById, sectionExists, getAcademicYear, getGradeLevel } = require('../utils/section/SectionHelpers');
+const processCsv = require('../utils/csv_handling/GenCSVHandler');
+const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
 
 //import validation middleware
 const { sectionValidationRules, updateSectionValidationRules } = require('../utils/ValidationRules');
@@ -67,7 +67,6 @@ router.get('/sections/:id', async (req, res, next) => {
 
     try {
         const section = await findSectionById(id);
-        // Convert the section and its nested associations to plain objects
 
         const sectionWithRoster = new SectionByIdDTO(section);
 
@@ -108,8 +107,6 @@ router.post('/sections/upload-csv', upload.single('file'), async (req, res, next
     }
 });
  
-
-
 //edit section
 router.patch('/sections/:id', async (req, res) => {
     const { id } = req.params;

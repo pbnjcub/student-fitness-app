@@ -1,4 +1,4 @@
-const { Section, SectionRoster, User, StudentDetail } = require('../models');
+const { Section, SectionRoster, User, StudentDetail } = require('../../models');
 
 const gradeLevelEnumMapping = {
     6: '6',
@@ -89,11 +89,6 @@ async function findSectionById(id) {
 
     return plainSection;
 }
-// //Helper function to check if section exists
-// async function sectionExists(sectionCode) {
-//     const section = await Section.findOne({ where: { sectionCode } });
-//     return section ? true : false;
-// }
 
 //find current academic year
 function getAcademicYear() {

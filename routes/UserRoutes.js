@@ -8,18 +8,18 @@ const Papa = require('papaparse');
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize, Sequelize } = require('../models');
 
 //import helper functions
-const { createUser, findUserById, detailedUser, updateUserDetails } = require('../utils/UserHelpers');
-const UserDTO = require('../utils/UserDTO');
-const processCsv = require('../utils/GenCSVHandler');
-const userRowHandler = require('../utils/UserCSVRowHandler');
+const { createUser, findUserById, detailedUser, updateUserDetails } = require('../utils/user/helper_functions/UserHelpersUserHelpers');
+const UserDTO = require('../utils/user/dto/UserDTO');
+const processCsv = require('../utils/csv_handling/GenCSVHandler');
+const userRowHandler = require('../utils/user/csv_handling/UserCSVRowHandler');
 
 const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 //import validation middleware
-const { userValidationRules, updateUserValidationRules } = require('../utils/ValidationRules');
-const validate = require('../utils/ValidationMiddleware');
+const { userValidationRules, updateUserValidationRules } = require('../utils/validation/ValidationRules');
+const validate = require('../utils/validation/ValidationMiddleware');
 
 //routes
 //create user

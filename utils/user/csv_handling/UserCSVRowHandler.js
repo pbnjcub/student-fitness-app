@@ -8,7 +8,7 @@ const {
     isPronounsValid,
     isPhotoUrlValid,
     isIsArchivedValid
-} = require('./CSVValidationHelpers');
+} = require('../../csv_handling/CSVValidationHelpers');
 
 
 function isFourDigitYear(year) {
