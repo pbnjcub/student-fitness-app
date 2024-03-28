@@ -1,4 +1,4 @@
-const BaseDTO = require('../BaseDTO');
+const BaseDTO = require('../../dto/BaseDTO');
 
 const StudentDetailDTO = require('./StudentDetailDTO');
 const TeacherDetailDTO = require('./TeacherDetailDTO');

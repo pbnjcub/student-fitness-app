@@ -8,7 +8,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors'); // Import cors module
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
-const errorHandler = require('./utils/ErrorHandler');
+const errorHandler = require('./utils/error_handling/ErrorHandler');
 
 const app = express();
 

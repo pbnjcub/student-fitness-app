@@ -1,4 +1,4 @@
-const BaseDTO = require('../dto/BaseDTO');
+const BaseDTO = require('../../dto/BaseDTO');
 
 class StudentAnthroDTO extends BaseDTO {
     constructor(studentAnthro) {

@@ -16,8 +16,8 @@ const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
 
 //import validation middleware
-const { sectionValidationRules, updateSectionValidationRules } = require('../utils/ValidationRules');
-const validate = require('../utils/ValidationMiddleware');
+const { sectionValidationRules, updateSectionValidationRules } = require('../utils/validation/ValidationRules');
+const validate = require('../utils/validation/ValidationMiddleware');
 
 //add section
 router.post('/sections', sectionValidationRules(), validate, async (req, res, next) => {

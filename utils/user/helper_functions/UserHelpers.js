@@ -1,8 +1,8 @@
 // const Sequelize = require('sequelize');
 const bcrypt = require('bcrypt');
-const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail } = require('../models');
+const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail } = require('../../../models');
 
-const { UserDetailUpdateError} = require('./CustomErrors');
+const { UserDetailUpdateError} = require('../../error_handling/CustomErrors');
 
 async function createUserDetails(user, userType, details, transaction) {
   switch (userType) {

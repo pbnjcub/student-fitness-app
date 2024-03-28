@@ -8,7 +8,7 @@ const Papa = require('papaparse');
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize, Sequelize } = require('../models');
 
 //import helper functions
-const { createUser, findUserById, detailedUser, updateUserDetails } = require('../utils/user/helper_functions/UserHelpersUserHelpers');
+const { createUser, findUserById, detailedUser, updateUserDetails } = require('../utils/user/helper_functions/UserHelpers');
 const UserDTO = require('../utils/user/dto/UserDTO');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const userRowHandler = require('../utils/user/csv_handling/UserCSVRowHandler');
