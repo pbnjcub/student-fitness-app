@@ -148,10 +148,19 @@ const sectionValidationRules = () => {
         validateField('gradeLevel', 'isIn', 'Grade level must be either "6", "7", "8", "9", or "10-11-12"', ['6', '7', '8', '9', '10-11-12']),
         validateField('isActive', 'isBoolean', 'isActive must be a boolean', {}),
     ];
-}
+};
+
+const updateSectionValidationRules = () => {
+    return [
+        validateField('sectionCode', 'isLength', 'Section code must be between 2 and 10 characters in length', { min: 2, max: 10 }, true),
+        validateField('gradeLevel', 'isIn', 'Grade level must be either "6", "7", "8", "9", or "10-11-12"', ['6', '7', '8', '9', '10-11-12'], true),
+        validateField('isActive', 'isBoolean', 'isActive must be a boolean', {}, true),
+    ];
+};
 
 module.exports = {
     userValidationRules,
     updateUserValidationRules,
-    sectionValidationRules
+    sectionValidationRules,
+    updateSectionValidationRules
 }

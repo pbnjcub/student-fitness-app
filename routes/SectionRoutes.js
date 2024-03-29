@@ -106,71 +106,49 @@ router.post('/sections/upload-csv', upload.single('file'), async (req, res, next
     }
 });
  
-//edit section
-router.patch('/sections/:id', async (req, res) => {
+//edit section by id
+router.patch('/sections/:id', updateSectionValidationRules(), validate, async (req, res, next) => {
     const { id } = req.params;
 
-    if (!id) return res.status(400).json({ error: 'Section ID is required' });
-
     try {
-        const transaction = await sequelize.transaction();
-        const section = await Section.findByPk(id, { transaction });
+        const section = await Section.findByPk(id);
 
         if (!section) {
-            await transaction.rollback();
             console.log(`Section with ID ${id} not found.`);
             return res.status(404).json({ error: 'Section not found' });
         }
 
-        console.log(`Found section:`, section.toJSON());
+        await section.update(req.body);
 
-        const updatedValues = {};
-        if ('sectionCode' in req.body) updatedValues.sectionCode = req.body.sectionCode;
-        if ('gradeLevel' in req.body) updatedValues.gradeLevel = req.body.gradeLevel;
-        if ('isActive' in req.body) updatedValues.isActive = req.body.isActive;
+        const updatedSection = await Section.findByPk(id);
+        const sectionDTO = new SectionDTO(updatedSection);
 
-        await section.update(updatedValues, { transaction });
-        await transaction.commit();
-
-        const sectionDTO = new SectionDTO(section);
-
-        res.status(201).json(sectionDTO);
-    } catch (error) {
-        console.error('Error updating section:', error);
-        res.status(500).send('Server error');
+        res.status(200).json(sectionDTO);
+    } catch (err) {
+        console.error('Error updating section:', err);
+        next(err);
     }
 });
 
 
 //delete section
-router.delete('/sections/:id', async (req, res) => {
+router.delete('/sections/:id', async (req, res, next) => {
     const { id } = req.params;
 
-    console.log(`Starting DELETE /sections/${id}...`);
-
-    if (!id) return res.status(400).json({ error: 'Section ID is required' });
-
     try {
-        const transaction = await sequelize.transaction();
-
-        const section = await Section.findByPk(id, { transaction });
+        const section = await Section.findByPk(id);
 
         if (!section) {
-            await transaction.rollback();
             console.log(`Section with ID ${id} not found.`);
             return res.status(404).json({ error: 'Section not found' });
         }
 
-        console.log(`Found section:`, section.toJSON());
+        await section.destroy();
 
-        await section.destroy({ transaction });
-
-        await transaction.commit();
-
-        res.status(200).json({ success: `Section with ID ${id} deleted successfully` });
+        res.status(200).json({ message: `Section with ID ${id} successfully deleted` });
     } catch (err) {
         console.error('Error deleting section:', err);
-        res.status(500).send('Server error');
+        next(err);
     }
 });
 
