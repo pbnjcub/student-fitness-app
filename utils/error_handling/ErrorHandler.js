@@ -15,6 +15,11 @@ const errorHandler = (err, req, res, next) => {
             return res.status(409).json({ error: err.message });
         }
 
+        // Check for section already exists error
+        else if (err.message === "Section already exists.") {
+            return res.status(409).json({ error: err.message });
+        }
+
         // Check for invalid user type error
         else if (err.message === "Invalid user type") {
             return res.status(400).json({ error: err.message });
@@ -37,6 +42,11 @@ const errorHandler = (err, req, res, next) => {
 
         // Check for "User Not Found" error
         else if (err.message.includes('not found')) {
+            return res.status(404).json({ error: err.message });
+        }
+
+        // Check for "Section Not Found" error
+        else if (err.message.includes('Section with ID')) {
             return res.status(404).json({ error: err.message });
         }
 

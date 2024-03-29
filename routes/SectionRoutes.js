@@ -71,9 +71,8 @@ router.get('/sections/:id', async (req, res, next) => {
         const sectionWithRoster = new SectionByIdDTO(section);
 
         res.json(sectionWithRoster);
-    } catch (error) {
-        console.error('Error fetching section:', error);
-        res.status(500).send('Server error');
+    } catch (err) {
+        next(err);
     }
 });
 

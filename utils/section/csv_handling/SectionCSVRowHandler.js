@@ -31,8 +31,12 @@ function sectionRowHandler(rowData, rowNumber) {
     let errors = [];
 
     // Section code validation
+    console.log(`Validating sectionCode: '${rowData.sectionCode}', Type: ${typeof rowData.sectionCode}`);
+
     const sectionCodeError = isSectionCodeValid(rowData.sectionCode);
+    console.log('sectionCodeError:', sectionCodeError)
     if (sectionCodeError !== true) {
+        console.log('sectionCodeError:', sectionCodeError)
         errors.push({ row: rowNumber, field: 'sectionCode', message: sectionCodeError });
     }
 

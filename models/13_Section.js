@@ -15,8 +15,8 @@ module.exports = (sequelize) => {
                     msg: 'Please provide a section code'
                 },
                 len: {
-                    args: [1, 10],
-                    msg: 'Section code must be between 1 and 10 characters in length'
+                    args: [2, 10],
+                    msg: 'Section code must be between 2 and 10 characters in length'
                 }
             },
         },

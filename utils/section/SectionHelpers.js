@@ -129,6 +129,7 @@ function getGradeLevel(studentUser) {
 module.exports = {
     
     createSection,
+    findSectionById,
     getAcademicYear,
     getGradeLevel
 };

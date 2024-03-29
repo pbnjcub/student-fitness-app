@@ -1,5 +1,6 @@
 class BaseDTO {
     constructor(object = {}, fields = {}) {
+        // Ensure the input parameters are valid
         if (typeof fields !== 'object' || typeof object !== 'object') {
             throw new Error('Invalid parameters for BaseDTO');
         }

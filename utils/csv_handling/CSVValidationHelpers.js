@@ -94,30 +94,28 @@ const isIsArchivedValid = (isArchived) => {
 
 //section validations
 const isSectionCodeValid = (sectionCode) => {
-    if (sectionCode === undefined || sectionCode === null || sectionCode === '') {
+    let sectionCodeStr = String(sectionCode).trim();
+    if (sectionCodeStr === undefined || sectionCodeStr === null || sectionCodeStr === '') {
         return 'Section code is required'; // Field is required, so absence is an error
     }
 
-    if (typeof sectionCode !== 'string') {
-        return 'Section code must be a string'; // Return error message
+    console.log(`Checking length for sectionCode: ${sectionCode}`)
+    if (sectionCodeStr.length != 7) {
+        return 'Section code must be in the following format: "nnnn-nn" where n is a number';
     }
-
-    if (sectionCode.length < 1 && sectionCode.length > 10) {
-        return 'Section code must be between 1 and 10 characters in length'; // Return error message
-    }
+    
 
     return true; // No error if it's a string
 };
+
 const isSectionGradeLevelValid = (gradeLevel) => {
-    if (gradeLevel === undefined || gradeLevel === null || gradeLevel === '') {
+    console.log('Checking type for gradeLevel:', typeof gradeLevel, ' gradeLevel:', gradeLevel)
+    let sectionGradeLevelStr = String(gradeLevel).trim();
+    if (sectionGradeLevelStr === undefined || sectionGradeLevelStr === null || sectionGradeLevelStr === '') {
         return 'Grade level is required'; // Field is required, so absence is an error
     }
 
-    // if (typeof gradeLevel !== 'string') {
-    //     return 'Grade level must be a string'; // Return error message
-    // };
-
-    if (!['6', '7', '8', '9', '10-11-12'].includes(String(gradeLevel).trim())) {
+    if (!['6', '7', '8', '9', '10-11-12'].includes(sectionGradeLevelStr)) {
         return 'Grade level must be either "6", "7", "8", "9", or "10-11-12"';
     }
     
