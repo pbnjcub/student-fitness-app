@@ -5,7 +5,7 @@ module.exports = (sequelize) => {
 
     Section.init({
         sectionCode: {
-            type: DataTypes.STRING(10),
+            type: DataTypes.STRING(7),
             allowNull: false,
             validate: {
                 notNull: {
@@ -15,8 +15,8 @@ module.exports = (sequelize) => {
                     msg: 'Please provide a section code'
                 },
                 len: {
-                    args: [2, 10],
-                    msg: 'Section code must be between 2 and 10 characters in length'
+                    args: [7],
+                    msg: 'Section code must be in the following format: "nnnn-nn" where n is a number'
                 }
             },
         },

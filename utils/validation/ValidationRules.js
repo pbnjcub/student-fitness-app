@@ -144,7 +144,8 @@ const updateUserValidationRules = () => {
 
 const sectionValidationRules = () => {
     return [
-        validateField('sectionCode', 'isLength', 'Section code must be between 2 and 10 characters in length', { min: 2, max: 10 }),
+        // Assuming validateField supports a custom validation for format (pseudocode)
+        validateField('sectionCode', 'isLength', 'Section code must be 7 characters in length and in the format "nnnn-nn" where n is a number', { min: 7, max: 7 }),
         validateField('gradeLevel', 'isIn', 'Grade level must be either "6", "7", "8", "9", or "10-11-12"', ['6', '7', '8', '9', '10-11-12']),
         validateField('isActive', 'isBoolean', 'isActive must be a boolean', {}),
     ];
@@ -152,7 +153,7 @@ const sectionValidationRules = () => {
 
 const updateSectionValidationRules = () => {
     return [
-        validateField('sectionCode', 'isLength', 'Section code must be between 2 and 10 characters in length', { min: 2, max: 10 }, true),
+        validateField('sectionCode', 'isLength', 'Section code must be 7 characters in length and in the format "nnnn-nn" where n is a number', { min: 7, max: 7 }, true),
         validateField('gradeLevel', 'isIn', 'Grade level must be either "6", "7", "8", "9", or "10-11-12"', ['6', '7', '8', '9', '10-11-12'], true),
         validateField('isActive', 'isBoolean', 'isActive must be a boolean', {}, true),
     ];

@@ -86,21 +86,21 @@ const isIsArchivedValid = (isArchived) => {
     }
 
     if (typeof isArchived !== 'boolean') {
-        return 'isArchived must be a boolean'; // Return error message
+        return 'isArchived must be a boolean';
     }
 
-    return true; // No error if it's a boolean
+    return true;
 };
 
 //section validations
 const isSectionCodeValid = (sectionCode) => {
     let sectionCodeStr = String(sectionCode).trim();
     if (sectionCodeStr === undefined || sectionCodeStr === null || sectionCodeStr === '') {
-        return 'Section code is required'; // Field is required, so absence is an error
+        return 'Section code is required';
     }
-
-    console.log(`Checking length for sectionCode: ${sectionCode}`)
-    if (sectionCodeStr.length != 7) {
+    console.log('Checking type for sectionCode:', typeof sectionCode, ' sectionCode:', sectionCode)
+    console.log('Checking type for sectionCodeStr:', typeof sectionCodeStr, ' sectionCodeStr:', sectionCodeStr)
+    if (sectionCodeStr.length !== 7 || !/^\d{4}-\d{2}$/.test(sectionCodeStr)) {
         return 'Section code must be in the following format: "nnnn-nn" where n is a number';
     }
     
