@@ -1,14 +1,8 @@
-console.log("Entering the associations file.");
 const Sequelize = require('sequelize');
 
-// Rest of the code ...
-
-
 module.exports = (db) => {
-  console.log("Contents of the db object:", Object.keys(db));
   
   //student associations
-  console.log("Setting up User-StudentDetail association.");
   db.User.hasOne(db.StudentDetail, {
     foreignKey: 'userId',
     as: 'studentDetails'
@@ -17,7 +11,7 @@ module.exports = (db) => {
     foreignKey: 'userId'
   });
 
-  console.log("Setting up User-StudentAnthro association.");
+
   db.User.hasOne(db.StudentAnthro, {
     foreignKey: 'studentUserId',
     as: 'studentAnthro'
@@ -26,7 +20,7 @@ module.exports = (db) => {
     foreignKey: 'studentUserId'
   });
 
-  console.log("Setting up User-StudentHistAnthro association.");
+
   db.User.hasMany(db.StudentHistAnthro, {
     foreignKey: 'studentUserId',
     as: 'studentHistAnthro'
@@ -35,7 +29,7 @@ module.exports = (db) => {
     foreignKey: 'studentUserId'
   });
 
-  console.log("Setting up User-StudentAssignedPerformanceTest association.");
+
   db.User.hasMany(db.StudentAssignedPerformanceTest, {
     foreignKey: 'studentUserId',
     as: 'studentAssignedPerformanceTest'
@@ -43,6 +37,7 @@ module.exports = (db) => {
   db.StudentAssignedPerformanceTest.belongsTo(db.User, {
     foreignKey: 'studentUserId'
   });
+
 
   db.User.hasMany(db.StudentAssignedPerformanceTestHistory, {
     foreignKey: 'studentUserId',
@@ -53,7 +48,6 @@ module.exports = (db) => {
   });
 
   //teacher associations
-  console.log("Setting up User-TeacherDetail association.");
   db.User.hasOne(db.TeacherDetail, {
     foreignKey: 'userId',
     as: 'teacherDetails'
@@ -62,7 +56,7 @@ module.exports = (db) => {
     foreignKey: 'userId'
   });
 
-  console.log("Setting up User-StudentAssignedPerformanceTest for teachers association.");
+
   db.User.hasMany(db.StudentAssignedPerformanceTest, {
     foreignKey: 'teacherUserId',
     as: 'teacherAssignedPerformanceTest'
@@ -71,7 +65,7 @@ module.exports = (db) => {
     foreignKey: 'teacherUserId'
   });
 
-  console.log("Setting up User-StudentAnthro for teachers association.");
+
   db.User.hasMany(db.StudentAnthro, {
     foreignKey: 'teacherUserId',
     as: 'teacherAnthro'
@@ -80,7 +74,7 @@ module.exports = (db) => {
     foreignKey: 'teacherUserId'
   });
 
-  console.log("Setting up User-StudentHistAnthro for teachers association.");
+
   db.User.hasMany(db.StudentHistAnthro, {
     foreignKey: 'teacherUserId',
     as: 'teacherHistAnthro'
@@ -89,7 +83,7 @@ module.exports = (db) => {
     foreignKey: 'teacherUserId'
   });
 
-  console.log("Setting up User-StudentAssignedPerformanceTest association.");
+
   db.User.hasMany(db.StudentAssignedPerformanceTestHistory, {
     foreignKey: 'teacherUserId',
     as: 'teacherAssignedPerformanceTestHistory'
@@ -98,8 +92,8 @@ module.exports = (db) => {
     foreignKey: 'teacherUserId'
   });
 
+
   //admin associations
-  console.log("Setting up User-AdminDetail association.");
   db.User.hasOne(db.AdminDetail, {
     foreignKey: 'userId',
     as: 'adminDetails'
@@ -108,8 +102,8 @@ module.exports = (db) => {
     foreignKey: 'userId'
   });
 
+
   //student performance type associations
-  console.log("Setting up StudentPerformanceType-StudentAssignedPerformanceTest association.");
   db.StudentPerformanceType.hasMany(db.StudentAssignedPerformanceTest, {
     foreignKey: 'performanceTypeId',
     as: 'performanceTypeAssignedPerformanceTest'
@@ -118,7 +112,7 @@ module.exports = (db) => {
     foreignKey: 'performanceTypeId'
   });
  
-  console.log("Setting up StudentPerformanceType-StudentAssignedPerformanceTestHistory association.");
+
   db.StudentPerformanceType.hasMany(db.StudentAssignedPerformanceTestHistory, {
     foreignKey: 'performanceTypeId',
     as: 'performanceTypeAssignedPerformanceTestHistory'
@@ -128,28 +122,30 @@ module.exports = (db) => {
   });
 
   //assigned performance test associations
-  console.log("Setting up StudentAssignedPerformanceTest-studentPerformanceGrade association.");
   db.StudentAssignedPerformanceTest.hasOne(db.StudentPerformanceGrade, {
     foreignKey: 'assignedPerformanceTestId',
     onDelete: 'CASCADE'
   });
+
+
   db.StudentPerformanceGrade.belongsTo(db.StudentAssignedPerformanceTest, {
     foreignKey: 'assignedPerformanceTestId'
   });
 
   //assigned performance test history associations
-  console.log("Setting up StudentAssignedPerformanceTestHistory-studentPerformanceGradeHistory association.");
-
   db.StudentAssignedPerformanceTestHistory.hasOne(db.StudentPerformanceGradesHistory, {
     foreignKey: 'assignedPerformanceTestId',
     targetKey: 'originalPerformanceId',
     as: 'assignedPerformanceGradeHistory'
   });
+
+
   db.StudentPerformanceGradesHistory.belongsTo(db.StudentAssignedPerformanceTestHistory, {
     foreignKey: 'assignedPerformanceTestId',
     targetKey: 'originalPerformanceId',
     as: 'assignedTestHistory'
   });
+
 
   //associations between Module and Sections
   db.Module.belongsToMany(db.Section, {
@@ -171,6 +167,7 @@ module.exports = (db) => {
     otherKey: 'sectionEnrollmentId'
   });
   
+
   db.SectionEnrollment.belongsToMany(db.User, {
     through: db.TeacherAssignment,
     foreignKey: 'sectionEnrollmentId',
@@ -179,22 +176,23 @@ module.exports = (db) => {
 
   //associations between User and Section, through SectionRoster
   // User and SectionRoster Associations (One-to-One)
-db.User.hasOne(db.SectionRoster, {
-  foreignKey: 'studentUserId',
-  as: 'sectionRoster'
-});
-db.SectionRoster.belongsTo(db.User, {
-  foreignKey: 'studentUserId',
-  as: 'student'
-});
+  db.User.hasOne(db.SectionRoster, {
+    foreignKey: 'studentUserId',
+    as: 'sectionRoster'
+  });
+  db.SectionRoster.belongsTo(db.User, {
+    foreignKey: 'studentUserId',
+    as: 'student'
+  });
+
 
 // Section and SectionRoster Associations (One-to-Many)
-db.Section.hasMany(db.SectionRoster, {
-  foreignKey: 'sectionId',
-  as: 'sectionRoster'
-});
-db.SectionRoster.belongsTo(db.Section, {
-  foreignKey: 'sectionId'
-});
+  db.Section.hasMany(db.SectionRoster, {
+    foreignKey: 'sectionId',
+    as: 'sectionRoster'
+  });
+  db.SectionRoster.belongsTo(db.Section, {
+    foreignKey: 'sectionId'
+  });
     
 };

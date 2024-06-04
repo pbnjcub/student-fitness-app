@@ -133,7 +133,7 @@ router.patch('/users/:id', updateUserValidationRules(), validate, async (req, re
     }
 
     const updatedUser = await findUserById(id); // Fetch updated user
-    const userDto = new UserDTO(user);
+    const userDto = new UserDTO(updatedUser);
     res.status(200).json(userDto);
   } catch (err) {
     console.error('Error in PATCH /users/:id', err);
