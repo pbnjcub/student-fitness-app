@@ -106,6 +106,7 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
 });
 
 //edit user by id
+//edit user for some reason does not catch an error if the field = "" as opposed to " "
 router.patch('/users/:id', updateUserValidationRules(), validate, async (req, res, next) => {
   const { id } = req.params;
   const { password, ...otherFields } = req.body;

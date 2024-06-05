@@ -98,7 +98,15 @@ const userValidationRules = () => {
         customFieldValidation('birthDate', (value) => moment(value, 'YYYY-MM-DD', true).isValid(), false).withMessage('Birth date must be valid or in the following format (YYYY-MM-DD)'),
         validateField('genderIdentity', 'isString', 'Gender Identity must be a string', {}, true),
         validateField('pronouns', 'isString', 'Pronouns must be a string', {}, true),
-        validateField('userType', 'isIn', 'Must be one of the following: student, teacher, admin', ['student', 'teacher', 'admin']),
+        customFieldValidation('userType', (value) => {
+            if (typeof value !== 'string' || userType === "") {
+                throw new Error('Must be one of the following: student, teacher, admin');
+            }
+            if (!['student', 'teacher', 'admin'].includes(value)) {
+                throw new Error('Must be one of the following: student, teacher, admin');
+            }
+            return true;
+        }),
         validateField('photoUrl', 'isString', 'Photo URL must be a string', {}, true),
         validateField('isArchived', 'isBoolean', 'isArchived must be a boolean', {}, true),
         validateUserDetailsPresence('student', 'studentDetails'),
@@ -121,7 +129,16 @@ const updateUserValidationRules = () => {
         customFieldValidation('birthDate', (value) => moment(value, 'YYYY-MM-DD', true).isValid(), true).withMessage('Birth date must be valid or in the following format (YYYY-MM-DD)'),
         validateField('genderIdentity', 'isString', 'Gender Identity must be a string', {}, true),
         validateField('pronouns', 'isString', 'Pronouns must be a string', {}, true),
-        validateField('userType', 'isIn', 'Must be one of the following: student, teacher, admin', ['student', 'teacher', 'admin'], true),
+        customFieldValidation('userType', (value) => {
+            // Check for empty string or string with only spaces
+            if (typeof value !== 'string' || userType === "") {
+                throw new Error('Must be one of the following: student, teacher, admin');
+            }
+            if (!['student', 'teacher', 'admin'].includes(value)) {
+                throw new Error('Must be one of the following: student, teacher, admin');
+            }
+            return true;
+        }, true),
         validateField('photoUrl', 'isString', 'Photo URL must be a string', {}, true),
         validateField('isArchived', 'isBoolean', 'isArchived must be a boolean', {}, true),
         
