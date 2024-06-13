@@ -12,7 +12,7 @@ module.exports = (sequelize) => {
                 key: 'id'
             },
             onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
+            onDelete: 'CASCADE' // No change needed here
         },
         sectionId: {
             type: DataTypes.INTEGER,
@@ -22,7 +22,7 @@ module.exports = (sequelize) => {
                 key: 'id'
             },
             onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
+            onDelete: 'RESTRICT' // Change from CASCADE to RESTRICT
         },
     }, { 
         sequelize, 
