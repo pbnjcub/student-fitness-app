@@ -132,6 +132,26 @@ async function hasEnrolledStudents(sectionId) {
     return enrolledStudents > 0;
 }
 
+//helper function to check if section exists
+async function checkSectionExists(req, res, sectionId) {
+    const section = await Section.findByPk(sectionId);
+    if (!section) {
+        console.log(`Section with ID ${sectionId} not found.`);
+        res.status(404).json({ error: 'Section not found' });
+        return null; // Indicates that the section does not exist
+    }
+    return section;
+}
+
+//helper function to check if section is active
+async function checkSectionIsActive(req, res, section) {
+    if (!section.isActive) {
+        console.log(`Section with ID ${section.id} is inactive.`);
+        res.status(400).json({ error: 'Cannot perform this action on an inactive section.' });
+        return false; // Indicates that the section is inactive
+    }
+    return true;
+}
 
 module.exports = {
     
@@ -139,5 +159,7 @@ module.exports = {
     findSectionById,
     getAcademicYear,
     getGradeLevel,
-    hasEnrolledStudents
+    hasEnrolledStudents,
+    checkSectionExists,
+    checkSectionIsActive
 };

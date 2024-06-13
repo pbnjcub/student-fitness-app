@@ -11,7 +11,7 @@ const { User, Section, SectionRoster, StudentDetail } = require('../models');
 
 //import helper functions
 const { SectionDTO, SectionByIdDTO } = require('../utils/section/section_dto/SectionDTO');
-const { createSection, findSectionById, sectionExists, getAcademicYear, getGradeLevel, hasEnrolledStudents } = require('../utils/section/SectionHelpers');
+const { createSection, findSectionById, sectionExists, getAcademicYear, getGradeLevel, hasEnrolledStudents, checkSectionExists, checkSectionIsActive } = require('../utils/section/SectionHelpers');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
 
@@ -110,13 +110,23 @@ router.post('/sections/upload-csv', upload.single('file'), async (req, res, next
 //edit section by id
 router.patch('/sections/:id', updateSectionValidationRules(), validate, async (req, res, next) => {
     const { id } = req.params;
+    const { isActive } = req.body;
 
     try {
-        const section = await Section.findByPk(id);
+        const section = await checkSectionExists(req, res, id);
+        if (!section) return; 
 
-        if (!section) {
-            console.log(`Section with ID ${id} not found.`);
-            return res.status(404).json({ error: 'Section not found' });
+        // Check if the section is currently active
+        if (section.isActive) {
+            // If isActive is being updated, check for enrolled students
+            if (typeof isActive === 'boolean' && section.isActive !== isActive) {
+                const hasStudents = await hasEnrolledStudents(id);
+
+                if (hasStudents) {
+                    console.log(`Section with ID ${id} has enrolled students and cannot change isActive status.`);
+                    return res.status(400).json({ error: 'Section has enrolled students and cannot change isActive status.' });
+                }
+            }
         }
 
         await section.update(req.body);
@@ -137,12 +147,8 @@ router.delete('/sections/:id', async (req, res, next) => {
     const { id } = req.params;
 
     try {
-        const section = await Section.findByPk(id);
-
-        if (!section) {
-            console.log(`Section with ID ${id} not found.`);
-            return res.status(404).json({ error: 'Section not found' });
-        }
+        const section = await checkSectionExists(req, res, id);
+        if (!section) return; 
 
         // Check for enrolled students using the helper function
         const hasStudents = await hasEnrolledStudents(id);
@@ -163,9 +169,15 @@ router.delete('/sections/:id', async (req, res, next) => {
 
 // route to roster a student user to a section
 router.post('/sections/:sectionId/roster-students', validateRoster, async (req, res, next) => {
-    const { sectionId } = req.params;
+    const { id } = req.params;
 
     try {
+        const section = await checkSectionExists(req, res, id);
+        if (!section) return; 
+
+        const isActive = await checkSectionIsActive(req, res, section);
+        if (!isActive) return; // Exit if the section is inactive
+
         const transaction = await sequelize.transaction();
 
         const rosteredStudents = [];
@@ -193,6 +205,7 @@ router.post('/sections/:sectionId/roster-students', validateRoster, async (req, 
         next(err);  // Pass the error to the error-handling middleware
     }
 });
+
 
 //route to unenroll student from section
 router.delete('/sections/:sectionId/unroster-students', validateUnroster, async (req, res, next) => {
