@@ -99,7 +99,7 @@ const userValidationRules = () => {
         validateField('genderIdentity', 'isString', 'Gender Identity must be a string', {}, true),
         validateField('pronouns', 'isString', 'Pronouns must be a string', {}, true),
         customFieldValidation('userType', (value) => {
-            if (typeof value !== 'string' || userType === "") {
+            if (typeof value !== 'string' || value.trim === "") {
                 throw new Error('Must be one of the following: student, teacher, admin');
             }
             if (!['student', 'teacher', 'admin'].includes(value)) {
@@ -131,7 +131,7 @@ const updateUserValidationRules = () => {
         validateField('pronouns', 'isString', 'Pronouns must be a string', {}, true),
         customFieldValidation('userType', (value) => {
             // Check for empty string or string with only spaces
-            if (typeof value !== 'string' || userType === "") {
+            if (typeof value !== 'string' || value.trim === "") {
                 throw new Error('Must be one of the following: student, teacher, admin');
             }
             if (!['student', 'teacher', 'admin'].includes(value)) {
@@ -172,7 +172,12 @@ const updateSectionValidationRules = () => {
     return [
         validateField('sectionCode', 'isLength', 'Section code must be 7 characters in length and in the format "nnnn-nn" where n is a number', { min: 7, max: 7 }, true),
         validateField('gradeLevel', 'isIn', 'Grade level must be either "6", "7", "8", "9", or "10-11-12"', ['6', '7', '8', '9', '10-11-12'], true),
-        validateField('isActive', 'isBoolean', 'isActive must be a boolean', {}, true),
+        customFieldValidation('isActive', (value) => {
+            if (typeof value !== 'boolean') {
+                throw new Error('isActive must be a boolean');
+            }
+            return true;
+        }, true),
     ];
 };
 

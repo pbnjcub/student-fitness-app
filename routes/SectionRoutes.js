@@ -18,6 +18,7 @@ const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHa
 //import validation middleware
 const { sectionValidationRules, updateSectionValidationRules } = require('../utils/validation/ValidationRules');
 const validate = require('../utils/validation/ValidationMiddleware');
+const validateRoster = require('../utils/validation/SectionRosterValidation');
 
 //add section
 router.post('/sections', sectionValidationRules(), validate, async (req, res, next) => {
@@ -152,107 +153,41 @@ router.delete('/sections/:id', async (req, res, next) => {
     }
 });
 
-//route to roster a student user to a section
-router.post('/sections/:sectionId/roster-students', async (req, res) => {
+// route to roster a student user to a section
+router.post('/sections/:sectionId/add-students', validateRoster, async (req, res, next) => {
     const { sectionId } = req.params;
-    let { studentUserIds } = req.body;
-    console.log(`Starting POST /sections/${sectionId}/roster...`);
-    console.log(`Received request body:`, req.body);
-
-    if (!sectionId) return res.status(400).json({ error: 'Section ID is required' });
-
-    // Ensure studentUserIds is an array even if only one id is provided
-    if (!Array.isArray(studentUserIds)) {
-        studentUserIds = [studentUserIds];
-    }
-
-    if (studentUserIds.length === 0) return res.status(400).json({ error: 'At least one Student User ID is required' });
 
     try {
         const transaction = await sequelize.transaction();
 
-        const processedIds = new Set();
         const rosteredStudents = [];
-        const notExistingStudents = [];
-        const alreadyRosteredStudents = [];
-        const duplicateIds = [];
-        const incorrectGradeLevel = [];
-
-        const section = await Section.findByPk(sectionId, { transaction });
-        if (!section) {
-            await transaction.rollback();
-            console.log(`Section with ID ${sectionId} not found.`);
-            return res.status(404).json({ error: 'Section not found' });
-        }
-        console.log(`Found section:`, section.toJSON());
-
-        for (const studentUserId of studentUserIds) {
-            if (processedIds.has(studentUserId)) {
-                duplicateIds.push(studentUserId);
-                continue; // Skip to the next iteration
-            }
-
-            processedIds.add(studentUserId);
-
-            const student = await User.findByPk(studentUserId, {
-                include: [{ model: StudentDetail, as: 'studentDetails' }],
-                transaction
-            });
-
-            if (!student || student.userType !== 'student') {
-                console.log(`Student with ID ${studentUserId} not found or not a student.`);
-                notExistingStudents.push(studentUserId);
-                continue; // Skip to the next student
-            }
-            console.log(`Found student:`, student.toJSON());
-
-            const studentGradeLevel = getGradeLevel(student);
-            if (typeof studentGradeLevel !== 'number' || studentGradeLevel.toString() !== section.gradeLevel) {
-                console.log(`Student's grade level does not match the section's grade level.`);
-                incorrectGradeLevel.push(studentUserId);
-                continue; // Skip to the next student
-            }
-
-            // Check if the student is already rostered in another section
-            const existingRoster = await SectionRoster.findOne({
-                where: { studentUserId: studentUserId },
-                transaction
-            });
-            if (existingRoster) {
-                console.log(`Student with ID ${studentUserId} is already rostered in another section.`);
-                alreadyRosteredStudents.push(studentUserId);
-                continue; // Skip to the next student
-            }
+        for (const student of req.validatedStudents) {
             const sectionRoster = await SectionRoster.create({
-                studentUserId: studentUserId,
-                sectionId: sectionId
+                studentUserId: student.id,
+                sectionId: sectionId,
             }, { transaction });
-
 
             rosteredStudents.push(sectionRoster);
         }
 
-        if (alreadyRosteredStudents.length > 0 || duplicateIds.length > 0 || notExistingStudents.length > 0 || incorrectGradeLevel.length > 0) {
-            await transaction.rollback();
-            return res.status(400).json({
-                error: 'Some students could not be rostered',
-                alreadyRosteredStudents: alreadyRosteredStudents,
-                duplicateIds: duplicateIds,
-                notExistingStudents: notExistingStudents,
-                incorrectGradeLevel: incorrectGradeLevel
-            });
-        }
-
         await transaction.commit();
         res.json({ rosteredStudents, message: `${rosteredStudents.length} student(s) added to the roster` });
-    } catch (error) {
-        console.error('Error rostering students:', error);
-        res.status(500).send('Server error');
+    } catch (err) {
+        console.error('Error rostering students:', err);
+        if (transaction) {
+            try {
+                await transaction.rollback();
+            } catch (rollbackError) {
+                console.error('Error rolling back transaction:', rollbackError);
+                return next(rollbackError);
+            }
+        }
+        next(err);  // Pass the error to the error-handling middleware
     }
 });
 
 //roster students from csv
-router.post('/sections/:sectionId/roster-students/upload', upload.single('file'), async (req, res) => {
+router.post('/sections/:sectionId/add-students/upload', upload.single('file'), async (req, res) => {
     console.log(`Starting POST /sections/roster-students/upload...`);
 
     try {

@@ -42,7 +42,7 @@ module.exports = (sequelize) => {
             defaultValue: true,
             validate: {
                 isBoolean: {
-                    msg: 'Section active status must be a boolean value'
+                    msg: 'isActive must be a boolean'
                 }
             },
         },
