@@ -12,8 +12,8 @@ const errorHandler = require('./utils/error_handling/ErrorHandler');
 
 const app = express();
 
-const jsonParser = bodyParser.json();
-const urlencodedParser = bodyParser.urlencoded({ extended: false });
+// const jsonParser = bodyParser.json();
+// const urlencodedParser = bodyParser.urlencoded({ extended: false });
 const port = 3000;
 
 // Import routes
@@ -37,8 +37,11 @@ const corsOptions = {
 };
 app.use(cors(corsOptions)); // Apply CORS with the options 
 
-app.use(jsonParser);
-app.use(urlencodedParser)
+// app.use(jsonParser);
+// app.use(urlencodedParser)
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 app.use(session({
@@ -51,7 +54,16 @@ app.use(session({
   }
 }));
 
+// Handle JSON parsing errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('Bad JSON:', err.message);
+    return res.status(400).json({ error: 'Invalid JSON format' });
+  }
+  next();
+});
 
+//use routes
 app.use('/api', userRoutes);
 app.use('/api', studentRoutes);
 app.use('/api', teacherRoutes);
@@ -60,6 +72,7 @@ app.use('/api', moduleRoutes);
 app.use('/api', sectionRoutes);
 app.use('/api', sessionsRoutes);
 
+//global error handler
 app.use(errorHandler);
 
 app.get('/', (req, res) => {

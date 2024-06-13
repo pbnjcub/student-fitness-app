@@ -11,14 +11,14 @@ const { User, Section, SectionRoster, StudentDetail } = require('../models');
 
 //import helper functions
 const { SectionDTO, SectionByIdDTO } = require('../utils/section/section_dto/SectionDTO');
-const { createSection, findSectionById, sectionExists, getAcademicYear, getGradeLevel } = require('../utils/section/SectionHelpers');
+const { createSection, findSectionById, sectionExists, getAcademicYear, getGradeLevel, hasEnrolledStudents } = require('../utils/section/SectionHelpers');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
 
 //import validation middleware
 const { sectionValidationRules, updateSectionValidationRules } = require('../utils/validation/ValidationRules');
 const validate = require('../utils/validation/ValidationMiddleware');
-const validateRoster = require('../utils/validation/SectionRosterValidation');
+const { validateRoster, validateUnroster } = require('../utils/validation/SectionRosterValidation');
 
 //add section
 router.post('/sections', sectionValidationRules(), validate, async (req, res, next) => {
@@ -144,6 +144,14 @@ router.delete('/sections/:id', async (req, res, next) => {
             return res.status(404).json({ error: 'Section not found' });
         }
 
+        // Check for enrolled students using the helper function
+        const hasStudents = await hasEnrolledStudents(id);
+
+        if (hasStudents) {
+            console.log(`Section with ID ${id} has enrolled students and cannot be deleted.`);
+            return res.status(400).json({ error: 'Section has enrolled students and cannot be deleted.' });
+        }
+
         await section.destroy();
 
         res.status(200).json({ message: `Section with ID ${id} successfully deleted` });
@@ -154,7 +162,7 @@ router.delete('/sections/:id', async (req, res, next) => {
 });
 
 // route to roster a student user to a section
-router.post('/sections/:sectionId/add-students', validateRoster, async (req, res, next) => {
+router.post('/sections/:sectionId/roster-students', validateRoster, async (req, res, next) => {
     const { sectionId } = req.params;
 
     try {
@@ -185,6 +193,47 @@ router.post('/sections/:sectionId/add-students', validateRoster, async (req, res
         next(err);  // Pass the error to the error-handling middleware
     }
 });
+
+//route to unenroll student from section
+router.delete('/sections/:sectionId/unroster-students', validateUnroster, async (req, res, next) => {
+    const { sectionId } = req.params;
+
+    try {
+        const transaction = await sequelize.transaction();
+
+        const section = await Section.findByPk(sectionId, { transaction });
+        if (!section) {
+            console.log(`Section with ID ${sectionId} not found.`);
+            return res.status(404).json({ error: 'Section not found' });
+        }
+
+        const unrosteredStudents = [];
+        for (const student of req.validatedStudents) {
+            const sectionRoster = await SectionRoster.findOne({
+                where: {
+                    studentUserId: student.id,
+                    sectionId: sectionId
+                },
+                transaction
+            });
+
+            if (sectionRoster) {
+                await sectionRoster.destroy({ transaction });
+                unrosteredStudents.push(sectionRoster);
+            }
+        }
+
+        await transaction.commit();
+        res.json({ unrosteredStudents, message: `${unrosteredStudents.length} student(s) removed from the roster` });
+    } catch (err) {
+        console.error('Error unrostering students:', err);
+        await transaction.rollback();
+        next(err);
+    }
+});
+
+
+
 
 //roster students from csv
 router.post('/sections/:sectionId/add-students/upload', upload.single('file'), async (req, res) => {

@@ -126,10 +126,18 @@ function getGradeLevel(studentUser) {
     return currentGradeLevel <= 0 ? 'Kindergarten or younger' : currentGradeLevel;
 }
 
+//helper function to check for enrolled students
+async function hasEnrolledStudents(sectionId) {
+    const enrolledStudents = await SectionRoster.count({ where: { sectionId } });
+    return enrolledStudents > 0;
+}
+
+
 module.exports = {
     
     createSection,
     findSectionById,
     getAcademicYear,
-    getGradeLevel
+    getGradeLevel,
+    hasEnrolledStudents
 };
