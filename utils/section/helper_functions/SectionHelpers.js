@@ -1,4 +1,4 @@
-const { Section, SectionRoster, User, StudentDetail } = require('../../models');
+const { Section, SectionRoster, User, StudentDetail } = require('../../../models');
 
 const gradeLevelEnumMapping = {
     6: '6',
@@ -65,29 +65,20 @@ async function createSection(sectionData, transaction) {
 }
 
 //find section by id
-async function findSectionById(id) {
-    const section = await Section.findByPk(id, {
+async function findSectionRoster(sectionId) {
+    const sectionRoster = await SectionRoster.findAll({
+        where: { sectionId },
         include: [{
-            model: SectionRoster,
-            as: 'sectionRoster',
-            include: [{
-                model: User,
-                as: 'student',
+            model: User,
+            as: 'student',
             include: [{
                 model: StudentDetail,
                 as: 'studentDetails'
-                }] 
             }]
         }]
     });
 
-    if (!section) {
-        throw new Error(`Section with ID ${id} not found`);
-    }
-
-    const plainSection = section.get({ plain: true });
-
-    return plainSection;
+    return sectionRoster.length ? sectionRoster.map(roster => roster.get({ plain: true })) : [];
 }
 
 //find current academic year
@@ -132,34 +123,38 @@ async function hasEnrolledStudents(sectionId) {
     return enrolledStudents > 0;
 }
 
-//helper function to check if section exists
-async function checkSectionExists(req, res, sectionId) {
-    const section = await Section.findByPk(sectionId);
-    if (!section) {
-        console.log(`Section with ID ${sectionId} not found.`);
-        res.status(404).json({ error: 'Section not found' });
-        return null; // Indicates that the section does not exist
+const handleTransaction = async (operation) => {
+    const transaction = await sequelize.transaction();
+    try {
+        await operation(transaction);
+        await transaction.commit();
+    } catch (err) {
+        await transaction.rollback();
+        throw err;
     }
-    return section;
-}
+};
 
-//helper function to check if section is active
-async function checkSectionIsActive(req, res, section) {
-    if (!section.isActive) {
-        console.log(`Section with ID ${section.id} is inactive.`);
-        res.status(400).json({ error: 'Cannot perform this action on an inactive section.' });
-        return false; // Indicates that the section is inactive
+const createRosterEntries = async (students, sectionId, transaction) => {
+    const rosteredStudents = [];
+    for (const student of students) {
+        const sectionRoster = await SectionRoster.create({
+            studentUserId: student.id,
+            sectionId: sectionId,
+        }, { transaction });
+        rosteredStudents.push(sectionRoster);
     }
-    return true;
-}
+    return rosteredStudents;
+};
+
+
 
 module.exports = {
     
     createSection,
-    findSectionById,
+    findSectionRoster,
     getAcademicYear,
     getGradeLevel,
     hasEnrolledStudents,
-    checkSectionExists,
-    checkSectionIsActive
+    handleTransaction,
+    createRosterEntries
 };

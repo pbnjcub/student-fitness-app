@@ -101,7 +101,7 @@ const isSectionCodeValid = (sectionCode) => {
     console.log('Checking type for sectionCode:', typeof sectionCode, ' sectionCode:', sectionCode)
     console.log('Checking type for sectionCodeStr:', typeof sectionCodeStr, ' sectionCodeStr:', sectionCodeStr)
     if (sectionCodeStr.length !== 7 || !/^\d{4}-\d{2}$/.test(sectionCodeStr)) {
-        return 'Section code must be in the following format: "nnnn-nn" where n is a number';
+        return 'Section code must be 7 characters in length and in the format \"nnnn-nn\" where n is a number';
     }
     
 

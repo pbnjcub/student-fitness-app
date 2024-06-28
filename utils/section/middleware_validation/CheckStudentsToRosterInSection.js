@@ -1,17 +1,9 @@
-// utils/validation/SectionValidation.js
-
-const { User, Section, SectionRoster, StudentDetail } = require('../../models');
-const { getGradeLevel } = require('../section/SectionHelpers');
+const { User, Section, SectionRoster, StudentDetail } = require('../../../models');
+const { getGradeLevel } = require('../helper_functions/SectionHelpers');
 
 // Validation for rostering students
 async function validateRoster(req, res, next) {
-    const { sectionId } = req.params;
     let { studentUserIds } = req.body;
-
-    if (!sectionId) {
-        console.log('Section ID is required');
-        return res.status(400).json({ error: 'Section ID is required' });
-    }
 
     if (!Array.isArray(studentUserIds)) {
         studentUserIds = [studentUserIds];
@@ -34,12 +26,6 @@ async function validateRoster(req, res, next) {
     const processedIds = new Set();
 
     try {
-        const section = await Section.findByPk(sectionId);
-        if (!section) {
-            console.log(`Section with ID ${sectionId} not found`);
-            return res.status(404).json({ error: 'Section not found' });
-        }
-
         for (const studentUserId of studentUserIds) {
             if (processedIds.has(studentUserId)) {
                 req.validationErrors.duplicateIds.push(studentUserId);
@@ -63,13 +49,15 @@ async function validateRoster(req, res, next) {
             }
 
             const studentGradeLevel = getGradeLevel(student);
+            // We assume the section object is already attached to the request in a previous middleware
+            const section = req.section;
             if (typeof studentGradeLevel !== 'number' || studentGradeLevel.toString() !== section.gradeLevel) {
                 req.validationErrors.incorrectGradeLevel.push(studentUserId);
                 continue;
             }
 
             const existingRoster = await SectionRoster.findOne({
-                where: { studentUserId: studentUserId, sectionId: sectionId },
+                where: { studentUserId: studentUserId, sectionId: section.id },
             });
 
             if (existingRoster) {
@@ -103,13 +91,7 @@ async function validateRoster(req, res, next) {
 
 // Validation for unrostering students
 async function validateUnroster(req, res, next) {
-    const { sectionId } = req.params;
     let { studentUserIds } = req.body;
-
-    if (!sectionId) {
-        console.log('Section ID is required');
-        return res.status(400).json({ error: 'Section ID is required' });
-    }
 
     if (!Array.isArray(studentUserIds)) {
         studentUserIds = [studentUserIds];
@@ -132,12 +114,6 @@ async function validateUnroster(req, res, next) {
     const processedIds = new Set();
 
     try {
-        const section = await Section.findByPk(sectionId);
-        if (!section) {
-            console.log(`Section with ID ${sectionId} not found`);
-            return res.status(404).json({ error: 'Section not found' });
-        }
-
         for (const studentUserId of studentUserIds) {
             if (processedIds.has(studentUserId)) {
                 req.validationErrors.duplicateIds.push(studentUserId);
@@ -161,13 +137,15 @@ async function validateUnroster(req, res, next) {
             }
 
             const studentGradeLevel = getGradeLevel(student);
+            // We assume the section object is already attached to the request in a previous middleware
+            const section = req.section;
             if (typeof studentGradeLevel !== 'number' || studentGradeLevel.toString() !== section.gradeLevel) {
                 req.validationErrors.incorrectGradeLevel.push(studentUserId);
                 continue;
             }
 
             const existingRoster = await SectionRoster.findOne({
-                where: { studentUserId: studentUserId, sectionId: sectionId },
+                where: { studentUserId: studentUserId, sectionId: section.id },
             });
 
             if (!existingRoster) {

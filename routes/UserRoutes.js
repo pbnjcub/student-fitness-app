@@ -3,7 +3,6 @@ const bcrypt = require('bcrypt');
 const multer = require('multer');
 const Papa = require('papaparse');
 
-
 //import models
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize, Sequelize } = require('../models');
 
@@ -18,12 +17,12 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 //import validation middleware
-const { userValidationRules, updateUserValidationRules } = require('../utils/validation/ValidationRules');
+const { createUserValidationRules, updateUserValidationRules } = require('../utils/user/middleware_validation/UserReqObjValidation');
 const validate = require('../utils/validation/ValidationMiddleware');
 
 //routes
 //create user
-router.post('/users/register', userValidationRules(), validate, async (req, res, next) => {
+router.post('/users/register', createUserValidationRules(), validate, async (req, res, next) => {
   try {
     const newUser = await createUser(req.body);
     const userWithDetails = await findUserById(newUser.id);
@@ -71,39 +70,42 @@ router.get('/users/:id', async (req, res, next) => {
 
 //bulk upload from csv
 router.post('/users/register-upload-csv', upload.single('file'), async (req, res, next) => {
-
-  let transaction;
-
   try {
-    const buffer = req.file.buffer;
-    const content = buffer.toString();
+      const buffer = req.file.buffer;
+      const content = buffer.toString();
 
-    const newUsers = await processCsv(content, userRowHandler);
+      const newUsers = await processCsv(content, userRowHandler);
 
-    transaction = await sequelize.transaction();
+      const transaction = await sequelize.transaction();
 
-    for (const user of newUsers) {
-      await createUser(user, transaction );
-    }
+      try {
+          for (const user of newUsers) {
+              await createUser(user, transaction);
+          }
 
-    await transaction.commit();
-    const users = await User.findAll({
-      include: [
-        { model: StudentDetail, as: 'studentDetails'},
-        { model: TeacherDetail, as: 'teacherDetails'},
-        { model: AdminDetail, as: 'adminDetails'},
-      ]
-    });
+          await transaction.commit();
 
-    const usersDTO = users.map(user => new UserDTO(user.toJSON()));
+          const users = await User.findAll({
+              include: [
+                  { model: StudentDetail, as: 'studentDetails' },
+                  { model: TeacherDetail, as: 'teacherDetails' },
+                  { model: AdminDetail, as: 'adminDetails' },
+              ]
+          });
 
-    res.status(201).json(usersDTO);
+          const usersDTO = users.map(user => new UserDTO(user.toJSON()));
+          res.status(201).json(usersDTO);
+      } catch (err) {
+          await transaction.rollback();
+          console.error('Error in transaction for POST /users/register-upload-csv', err);
+          next(err);
+      }
   } catch (err) {
-    if (transaction) await transaction.rollback();
-    console.error('Error in POST /users/register-upload-csv', err);
-    next(err);
+      console.error('Error in POST /users/register-upload-csv', err);
+      next(err);
   }
 });
+
 
 //edit user by id
 //edit user for some reason does not catch an error if the field = "" as opposed to " "

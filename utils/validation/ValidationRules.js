@@ -10,6 +10,7 @@ function validateField(fieldName, validationType, errorMessage, options = {}, is
     return validator[validationType](options).withMessage(errorMessage);
 }
 
+// function to validate custom logic
 function customFieldValidation(fieldName, customLogic, isOptional = false) {
     const validator = body(fieldName);
     if (isOptional) {
@@ -17,24 +18,20 @@ function customFieldValidation(fieldName, customLogic, isOptional = false) {
     }
     return validator.custom(customLogic);
 }
+
 // Function to validate if details are present and of the correct type based on userType
 function validateUserDetailsPresence(userType, detailKey) {
-
     return body(`${detailKey}`)
-        .if((value, { req }) => {
-            const condition = req.body.userType === userType;
-            return condition;
-        })
+        .if((value, { req }) => req.body.userType === userType)
         .notEmpty().withMessage(`${detailKey} are required for userType ${userType}`)
         .bail()
-        .custom((value, { req }) => {
+        .custom((value) => {
             if (typeof value !== 'object' || value === null) {
                 throw new Error(`${detailKey} must be an object`);
             }
             return true;
         });
 }
-
 
 // Function to create a custom validator for specific conditions
 function customValidationForDetails(detailKey, customValidationLogic) {
@@ -43,31 +40,22 @@ function customValidationForDetails(detailKey, customValidationLogic) {
         .custom(customValidationLogic);
 }
 
-// Adjusted function to validate if details are present and of the correct type based on userType
-// This function already handles making studentDetails not optional for students.
-// No change needed here, but ensure it's correctly implemented in the userValidationRules.
-
 // Adjust the validateDetailField function to conditionally apply validations based on userType
 function validateDetailField(detailKey, field, validationType, errorMessage, conditionCallback, options = {}) {
     return body(`${detailKey}.${field}`)
         .if((value, { req }) => conditionCallback(req))
-        .optional({ checkFalsy: true }) // Making it optional but conditionally validating
+        .optional({ checkFalsy: true }) 
         [validationType](options).withMessage(errorMessage);
 }
 
 // Use a more specific function for handling role-based conditional validations
 function roleBasedValidation(userType, detailKey, fieldName, validationType, errorMessage, options = {}, isOptional = false) {
-
-    // Directly construct and return the validation rule based on the inputs without checking validateUserDetailsPresence
     return body(`${detailKey}.${fieldName}`)
-        .if((value, { req }) => req.body.userType === userType) // Ensure this validation applies only for the specified userType
+        .if((value, { req }) => req.body.userType === userType)
         .custom((value, { req }) => {
             if (isOptional && (value === undefined || value === '')) {
-                // If the field is optional and not provided, pass the validation
                 return true;
             }
-
-            // Apply specific validation based on the validationType
             switch (validationType) {
                 case 'isInt':
                     if (!Number.isInteger(value)) {
@@ -79,14 +67,12 @@ function roleBasedValidation(userType, detailKey, fieldName, validationType, err
                         throw new Error(errorMessage);
                     }
                     break;
-                // Include other cases as necessary
+                default:
+                    break;
             }
-
-            return true; // Indicate that the validation passed
+            return true;
         });
 }
-
-
 
 //validation rules
 const userValidationRules = () => {
@@ -158,7 +144,7 @@ const updateUserValidationRules = () => {
     ];
 };
 
-
+// Validation rules for section
 const sectionValidationRules = () => {
     return [
         // Assuming validateField supports a custom validation for format (pseudocode)
@@ -171,6 +157,13 @@ const sectionValidationRules = () => {
 const updateSectionValidationRules = () => {
     return [
         validateField('sectionCode', 'isLength', 'Section code must be 7 characters in length and in the format "nnnn-nn" where n is a number', { min: 7, max: 7 }, true),
+        customFieldValidation('sectionCode', (value) => {
+            const regex = /^\d{4}-\d{2}$/;
+            if (!regex.test(value)) {
+                throw new Error('Section code must be 7 characters in length and in the format \"nnnn-nn\" where n is a number');
+            }
+            return true;
+        }, true),
         validateField('gradeLevel', 'isIn', 'Grade level must be either "6", "7", "8", "9", or "10-11-12"', ['6', '7', '8', '9', '10-11-12'], true),
         customFieldValidation('isActive', (value) => {
             if (typeof value !== 'boolean') {

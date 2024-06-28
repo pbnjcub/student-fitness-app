@@ -16,7 +16,7 @@ module.exports = (sequelize) => {
                 },
                 len: {
                     args: [7],
-                    msg: 'Section code must be in the following format: "nnnn-nn" where n is a number'
+                    msg: 'Section code must be 7 characters in length and in the format \"nnnn-nn\" where n is a number'
                 }
             },
         },
