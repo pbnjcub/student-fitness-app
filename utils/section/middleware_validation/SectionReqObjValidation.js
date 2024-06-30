@@ -4,7 +4,6 @@ const { validateField, customFieldValidation } = require('../../validation/Commo
 // Section validation rules
 const createSectionValidationRules = () => {
     return [
-        validateField('sectionCode', 'isLength', 'Section code must be 7 characters in length and in the format "nnnn-nn" where n is a number', { min: 7, max: 7 }),
         customFieldValidation('sectionCode', (value) => {
             const regex = /^\d{4}-\d{2}$/;
             if (!regex.test(value)) {

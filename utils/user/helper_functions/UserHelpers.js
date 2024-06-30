@@ -120,7 +120,6 @@ async function detailedUser(userData) {
   };
 }
 
-
 //update user details
 async function updateUserDetails(user, detailUpdates) {
   try {

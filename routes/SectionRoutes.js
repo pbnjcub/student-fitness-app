@@ -9,7 +9,7 @@ const { sequelize, User, Section, SectionRoster, StudentDetail } = require('../m
 
 // Import helper functions
 const { SectionDTO, SectionByIdDTO } = require('../utils/section/dto/SectionDTO');
-const { createSection, findSectionRoster, handleTransaction, createRosterEntries} = require('../utils/section/helper_functions/SectionHelpers');
+const { createSection, findSectionRoster, handleTransaction, createRosterEntries } = require('../utils/section/helper_functions/SectionHelpers');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
 
@@ -21,14 +21,18 @@ const { hasRosteredStudents } = require('../utils/section/middleware_validation/
 const { validateRoster, validateUnroster } = require('../utils/section/middleware_validation/CheckStudentsToRosterInSection');
 
 // Add section
-router.post('/sections', createSectionValidationRules(), validate, async (req, res, next) => {
-    try {
-        const newSection = await createSection(req.body);
-        const sectionDto = new SectionDTO(newSection);
-        return res.status(201).json(sectionDto);
-    } catch (err) {
-        next(err);
-    }
+// need to add middleware to check if section with sectionCode already exists
+router.post('/sections',
+    createSectionValidationRules(),
+    validate,
+    async (req, res, next) => {
+        try {
+            const newSection = await createSection(req.body);
+            const sectionDto = new SectionDTO(newSection);
+            return res.status(201).json(sectionDto);
+        } catch (err) {
+            next(err);
+        }
 });
 
 // Retrieve all sections
@@ -46,7 +50,7 @@ router.get('/sections', async (req, res, next) => {
 router.get('/sections/active', async (req, res, next) => {
     try {
         const activeSections = await Section.findAll({
-            where: { 
+            where: {
                 isActive: true
             }
         });
@@ -62,16 +66,17 @@ router.get('/sections/:id',
     checkSectionExists,
     async (req, res, next) => {
         const { section } = req;
-    
-    try {
-        const sectionRoster = await findSectionRoster(section.id);
-        section.sectionRoster = sectionRoster;
-        const sectionWithRoster = new SectionByIdDTO(section);
-        res.json(sectionWithRoster);
-    } catch (err) {
-        next(err);
+
+        try {
+            const sectionRoster = await findSectionRoster(section.id);
+            section.sectionRoster = sectionRoster;
+            const sectionWithRoster = new SectionByIdDTO(section);
+            res.json(sectionWithRoster);
+        } catch (err) {
+            next(err);
+        }
     }
-});
+);
 
 // Bulk upload from CSV
 router.post('/sections/upload-csv', upload.single('file'), async (req, res, next) => {
@@ -98,12 +103,12 @@ router.post('/sections/upload-csv', upload.single('file'), async (req, res, next
 
 // Edit section by id
 router.patch('/sections/:id',
-    checkSectionExists,  
-    updateSectionValidationRules(), 
-    validate, 
-    hasRosteredStudents, 
+    checkSectionExists,
+    updateSectionValidationRules(),
+    validate,
+    hasRosteredStudents,
+    // check if section is still associated with a module through sectionenrollments.
     async (req, res, next) => {
-        console.log('PATCH request received')
         const { section } = req;
         const { isActive } = req.body;
         try {
@@ -132,20 +137,20 @@ router.delete('/sections/:id',
     async (req, res, next) => {
         const { section } = req;
 
-    try {
-        await section.destroy();
-        res.status(200).json({ message: `Section with ID ${section.id} successfully deleted` });
-    } catch (err) {
-        console.error('Error deleting section:', err);
-        next(err);
-    }
-});
+        try {
+            await section.destroy();
+            res.status(200).json({ message: `Section with ID ${section.id} successfully deleted` });
+        } catch (err) {
+            console.error('Error deleting section:', err);
+            next(err);
+        }
+    });
 
 // Route to roster a student user to a section
-router.post('/sections/:sectionId/roster-students', 
-    checkSectionExists, 
-    checkSectionIsActive, 
-    validateRoster, 
+router.post('/sections/:sectionId/roster-students',
+    checkSectionExists,
+    checkSectionIsActive,
+    validateRoster,
     async (req, res, next) => {
         const { section } = req;
         try {
@@ -161,9 +166,9 @@ router.post('/sections/:sectionId/roster-students',
 );
 
 // Route to unenroll student from section
-router.delete('/sections/:sectionId/unroster-students', 
-    checkSectionExists, 
-    validateUnroster, 
+router.delete('/sections/:sectionId/unroster-students',
+    checkSectionExists,
+    validateUnroster,
     async (req, res, next) => {
         const { section } = req;
 
