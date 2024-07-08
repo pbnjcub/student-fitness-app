@@ -52,6 +52,11 @@ const errorHandler = (err, req, res, next) => {
             return res.status(409).json({ err: err.message });
         }
 
+        // Check if section code already exists
+        else if (err.message.includes("Section with section code")) {
+            return res.status(409).json({ err: err.message });
+        }
+
         // Check for "Invalid Section ID" error
         else if (err.message.includes('Section ID must be an integer')) {
             return res.status(400).json({ err: err.message });

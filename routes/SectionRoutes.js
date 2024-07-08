@@ -18,13 +18,14 @@ const { createSectionValidationRules, updateSectionValidationRules } = require('
 const validate = require('../utils/validation/ValidationMiddleware');
 const { checkSectionExists, checkSectionIsActive } = require('../utils/section/middleware_validation/CheckSectionExistsIsActive');
 const { hasRosteredStudents } = require('../utils/section/middleware_validation/CheckHasRosteredStudents');
+const { checkSectionCodeExists } = require('../utils/section/middleware_validation/CheckSectionCodeExists');
 const { validateRoster, validateUnroster } = require('../utils/section/middleware_validation/CheckStudentsToRosterInSection');
 
 // Add section
-// need to add middleware to check if section with sectionCode already exists
 router.post('/sections',
     createSectionValidationRules(),
     validate,
+    checkSectionCodeExists,
     async (req, res, next) => {
         try {
             const newSection = await createSection(req.body);

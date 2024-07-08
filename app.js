@@ -21,7 +21,6 @@ const userRoutes = require('./routes/UserRoutes');
 const studentRoutes = require('./routes/StudentRoutes');
 const teacherRoutes = require('./routes/TeacherRoutes');
 const adminRoutes = require('./routes/AdminRoutes');
-const moduleRoutes = require('./routes/ModuleRoutes');
 const sectionRoutes = require('./routes/SectionRoutes');
 const sessionsRoutes = require('./routes/SessionsRoutes');
 
@@ -68,7 +67,6 @@ app.use('/api', userRoutes);
 app.use('/api', studentRoutes);
 app.use('/api', teacherRoutes);
 app.use('/api', adminRoutes);
-app.use('/api', moduleRoutes);
 app.use('/api', sectionRoutes);
 app.use('/api', sessionsRoutes);
 
