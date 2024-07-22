@@ -30,13 +30,14 @@ const updateSectionValidationRules = () => {
             return true;
         }, true),
         validateField('gradeLevel', 'isIn', 'Grade level must be either "6", "7", "8", "9", or "10-11-12"', ['6', '7', '8', '9', '10-11-12'], true),
-        customFieldValidation('isActive', (value) => {
-            console.log(`Validating isActive: ${value}`);
-            if (typeof value !== 'boolean') {
-                throw new Error('isActive must be a boolean');
-            }
-            return true;
-        }, true)
+        validateField('isActive', 'isBoolean', 'isActive must be a boolean', true),
+        // customFieldValidation('isActive', (value) => {
+        //     console.log(`Validating isActive: ${value}`);
+        //     if (typeof value !== 'boolean') {
+        //         throw new Error('isActive must be a boolean');
+        //     }
+        //     return true;
+        // }, true)
     ];
 };
 
