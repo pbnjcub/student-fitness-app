@@ -2,101 +2,128 @@ const Sequelize = require('sequelize');
 const { UserDetailUpdateError } = require('./CustomErrors');
 
 const errorHandler = (err, req, res, next) => {
-
     console.error(err);
 
+    // Handle array of errors
     if (Array.isArray(err)) {
         return res.status(422).json({ errs: err });
     }
 
-    // USER ROUTE ERRORS
+    // Function to format errors
+    const formatError = (field, message) => ({
+        field,
+        message
+    });
+
+    // Determine appropriate status code
+    let statusCode = err.status || 500;
+
+    // Map error messages to the consistent format
+    let errorResponse;
     if (err.message) {
-        // Check for user already exists error
-        if (err.message === "User already exists.") {
-            return res.status(409).json({ err: err.message });
-        }
+        switch (err.message) {
+            case "User already exists.":
+                errorResponse = formatError('user', err.message);
+                statusCode = 409;
+                break;
+            case "Invalid user type":
+                errorResponse = formatError('userType', err.message);
+                statusCode = 400;
+                break;
+            case "Invalid or missing graduation year for student":
+                errorResponse = formatError('graduationYear', err.message);
+                statusCode = 400;
+                break;
+            case "Missing student details":
+                errorResponse = formatError('studentDetails', err.message);
+                statusCode = 400;
+                break;
+            default:
+                // Handle Sequelize validation errors
+                if (err instanceof Sequelize.ValidationError) {
+                    errorResponse = err.errors.map(e => formatError(e.path, e.message));
+                    statusCode = 400;
+                    break;
+                }
 
-        // Check for invalid user type error
-        else if (err.message === "Invalid user type") {
-            return res.status(400).json({ err: err.message });
-        }
+                // Handle other specific errors
+                if (err.message.includes('not found')) {
+                    errorResponse = formatError('general', err.message);
+                    statusCode = 404;
+                    break;
+                }
 
-        // Check for invalid or missing graduation year
-        else if (err.message.includes("Invalid or missing graduation year for student")) {
-            return res.status(400).json({ err: err.message });
-        }
+                if (err.message.includes('Section with ID')) {
+                    errorResponse = formatError('sectionId', err.message);
+                    statusCode = 404;
+                    break;
+                }
 
-        // Check for missing student details
-        else if (err.message.includes("Missing student details")) {
-            return res.status(400).json({ err: err.message });
-        }
+                if (err.message === "Section already exists.") {
+                    errorResponse = formatError('sectionCode', err.message);
+                    statusCode = 409;
+                    break;
+                }
 
-        // Handle Sequelize validation errors
-        else if (err instanceof Sequelize.ValidationError) {
-            return res.status(400).json({ errs: err.errors.map(e => ({ [e.path]: e.message })) });
-        }
+                if (err.message.includes("Section with section code")) {
+                    errorResponse = formatError('sectionCode', err.message);
+                    statusCode = 409;
+                    break;
+                }
 
-        // Check for "User Not Found" error
-        else if (err.message.includes('not found')) {
-            return res.status(404).json({ err: err.message });
-        }
+                if (err.message.includes('Section ID must be an integer')) {
+                    errorResponse = formatError('sectionId', err.message);
+                    statusCode = 400;
+                    break;
+                }
 
-        // SECTION ROUTE ERRORS
-        // Check for "Section Not Found" error
-        else if (err.message.includes('Section with ID')) {
-            return res.status(404).json({ err: err.message });
-        }
+                if (err.message.includes('Error checking section existence')) {
+                    errorResponse = formatError('section', err.message);
+                    statusCode = 500;
+                    break;
+                }
 
-        // Check for section already exists error
-        else if (err.message === "Section already exists.") {
-            return res.status(409).json({ err: err.message });
-        }
+                if (err.message.includes('Section code must be 7 characters')) {
+                    errorResponse = formatError('sectionCode', err.message);
+                    statusCode = 400;
+                    break;
+                }
 
-        // Check if section code already exists
-        else if (err.message.includes("Section with section code")) {
-            return res.status(409).json({ err: err.message });
-        }
+                if (err.message.includes('is not active')) {
+                    errorResponse = formatError('section', err.message);
+                    statusCode = 400;
+                    break;
+                }
 
-        // Check for "Invalid Section ID" error
-        else if (err.message.includes('Section ID must be an integer')) {
-            return res.status(400).json({ err: err.message });
-        }
+                if (err.message.includes('cannot change isActive status')) {
+                    errorResponse = formatError('isActive', err.message);
+                    statusCode = 400;
+                    break;
+                }
 
-        // Check for "Error checking section existence" error
-        else if (err.message.includes('Error checking section existence')) {
-            return res.status(500).json({ err: err.message });
-        }
+                // Handle Sequelize database errors
+                if (err instanceof Sequelize.DatabaseError) {
+                    errorResponse = formatError('database', 'Database error occurred');
+                    statusCode = 500;
+                    break;
+                }
 
-        // Check for "Section code must be 7 characters" error
-        else if (err.message.includes('Section code must be 7 characters')) {
-            return res.status(400).json({ err: err.message });
-        }
+                if (err instanceof UserDetailUpdateError) {
+                    errorResponse = formatError('userType', err.message);
+                    statusCode = 400;
+                    break;
+                }
 
-        // Check for "Section is not active" error
-        else if (err.message.includes('is not active')) {
-            return res.status(400).json({ err: err.message });
+                // Handle other errors
+                errorResponse = formatError('general', 'Internal Server Error');
+                statusCode = 500;
+                break;
         }
-
-        // Check for "Section has rostered students" error
-        else if (err.message.includes('cannot change isActive status')) {
-            return res.status(400).json({ err: err.message });
-        }
-
-        // Handle Sequelize database errors
-        else if (err instanceof Sequelize.DatabaseError) {
-            return res.status(500).json({ err: 'Database error occurred' });
-        }
-
-        else if (err instanceof UserDetailUpdateError) {
-            return res.status(400).json({ err: err.message, userType: err.userType });
-        }
-
-        // Handle other errors
-        else {
-            console.error(err);  // Log the error for server-side reference
-            return res.status(500).json({ err: 'Internal Server Error' });
-        }
+    } else {
+        errorResponse = formatError('general', 'Internal Server Error');
     }
+
+    return res.status(statusCode).json({ errs: Array.isArray(errorResponse) ? errorResponse : [errorResponse] });
 };
 
 module.exports = errorHandler;

@@ -23,11 +23,16 @@ const { validateRoster, validateUnroster } = require('../utils/section/middlewar
 
 // Add section
 router.post('/sections',
+    (req, res, next) => {
+        console.log('Request body:', req.body);
+        next();
+    },
     createSectionValidationRules(),
     validate,
     checkSectionCodeExists,
     async (req, res, next) => {
         try {
+            console.log('Request passed validation checks. Creating section...')
             const newSection = await createSection(req.body);
             const sectionDto = new SectionDTO(newSection);
             return res.status(201).json(sectionDto);
@@ -108,7 +113,6 @@ router.patch('/sections/:id',
     updateSectionValidationRules(),
     validate,
     hasRosteredStudents,
-    // check if section is still associated with a module through sectionenrollments.
     async (req, res, next) => {
         const { section } = req;
         const { isActive } = req.body;
@@ -205,19 +209,19 @@ router.post('/sections/:sectionId/roster-students-upload-csv', upload.single('fi
         const transaction = await sequelize.transaction();
         const processedIds = new Set();
         const rosteredStudents = [];
-        const errors = [];
+        const err = [];
         for (const { studentUserId, sectionId } of newStudents) {
             if (processedIds.has(studentUserId)) {
-                errors.push({ studentUserId, sectionId, error: 'Duplicate student ID found' });
+                err.push({ studentUserId, sectionId, err: 'Duplicate student ID found' });
                 continue;
             }
             processedIds.add(studentUserId);
             const sectionRoster = await SectionRoster.create({ studentUserId, sectionId }, { transaction });
             rosteredStudents.push(sectionRoster);
         }
-        if (errors.length > 0) {
+        if (err.length > 0) {
             await transaction.rollback();
-            return res.status(400).json({ error: 'Some students could not be rostered', details: errors });
+            return res.status(400).json({ error: 'Some students could not be rostered', details: err });
         }
         await transaction.commit();
         res.status(201).json({ success: 'File uploaded and processed successfully', rosteredStudents });

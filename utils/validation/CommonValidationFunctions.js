@@ -1,10 +1,14 @@
 const { body } = require('express-validator');
 
 function validateField(fieldName, validationType, errorMessage, options = {}, isOptional = false) {
+    console.log(`Validating ${fieldName}: ${fieldName}`);
+
     const validator = body(fieldName);
+    
     if (isOptional) {
         return validator.optional({ checkFalsy: true })[validationType](options).withMessage(errorMessage);
     }
+
     return validator[validationType](options).withMessage(errorMessage);
 }
 

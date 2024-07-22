@@ -12,7 +12,7 @@ const upload = multer({ storage: storage });
 //middleware
 const checkStudentId = (req, res, next) => {
   const student_id = req.params.id;
-  if (!student_id) return res.status(400).json({ error: 'Student ID is required' });
+  if (!student_id) return res.status(400).json({ errs: 'Student ID is required' });
   next();
 };
 
@@ -69,16 +69,16 @@ async function findUserByIdWithInclude(id, route) {
   }
 
   if (!user) {
-    const error = new Error('User not found');
-    error.statusCode = 404;
-    throw error;
+    const err = new Error('User not found');
+    err.statusCode = 404;
+    throw err;
   }
 
   // Check if the retrieved user is a student
   if (user.userType !== 'student') {
-    const error = new Error('User is not a student');
-    error.statusCode = 404;
-    throw error;
+    const err = new Error('User is not a student');
+    err.statusCode = 404;
+    throw err;
   }
 } catch (err) {
   throw err;
@@ -324,7 +324,7 @@ router.post('/students/:id/add-anthro', checkStudentId, async (req, res) => {
 
   const requiredCheckAnthro = checkRequiredAnthro(newStudentAnthro);
   if (requiredCheckAnthro !== true) {
-    return res.status(400).json({ error: requiredCheckAnthro });
+    return res.status(400).json({ err: requiredCheckAnthro });
   }
 
   try {
@@ -358,7 +358,7 @@ router.post('/students/:id/add-anthro', checkStudentId, async (req, res) => {
       res.status(201).json(newAnthroDTO(newStudentAnthro));
     }
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+    res.status(err.status || 500).json({ errs: err.message || 'Internal Server Error' });
   }
 });
 
@@ -367,7 +367,7 @@ router.post('/students/upload-anthro', upload.single('file'), async (req, res) =
     const buffer = req.file.buffer;
     const content = buffer.toString();
     const newAnthros = [];
-    const errors = [];
+    const errs = [];
 
     Papa.parse(content, {
       header: true,
@@ -379,7 +379,7 @@ router.post('/students/upload-anthro', upload.single('file'), async (req, res) =
             // Look up the student ID based on the email address
             const student = await User.findOne({ where: { email: anthroData.email } });
             if (!student) {
-              errors.push(`No student found with email ${anthroData.email}`);
+              errs.push(`No student found with email ${anthroData.email}`);
               continue;
             }
 
@@ -387,36 +387,36 @@ router.post('/students/upload-anthro', upload.single('file'), async (req, res) =
             anthroData.studentUserId = parseInt(student.id);
             const requiredCheckAnthro = checkRequiredAnthro(anthroData);
             if (requiredCheckAnthro !== true) {
-              errors.push(`${anthroData.firstName} ${anthroData.lastName}: ${requiredCheckAnthro}`);
+              errs.push(`${anthroData.firstName} ${anthroData.lastName}: ${requiredCheckAnthro}`);
               continue;
             } else {
               try {
                 const newAnthro = await StudentAnthro.create(anthroData, { transaction });
                 if (!newAnthro) {
-                  errors.push(`${anthroData.firstName} ${anthroData.lastName}: Error creating student anthro`);
+                  errs.push(`${anthroData.firstName} ${anthroData.lastName}: Error creating student anthro`);
                 } else {
                   newAnthros.push(newAnthroDTO(newAnthro));
                 }
-              } catch (error) {
-                errors.push(`${anthroData.email}: ${error.message}`);
+              } catch (err) {
+                errs.push(`${anthroData.email}: ${err.message}`);
               }
             }
           }
-          if (errors.length > 0) {
+          if (errs.length > 0) {
             await transaction.rollback();
-            res.status(400).json({ errors });
+            res.status(400).json({ errs });
           } else {
             await transaction.commit();
             res.status(201).json({ newAnthros });
           }
-        } catch (error) {
+        } catch (err) {
           await transaction.rollback();
-          res.status(500).json({ error: 'Internal Server Error' });
+          res.status(500).json({ errs: 'Internal Server Error' });
         }
       }
     });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal Server Error' });
+  } catch (err) {
+    res.status(500).json({ errs: 'Internal Server Error' });
   }
 });
 
@@ -435,7 +435,7 @@ router.patch('/students/:id/edit-anthro', checkStudentId, async (req, res) => {
   
   const requiredCheckAnthro = checkRequiredAnthro(editedStudentAnthro);
   if (requiredCheckAnthro !== true) {
-    return res.status(400).json({ error: requiredCheckAnthro });
+    return res.status(400).json({ errs: requiredCheckAnthro });
   }
 
   try {
@@ -453,10 +453,10 @@ router.patch('/students/:id/edit-anthro', checkStudentId, async (req, res) => {
       const updatedStudentAnthro = await existingStudentAnthro.update(editedStudentAnthro);
       res.status(200).json(updatedStudentAnthro);
     } else {
-      return res.status(404).json({ error: 'Student anthro not found' });
+      return res.status(404).json({ errs: 'Student anthro not found' });
     }
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+    res.status(err.status || 500).json({ errs: err.message || 'Internal Server Error' });
   }
 });
 
@@ -514,14 +514,14 @@ router.post('/students/:id/assign-performance-test', checkStudentId, async (req,
 
     const requiredCheckAssignedPerformance = checkRequiredAssignedPerformance(newPerformanceTestData);
     if (requiredCheckAssignedPerformance !== true) {
-      return res.status(400).json({ error: requiredCheckAssignedPerformance });
+      return res.status(400).json({ errs: requiredCheckAssignedPerformance });
     }
 
     // Create a new performanceTest entry
     const newPerformanceTest = await StudentAssignedPerformanceTest.create(newPerformanceTestData);
     res.status(201).json(newPerformanceTest);
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+    res.status(err.status || 500).json({ errs: err.message || 'Internal Server Error' });
 
   }
 });
@@ -536,7 +536,7 @@ router.patch('/students/:id/edit-assigned-performance/:testId', checkStudentId, 
   
   const requiredCheckAssignedPerformance = checkRequiredAssignedPerformance(assignedPerformance);
   if (requiredCheckAssignedPerformance !== true) {
-    return res.status(400).json({ error: requiredCheckAssignedPerformance });
+    return res.status(400).json({ errs: requiredCheckAssignedPerformance });
   }
 
   try {
@@ -546,7 +546,7 @@ router.patch('/students/:id/edit-assigned-performance/:testId', checkStudentId, 
     const assignedTest = await StudentAssignedPerformanceTest.findByPk(test_id);
 
     if (!assignedTest) {
-      return res.status(404).json({ error: 'Performance test not found' });
+      return res.status(404).json({ errs: 'Performance test not found' });
     }
 
     // Update the existing assigned Performance
@@ -566,7 +566,7 @@ router.post('/students/:id/add-performance-grade', checkStudentId, async (req, r
 
   const requiredCheckPerformanceGrade = checkRequiredPerformanceGrade(performanceGrade);
   if (requiredCheckPerformanceGrade !== true) {
-    return res.status(400).json({ error: requiredCheckPerformanceGrade });
+    return res.status(400).json({ errs: requiredCheckPerformanceGrade });
   }
 
   try {
@@ -576,7 +576,7 @@ router.post('/students/:id/add-performance-grade', checkStudentId, async (req, r
     const assignedTest = await StudentAssignedPerformanceTest.findByPk(performanceGrade.assignedPerformanceTestId);
 
     if (!assignedTest) {
-      return res.status(404).json({ error: 'Performance test not found' });
+      return res.status(404).json({ errs: 'Performance test not found' });
     }
 
     const existingGrade = await StudentPerformanceGrade.findOne({
@@ -584,7 +584,7 @@ router.post('/students/:id/add-performance-grade', checkStudentId, async (req, r
     });
 
     if (existingGrade) {
-      return res.status(400).json({ error: 'A grade has already been recorded for this assigned performance test' });
+      return res.status(400).json({ errs: 'A grade has already been recorded for this assigned performance test' });
     }
 
     // Create a new performanceTest entry
@@ -605,7 +605,7 @@ router.patch('/students/:id/edit-performance-grade/:gradeId', checkStudentId, as
   
   const requiredCheckPerformanceGrade = checkRequiredPerformanceGrade(performanceGrade);
   if (requiredCheckPerformanceGrade !== true) {
-    return res.status(400).json({ error: requiredCheckPerformanceGrade });
+    return res.status(400).json({ errs: requiredCheckPerformanceGrade });
   }
 
   try {
@@ -615,13 +615,13 @@ router.patch('/students/:id/edit-performance-grade/:gradeId', checkStudentId, as
     const assignedTest = await StudentAssignedPerformanceTest.findByPk(performanceGrade.assignedPerformanceTestId);
 
     if (!assignedTest) {
-      return res.status(404).json({ error: 'Performance test not found' });
+      return res.status(404).json({ errs: 'Performance test not found' });
     }
 
     const existingGrade = await StudentPerformanceGrade.findByPk(grade_id);
 
     if (!existingGrade) {
-      return res.status(404).json({ error: 'Grade not found' });
+      return res.status(404).json({ errs: 'Grade not found' });
     }
 
     // Update the existing performanceGrade entry with the new data
@@ -647,14 +647,14 @@ router.delete('/students/:id/delete-performance-grade/:gradeId', checkStudentId,
     const grade = await StudentPerformanceGrade.findByPk(grade_id);
 
     if (!grade) {
-      return res.status(404).json({ error: 'Grade not found' });
+      return res.status(404).json({ errs: 'Grade not found' });
     }
 
     await grade.destroy();
     res.status(200).json({ message: 'Grade deleted' });
   } catch (err) {
     console.error(err);
-    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+    res.status(err.status || 500).json({ errs: err.message || 'Internal Server Error' });
 
   }
 });
@@ -667,14 +667,14 @@ router.delete('/students/:id/delete-performance-test/:testId', checkStudentId, a
     const test = await StudentAssignedPerformanceTest.findByPk(test_id);
 
     if (!test) {
-      return res.status(404).json({ error: 'Test not found' });
+      return res.status(404).json({ errs: 'Test not found' });
     }
 
     await test.destroy();
     res.status(200).json({ message: 'Test deleted' });
   } catch (err) {
     console.error(err); 
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ errs: 'Server error' });
   }
 });
 
@@ -683,7 +683,7 @@ router.patch('/students/:id', async (req, res) => {
   const { id } = req.params;
   const { password, studentDetails } = req.body;
 
-  if (!id) return res.status(400).json({ error: 'Student ID is required' });
+  if (!id) return res.status(400).json({ errs: 'Student ID is required' });
 
   try {
     const transaction = await sequelize.transaction();
@@ -698,7 +698,7 @@ router.patch('/students/:id', async (req, res) => {
     if (!student) {
       await transaction.rollback();
       console.log('Student not found');
-      return res.status(404).json({ error: 'Student not found' });
+      return res.status(404).json({ errs: 'Student not found' });
     }
 
     const updateFields = {
@@ -722,15 +722,15 @@ router.patch('/students/:id', async (req, res) => {
     } else {
       await transaction.rollback();
       console.log('Student details not found');
-      return res.status(404).json({ error: 'Student details not found' });
+      return res.status(404).json({ errs: 'Student details not found' });
     }
 
     // Return the updated student with associated details.
     res.status(200).json(student);
 
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ errs: 'Internal Server Error' });
   }
 });
 

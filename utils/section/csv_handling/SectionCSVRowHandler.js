@@ -28,7 +28,7 @@ function convertGradeLevelToEnum(gradeLevel) {
 
 
 function sectionRowHandler(rowData, rowNumber) {
-    let errors = [];
+    let err = [];
 
     // Section code validation
     console.log(`Validating sectionCode: '${rowData.sectionCode}', Type: ${typeof rowData.sectionCode}`);
@@ -37,24 +37,24 @@ function sectionRowHandler(rowData, rowNumber) {
     console.log('sectionCodeError:', sectionCodeError)
     if (sectionCodeError !== true) {
         console.log('sectionCodeError:', sectionCodeError)
-        errors.push({ row: rowNumber, field: 'sectionCode', message: sectionCodeError });
+        err.push({ row: rowNumber, field: 'sectionCode', message: sectionCodeError });
     }
 
     // Grade level validation
     console.log(' type of gradeLevel:', typeof rowData.gradeLevel, ' gradeLevel:', rowData.gradeLevel)
     const gradeLevelError = isSectionGradeLevelValid(rowData.gradeLevel);
     if (gradeLevelError !== true) {
-        errors.push({ row: rowNumber, field: 'gradeLevel', message: gradeLevelError });
+        err.push({ row: rowNumber, field: 'gradeLevel', message: gradeLevelError });
     }
 
     // UserType validation
     const isActiveError = isSectionActiveValid(rowData.isActive);
     if (isActiveError !== true) {
-        errors.push({ row: rowNumber, field: 'isActive', message: isActiveError });
+        err.push({ row: rowNumber, field: 'isActive', message: isActiveError });
     } 
     // Return the result
-    if (errors.length > 0) {
-        return { error: errors };
+    if (err.length > 0) {
+        return { errors: err };
     } else {
         return { data: rowData };
     }
