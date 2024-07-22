@@ -2,8 +2,6 @@ const Sequelize = require('sequelize');
 const { UserDetailUpdateError } = require('./CustomErrors');
 
 const errorHandler = (err, req, res, next) => {
-    console.error(err);
-
     // Handle array of errors
     if (Array.isArray(err)) {
         return res.status(422).json({ errs: err });

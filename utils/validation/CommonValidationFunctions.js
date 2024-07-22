@@ -1,7 +1,6 @@
 const { body } = require('express-validator');
 
 function validateField(fieldName, validationType, errorMessage, options = {}, isOptional = false) {
-    console.log(`Validating ${fieldName}: ${fieldName}`);
 
     const validator = body(fieldName);
     
