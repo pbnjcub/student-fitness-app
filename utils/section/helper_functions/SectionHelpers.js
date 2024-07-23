@@ -1,4 +1,4 @@
-const { Section, SectionRoster, User, StudentDetail } = require('../../../models');
+const { sequelize, Section, SectionRoster, User, StudentDetail } = require('../../../models');
 
 const gradeLevelEnumMapping = {
     6: '6',
@@ -54,7 +54,7 @@ async function createSection(sectionData, transaction) {
         });
 
         if (!created) {
-            throw new Error('Section already exists.');
+            throw new Error(`Section with section code ${sectionCode} already exists.`);
         }
 
         return section;

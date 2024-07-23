@@ -2,7 +2,7 @@ const {
     isSectionCodeValid,
     isSectionGradeLevelValid,
     isSectionActiveValid
-} = require('../../csv_handling/CSVValidationHelpers');
+} = require('./SectionCSVValidations');
 
 const gradeLevelEnumMapping = {
     6: '6',
@@ -28,7 +28,7 @@ function convertGradeLevelToEnum(gradeLevel) {
 
 
 function sectionRowHandler(rowData, rowNumber) {
-    let err = [];
+    let errs = [];
 
     // Section code validation
     console.log(`Validating sectionCode: '${rowData.sectionCode}', Type: ${typeof rowData.sectionCode}`);
@@ -37,24 +37,24 @@ function sectionRowHandler(rowData, rowNumber) {
     console.log('sectionCodeError:', sectionCodeError)
     if (sectionCodeError !== true) {
         console.log('sectionCodeError:', sectionCodeError)
-        err.push({ row: rowNumber, field: 'sectionCode', message: sectionCodeError });
+        errs.push({ row: rowNumber, field: 'sectionCode', message: sectionCodeError });
     }
 
     // Grade level validation
     console.log(' type of gradeLevel:', typeof rowData.gradeLevel, ' gradeLevel:', rowData.gradeLevel)
     const gradeLevelError = isSectionGradeLevelValid(rowData.gradeLevel);
     if (gradeLevelError !== true) {
-        err.push({ row: rowNumber, field: 'gradeLevel', message: gradeLevelError });
+        errs.push({ row: rowNumber, field: 'gradeLevel', message: gradeLevelError });
     }
 
     // UserType validation
     const isActiveError = isSectionActiveValid(rowData.isActive);
     if (isActiveError !== true) {
-        err.push({ row: rowNumber, field: 'isActive', message: isActiveError });
+        errs.push({ row: rowNumber, field: 'isActive', message: isActiveError });
     } 
     // Return the result
-    if (err.length > 0) {
-        return { errors: err };
+    if (errs.length > 0) {
+        return { errs: errs };
     } else {
         return { data: rowData };
     }

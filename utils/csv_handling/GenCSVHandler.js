@@ -14,8 +14,8 @@ function processCsv(content, rowHandler) {
       step: (row, parser) => {
         currentRowNumber++;
         const result = rowHandler(row.data, currentRowNumber);
-        if (result.error) {
-          allErrors.push(result.error);
+        if (result.errs) {
+          allErrors.push(result.errs);
           // parser.abort();
         } else {
           results.push(result.data);
