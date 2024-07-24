@@ -9,7 +9,7 @@ const { sequelize, User, Section, SectionRoster, StudentDetail } = require('../m
 
 // Import helper functions
 const { SectionDTO, SectionByIdDTO } = require('../utils/section/dto/SectionDTO');
-const { createSection, findSectionRoster, handleTransaction, createRosterEntries } = require('../utils/section/helper_functions/SectionHelpers');
+const { createSection, findSectionRoster, handleTransaction, createRosterEntries, checkCsvForDuplicateSectionCode } = require('../utils/section/helper_functions/SectionHelpers');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
 
@@ -19,7 +19,7 @@ const validate = require('../utils/validation/ValidationMiddleware');
 const { checkSectionExists, checkSectionIsActive } = require('../utils/section/middleware_validation/CheckSectionExistsIsActive');
 const { hasRosteredStudents } = require('../utils/section/middleware_validation/CheckHasRosteredStudents');
 const { checkSectionCodeExists } = require('../utils/section/middleware_validation/CheckSectionCodeExists');
-const { checkCsvForDuplicateSectionCode } = require('../utils/section/middleware_validation/CheckCsvDuplicateSectionCode');
+// const { checkCsvForDuplicateSectionCode } = require('../utils/section/middleware_validation/CheckCsvDuplicateSectionCode');
 const { validateRoster, validateUnroster } = require('../utils/section/middleware_validation/CheckStudentsToRosterInSection');
 
 // Add section
@@ -91,6 +91,9 @@ router.post('/sections/upload-csv',
             const buffer = req.file.buffer;
             const content = buffer.toString();
             const newSections = await processCsv(content, sectionRowHandler);
+
+            //check newSections for duplicate sectionCodes
+            await checkCsvForDuplicateSectionCode(newSections);
 
             // Create sections in a transaction
             await handleTransaction(async (transaction) => {

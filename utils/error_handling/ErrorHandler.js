@@ -50,7 +50,7 @@ const errorHandler = (err, req, res, next) => {
                     statusCode = 404;
                     break;
                 }
-
+                // Handle section errors
                 if (err.message.includes('Section with ID')) {
                     errorResponse = formatError('sectionId', err.message);
                     statusCode = 404;
@@ -82,6 +82,12 @@ const errorHandler = (err, req, res, next) => {
                 }
 
                 if (err.message.includes('Section code must be 7 characters')) {
+                    errorResponse = formatError('sectionCode', err.message);
+                    statusCode = 400;
+                    break;
+                }
+
+                if (err.message.includes('Duplicate section codes found')) {
                     errorResponse = formatError('sectionCode', err.message);
                     statusCode = 400;
                     break;
