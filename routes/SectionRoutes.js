@@ -19,27 +19,26 @@ const validate = require('../utils/validation/ValidationMiddleware');
 const { checkSectionExists, checkSectionIsActive } = require('../utils/section/middleware_validation/CheckSectionExistsIsActive');
 const { hasRosteredStudents } = require('../utils/section/middleware_validation/CheckHasRosteredStudents');
 const { checkSectionCodeExists } = require('../utils/section/middleware_validation/CheckSectionCodeExists');
+const { checkCsvForDuplicateSectionCode } = require('../utils/section/middleware_validation/CheckCsvDuplicateSectionCode');
 const { validateRoster, validateUnroster } = require('../utils/section/middleware_validation/CheckStudentsToRosterInSection');
 
 // Add section
 router.post('/sections',
-    (req, res, next) => {
-        console.log('Request body:', req.body);
-        next();
-    },
     createSectionValidationRules(),
     validate,
     checkSectionCodeExists,
     async (req, res, next) => {
         try {
-            console.log('Request passed validation checks. Creating section...')
+            console.log('Request passed validation checks. Creating section...');
             const newSection = await createSection(req.body);
             const sectionDto = new SectionDTO(newSection);
             return res.status(201).json(sectionDto);
         } catch (err) {
             next(err);
         }
-});
+    }
+);
+
 
 // Retrieve all sections
 router.get('/sections', async (req, res, next) => {
@@ -85,26 +84,28 @@ router.get('/sections/:id',
 );
 
 // Bulk upload from CSV
-router.post('/sections/upload-csv', upload.single('file'), async (req, res, next) => {
-    try {
-        const buffer = req.file.buffer;
-        const content = buffer.toString();
-        const newSections = await processCsv(content, sectionRowHandler);
+router.post('/sections/upload-csv',
+    upload.single('file'),
+    async (req, res, next) => {
+        try {
+            const buffer = req.file.buffer;
+            const content = buffer.toString();
+            const newSections = await processCsv(content, sectionRowHandler);
 
-        // Create sections in a transaction
-        await handleTransaction(async (transaction) => {
-            for (const section of newSections) {
-                await createSection(section, transaction);
-            }
-        });
+            // Create sections in a transaction
+            await handleTransaction(async (transaction) => {
+                for (const section of newSections) {
+                    await createSection(section, transaction);
+                }
+            });
 
-        const sections = await Section.findAll();
-        const sectionsDTO = sections.map(section => new SectionDTO(section.toJSON()));
-        res.status(201).json(sectionsDTO);
-    } catch (err) {
-        console.error('Error in POST /sections/upload-csv', err);
-        next(err);
-    }
+            const sections = await Section.findAll();
+            const sectionsDTO = sections.map(section => new SectionDTO(section.toJSON()));
+            res.status(201).json(sectionsDTO);
+        } catch (err) {
+            console.error('Error in POST /sections/upload-csv', err);
+            next(err);
+        }
 });
 
 // Edit section by id
