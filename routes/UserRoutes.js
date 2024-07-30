@@ -20,6 +20,7 @@ const { createUserValidationRules, updateUserValidationRules } = require('../uti
 const validate = require('../utils/validation/ValidationMiddleware');
 const { checkUserExists } = require('../utils/user/middleware_validation/CheckUserExists');
 const { checkEmailExists } = require('../utils/user/middleware_validation/CheckEmailExists');
+const { checkIfRostered } = require('../utils/user/middleware_validation/CheckIfRostered');
 
 //create user
 router.post('/users/register',
@@ -273,44 +274,57 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
   }
 });
 
-// Edit user by id
+// Update user by id
 router.patch('/users/:id',
     checkUserExists,
     updateUserValidationRules(),
     validate,
-    // check if user is associated with a section. don't want to be able to archive if associated
-        // student cannot be part of a section
-        // teacher or admin cannot have a teacher assignment
+    checkIfRostered, // Ensure this middleware runs before route handler
     async (req, res, next) => {
         const { id } = req.params;
-        const { password, ...otherFields } = req.body;
+        const { password, isArchived, ...otherFields } = req.body;
         try {
             const user = req.user;
+            console.log('current value for user isArchived:', user.isArchived);
+            console.log('new value for isArchived:', isArchived);
+            // Check if isArchived status change is blocked
+            if (user.isArchived === false && typeof isArchived === 'boolean' && user.isArchived !== isArchived) {
+                console.log('req.isRostered:', req.isRostered);
+                if (req.isRostered) { // Check the value set by checkIfRostered
+                    console.log('User is rostered and cannot be archived.');
+                    const err = new Error('Student is rostered in a section and cannot be archived.');
+                    err.status = 400;
+                    return next(err);
+                }
+            }
+            
 
-        if (password) {
-            otherFields.password = await hashPassword(password);
+            if (password) {
+                otherFields.password = await hashPassword(password);
+            }
+
+            await user.update(otherFields);
+
+            // Update details if present
+            if (req.body.studentDetails || req.body.teacherDetails || req.body.adminDetails) {
+                const detailUpdates = {
+                    studentDetails: req.body.studentDetails,
+                    teacherDetails: req.body.teacherDetails,
+                    adminDetails: req.body.adminDetails
+                };
+                await updateUserDetails(user, detailUpdates);
+            }
+
+            const updatedUser = await findUserById(id); // Fetch updated user
+            const userDto = new UserDTO(updatedUser);
+            res.status(200).json(userDto);
+        } catch (err) {
+            console.error('Error in PATCH /users/:id', err);
+            next(err);
         }
-
-        await user.update(otherFields);
-
-    // Update details if present
-        if (req.body.studentDetails || req.body.teacherDetails || req.body.adminDetails) {
-            const detailUpdates = {
-                studentDetails: req.body.studentDetails,
-                teacherDetails: req.body.teacherDetails,
-                adminDetails: req.body.adminDetails
-            };
-            await updateUserDetails(user, detailUpdates);
-        }
-
-        const updatedUser = await findUserById(id); // Fetch updated user
-        const userDto = new UserDTO(updatedUser);
-        res.status(200).json(userDto);
-    } catch (err) {
-        console.error('Error in PATCH /users/:id', err);
-        next(err);
     }
-});
+);
+
 
 
 

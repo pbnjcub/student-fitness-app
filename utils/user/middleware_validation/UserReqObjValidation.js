@@ -77,6 +77,22 @@ const updateUserValidationRules = () => {
         }, true),
         validateField('photoUrl', 'isString', 'Photo URL must be a string', {}, true),
         validateField('isArchived', 'isBoolean', 'isArchived must be a boolean', {}, true),
+        customFieldValidation('dateArchived', (value, { req }) => {
+            // Ensure dateArchived is empty or null when isArchived is false
+            if (!req.body.isArchived && (value !== undefined && value !== "" && value !== null)) {
+                throw new Error('dateArchived must be empty when isArchived is false');
+            }
+            // Ensure dateArchived is present and valid when isArchived is true
+            if (req.body.isArchived) {
+                if (!value || value === "") {
+                    throw new Error('dateArchived is required when isArchived is true');
+                }
+                if (!moment(value, 'YYYY-MM-DD', true).isValid()) {
+                    throw new Error('dateArchived must be a valid date in the format YYYY-MM-DD');
+                }
+            }
+            return true;
+        }),
         customValidationForDetails('studentDetails', (studentDetails) => {
             if (studentDetails && (typeof studentDetails.gradYear !== 'number' || studentDetails.gradYear == null)) {
                 throw new Error('Graduation year is required and must be an integer');

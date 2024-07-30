@@ -7,6 +7,8 @@ const errorHandler = (err, req, res, next) => {
     let statusCode = err.status || 500;
     let errorResponse;
 
+    console.log('Error details:', err);
+
     if (Array.isArray(err)) {
         return res.status(422).json({ errs: err });
     }
@@ -28,6 +30,9 @@ const errorHandler = (err, req, res, next) => {
             statusCode = 400;
         } else if (err.message === "Missing student details") {
             errorResponse = formatError('studentDetails', err.message);
+            statusCode = 400;
+        } else if (err.message === "Student is rostered in a section and cannot be archived.") {
+            errorResponse = formatError('isArchived', err.message);
             statusCode = 400;
         } else if (err instanceof UserDetailUpdateError) {
             errorResponse = formatError('userType', err.message);
