@@ -285,11 +285,8 @@ router.patch('/users/:id',
         const { password, isArchived, ...otherFields } = req.body;
         try {
             const user = req.user;
-            console.log('current value for user isArchived:', user.isArchived);
-            console.log('new value for isArchived:', isArchived);
             // Check if isArchived status change is blocked
             if (user.isArchived === false && typeof isArchived === 'boolean' && user.isArchived !== isArchived) {
-                console.log('req.isRostered:', req.isRostered);
                 if (req.isRostered) { // Check the value set by checkIfRostered
                     console.log('User is rostered and cannot be archived.');
                     const err = new Error('Student is rostered in a section and cannot be archived.');

@@ -7,8 +7,6 @@ const errorHandler = (err, req, res, next) => {
     let statusCode = err.status || 500;
     let errorResponse;
 
-    console.log('Error details:', err);
-
     if (Array.isArray(err)) {
         return res.status(422).json({ errs: err });
     }
