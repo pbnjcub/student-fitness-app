@@ -5,8 +5,8 @@ async function checkSectionCodeExists(req, res, next) {
     const { sectionCode } = req.body;
 
     try {
-        const section = await Section.findOne({ where: { sectionCode } });
-        if (section) {
+        const existingSection = await Section.findOne({ where: { sectionCode } });
+        if (existingSection) {
             const err = new Error(`Section with section code ${sectionCode} already exists`);
             err.status = 400;
             return next(err);

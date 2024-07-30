@@ -4,6 +4,7 @@ const { validateField, customFieldValidation, validateUserDetailsPresence, roleB
 
 // User validation rules for creation
 const createUserValidationRules = () => {
+    const currentYear = new Date().getFullYear();
     return [
         validateField('email', 'isEmail', 'Must be a valid email address', {}, false).normalizeEmail(),
         validateField('password', 'isLength', 'Password must be at least 4 and at most 128 characters', { min: 4, max: 128 }),
@@ -22,9 +23,32 @@ const createUserValidationRules = () => {
             return true;
         }),
         validateField('photoUrl', 'isString', 'Photo URL must be a string', {}, true),
-        validateField('isArchived', 'isBoolean', 'isArchived must be a boolean', {}, true),
+        validateField('isArchived', 'isBoolean', 'isArchived must be a boolean', {}),
+        customFieldValidation('dateArchived', (value, { req }) => {
+            // Ensure dateArchived is empty or null when isArchived is false
+            if (!req.body.isArchived && (value !== undefined && value !== "" && value !== null)) {
+                throw new Error('dateArchived must be empty when isArchived is false');
+            }
+            // Ensure dateArchived is present and valid when isArchived is true
+            if (req.body.isArchived) {
+                if (!value || value === "") {
+                    throw new Error('dateArchived is required when isArchived is true');
+                }
+                if (!moment(value, 'YYYY-MM-DD', true).isValid()) {
+                    throw new Error('dateArchived must be a valid date in the format YYYY-MM-DD');
+                }
+            }
+            return true;
+        }),
         validateUserDetailsPresence('student', 'studentDetails'),
-        roleBasedValidation('student', 'studentDetails', 'gradYear', 'isInt', 'Graduation year must be an integer', {}, false),
+        roleBasedValidation('student', 'studentDetails', 'gradYear', 'isInt', 'Graduation year must be an integer', {}, false)
+            .bail()
+            .custom((value) => {
+                if (value < 1900 || value > currentYear) {
+                    throw new Error(`Graduation year must be between 1900 and ${currentYear}`);
+                }
+                return true;
+            }),
         roleBasedValidation('teacher', 'teacherDetails', 'yearsExp', 'isInt', 'Years of experience must be an integer', {}, true),
         roleBasedValidation('teacher', 'teacherDetails', 'bio', 'isString', 'Bio must be a string', {}, true),
         roleBasedValidation('admin', 'adminDetails', 'yearsExp', 'isInt', 'Years of experience must be an integer', {}, true),
