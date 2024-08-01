@@ -14,6 +14,7 @@ const { createUser, findUserById, detailedUser, updateUserDetails, updateUserAnd
 const UserDTO = require('../utils/user/dto/UserDTO');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const userRowHandler = require('../utils/user/csv_handling/UserCSVRowHandler');
+const { handleTransaction } = require('../utils/csv_handling/HandleTransaction');
 
 //import validation middleware
 const { createUserValidationRules, updateUserValidationRules } = require('../utils/user/middleware_validation/UserReqObjValidation');
@@ -238,40 +239,32 @@ router.get('/users/:id',
 
 //bulk upload from csv
 router.post('/users/register-upload-csv', upload.single('file'), async (req, res, next) => {
-  try {
-    const buffer = req.file.buffer;
-    const content = buffer.toString();
-
-    const newUsers = await processCsv(content, userRowHandler);
-
-    const transaction = await sequelize.transaction();
-
     try {
-      for (const user of newUsers) {
-        await createUser(user, transaction);
-      }
+        const buffer = req.file.buffer;
+        const content = buffer.toString();
 
-      await transaction.commit();
+        const newUsers = await processCsv(content, userRowHandler);
 
-      const users = await User.findAll({
-        include: [
-          { model: StudentDetail, as: 'studentDetails' },
-          { model: TeacherDetail, as: 'teacherDetails' },
-          { model: AdminDetail, as: 'adminDetails' },
-        ]
-      });
+        await handleTransaction(async (transaction) => {
+            for (const user of newUsers) {
+                await createUser(user, transaction);
+            }
+        });
 
-      const usersDTO = users.map(user => new UserDTO(user.toJSON()));
-      res.status(201).json(usersDTO);
+        const users = await User.findAll({
+            include: [
+                { model: StudentDetail, as: 'studentDetails' },
+                { model: TeacherDetail, as: 'teacherDetails' },
+                { model: AdminDetail, as: 'adminDetails' },
+            ]
+        });
+
+        const usersDTO = users.map(user => new UserDTO(user.toJSON()));
+        res.status(201).json(usersDTO);
     } catch (err) {
-      await transaction.rollback();
-      console.error('Error in transaction for POST /users/register-upload-csv', err);
-      next(err);
+        console.error('Error in POST /users/register-upload-csv', err);
+        next(err);
     }
-  } catch (err) {
-    console.error('Error in POST /users/register-upload-csv', err);
-    next(err);
-  }
 });
 
 // Update user by id
@@ -304,7 +297,10 @@ router.patch('/users/:id',
 );
 
 //delete user by id
-router.delete('/users/:id', async (req, res, next) => {
+router.delete('/users/:id',
+    checkUserExists,
+    checkIfRostered,
+    async (req, res, next) => {
   const { id } = req.params;
 
   try {
