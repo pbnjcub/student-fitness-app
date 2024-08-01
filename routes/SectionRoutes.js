@@ -1,10 +1,11 @@
 const express = require('express');
 const multer = require('multer');
 const Papa = require('papaparse');
-
 const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
+// import models
 const { sequelize, User, Section, SectionRoster, StudentDetail } = require('../models');
 
 // Import helper functions
@@ -29,7 +30,6 @@ router.post('/sections',
     checkSectionCodeExists,
     async (req, res, next) => {
         try {
-            console.log('Request passed validation checks. Creating section...');
             const newSection = await createSection(req.body);
             const sectionDto = new SectionDTO(newSection);
             return res.status(201).json(sectionDto);
@@ -113,21 +113,13 @@ router.post('/sections/upload-csv',
 
 // Edit section by id
 router.patch('/sections/:id',
-    checkSectionExists,
-    updateSectionValidationRules(),
-    validate,
-    hasRosteredStudents,
+    checkSectionExists, // Ensure the section exists before proceeding
+    updateSectionValidationRules(), // Validate the incoming data
+    validate, // Run validation and handle any validation errors
+    hasRosteredStudents, // Final check for rostered students and handle isActive status change
     async (req, res, next) => {
         const { section } = req;
-        const { isActive } = req.body;
         try {
-            if (section.isActive && typeof isActive === 'boolean' && section.isActive !== isActive) {
-                if (req.hasRosteredStudents) {
-                    const err = new Error('Section has rostered students and cannot change isActive status.');
-                    err.status = 400;
-                    return next(err);
-                }
-            }
             await section.update(req.body);
             const updatedSection = await Section.findByPk(section.id);
             const sectionDTO = new SectionDTO(updatedSection);

@@ -149,6 +149,23 @@ async function updateUserDetails(user, detailUpdates) {
   }
 }
 
+async function updateUserAndDetails(user, fields) {
+  const { studentDetails, teacherDetails, adminDetails, ...otherFields } = fields;
+
+  // Update user basic details (except for student, teacher, admin details)
+  await user.update(otherFields);
+
+  // Update user role-specific details if provided
+  if (studentDetails || teacherDetails || adminDetails) {
+      const detailUpdates = {
+          studentDetails,
+          teacherDetails,
+          adminDetails
+      };
+      await updateUserDetails(user, detailUpdates);
+  }
+}
+
 
 
 
@@ -156,5 +173,6 @@ module.exports = {
     createUser,
     findUserById,
     detailedUser,
-    updateUserDetails
+    updateUserDetails,
+    updateUserAndDetails
 };

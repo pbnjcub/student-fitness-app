@@ -10,7 +10,7 @@ const upload = multer({ storage: storage });
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize, Sequelize } = require('../models');
 
 // import helper functions
-const { createUser, findUserById, detailedUser, updateUserDetails } = require('../utils/user/helper_functions/UserHelpers');
+const { createUser, findUserById, detailedUser, updateUserDetails, updateUserAndDetails } = require('../utils/user/helper_functions/UserHelpers');
 const UserDTO = require('../utils/user/dto/UserDTO');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const userRowHandler = require('../utils/user/csv_handling/UserCSVRowHandler');
@@ -276,41 +276,22 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
 
 // Update user by id
 router.patch('/users/:id',
-    checkUserExists,
-    updateUserValidationRules(),
-    validate,
-    checkIfRostered, // Ensure this middleware runs before route handler
+    checkUserExists, // Ensure the user exists before proceeding
+    updateUserValidationRules(), // Validate the incoming data
+    validate, // Run validation and handle any validation errors
+    checkIfRostered, // Final check for rostered status and handle isArchived status change
     async (req, res, next) => {
         const { id } = req.params;
-        const { password, isArchived, ...otherFields } = req.body;
+        const { password, ...otherFields } = req.body;
         try {
-            const user = req.user;
-            // Check if isArchived status change is blocked
-            if (user.isArchived === false && typeof isArchived === 'boolean' && user.isArchived !== isArchived) {
-                if (req.isRostered) { // Check the value set by checkIfRostered
-                    console.log('User is rostered and cannot be archived.');
-                    const err = new Error('Student is rostered in a section and cannot be archived.');
-                    err.status = 400;
-                    return next(err);
-                }
-            }
-            
-
             if (password) {
                 otherFields.password = await hashPassword(password);
             }
 
-            await user.update(otherFields);
+            const user = req.user;
 
-            // Update details if present
-            if (req.body.studentDetails || req.body.teacherDetails || req.body.adminDetails) {
-                const detailUpdates = {
-                    studentDetails: req.body.studentDetails,
-                    teacherDetails: req.body.teacherDetails,
-                    adminDetails: req.body.adminDetails
-                };
-                await updateUserDetails(user, detailUpdates);
-            }
+            // Call the helper function to handle user and detail updates
+            await updateUserAndDetails(user, otherFields);
 
             const updatedUser = await findUserById(id); // Fetch updated user
             const userDto = new UserDTO(updatedUser);
@@ -321,10 +302,6 @@ router.patch('/users/:id',
         }
     }
 );
-
-
-
-
 
 //delete user by id
 router.delete('/users/:id', async (req, res, next) => {
