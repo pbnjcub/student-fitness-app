@@ -78,6 +78,17 @@ async function createUser(userData, transaction = null) {
   }
 }
 
+// Get all users with details
+async function getUsersWithDetails() {
+  return await User.findAll({
+      include: [
+          { model: StudentDetail, as: 'studentDetails' },
+          { model: TeacherDetail, as: 'teacherDetails' },
+          { model: AdminDetail, as: 'adminDetails' },
+      ]
+  });
+}
+
 //find user by id
 async function findUserById(id) {
     const user = await User.findByPk(id, {
@@ -95,7 +106,31 @@ async function findUserById(id) {
   
     return user;
   }
-  
+
+
+//get users by userType and isArchived, with details
+async function getUsersByTypeAndArchived(userType = null, isArchived = null) {
+  const whereClause = {};
+
+  // Add userType to the where clause if it's provided
+  if (userType) {
+    whereClause.userType = userType;
+  }
+
+  // Add isArchived to the where clause if it's not null
+  if (isArchived !== null) {
+    whereClause.isArchived = isArchived;
+  }
+
+  return await User.findAll({
+    where: whereClause,
+    include: [
+      { model: StudentDetail, as: 'studentDetails' },
+      { model: TeacherDetail, as: 'teacherDetails' },
+      { model: AdminDetail, as: 'adminDetails' },
+    ]
+  });
+}
 
 //find user by id with details
 async function detailedUser(userData) {
@@ -172,7 +207,9 @@ async function updateUserAndDetails(user, fields) {
 module.exports = {
     createUser,
     findUserById,
+    getUsersByTypeAndArchived,
     detailedUser,
+    getUsersWithDetails,
     updateUserDetails,
     updateUserAndDetails
 };

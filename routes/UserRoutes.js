@@ -10,7 +10,7 @@ const upload = multer({ storage: storage });
 const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize, Sequelize } = require('../models');
 
 // import helper functions
-const { createUser, findUserById, detailedUser, updateUserDetails, updateUserAndDetails } = require('../utils/user/helper_functions/UserHelpers');
+const { createUser, findUserById, detailedUser, updateUserDetails, updateUserAndDetails, getUsersWithDetails, getUsersByTypeAndArchived } = require('../utils/user/helper_functions/UserHelpers');
 const UserDTO = require('../utils/user/dto/UserDTO');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const userRowHandler = require('../utils/user/csv_handling/UserCSVRowHandler');
@@ -42,13 +42,7 @@ router.post('/users/register',
 // Retrieve all users
 router.get('/users', async (req, res, next) => {
     try {
-        const users = await User.findAll({
-            include: [
-                { model: StudentDetail, as: 'studentDetails' },
-                { model: TeacherDetail, as: 'teacherDetails' },
-                { model: AdminDetail, as: 'adminDetails' },
-            ]
-        });
+        const users = await getUsersWithDetails();
 
         const usersDTO = users.map(user => new UserDTO(user.toJSON()));
         res.json(usersDTO);
@@ -60,13 +54,7 @@ router.get('/users', async (req, res, next) => {
 // Retrieve only admin users
 router.get('/users/admin', async (req, res, next) => {
     try {
-        const admins = await User.findAll({
-            where: { userType: 'admin' }, // Retrieve only users with role 'admin'
-            include: [
-                { model: AdminDetail, as: 'adminDetails' }
-            ]
-        });
-
+        const admins = await getUsersByTypeAndArchived('admin');
         const adminDTOs = admins.map(admin => new UserDTO(admin.toJSON()));
         res.json(adminDTOs);
     } catch (err) {
@@ -77,15 +65,9 @@ router.get('/users/admin', async (req, res, next) => {
 // Retrieve only active admin users
 router.get('/users/admin/active', async (req, res, next) => {
     try {
-        const admins = await User.findAll({
-            where: { userType: 'admin', isArchived: false }, // Retrieve only users with role 'admin'
-            include: [
-                { model: AdminDetail, as: 'adminDetails' }
-            ]
-        });
-
-        const adminDTOs = admins.map(admin => new UserDTO(admin.toJSON()));
-        res.json(adminDTOs);
+        const activeAdmins = await getUsersByTypeAndArchived('admin', false);
+        const activeAdminDTOs = activeAdmins.map(admin => new UserDTO(admin.toJSON()));
+        res.json(activeAdminDTOs);
     } catch (err) {
         next(err);
     }
@@ -94,13 +76,7 @@ router.get('/users/admin/active', async (req, res, next) => {
 // Retrieve only student users
 router.get('/users/student', async (req, res, next) => {
     try {
-        const students = await User.findAll({
-            where: { userType: 'student' }, // Retrieve only users with role 'student'
-            include: [
-                { model: StudentDetail, as: 'studentDetails' }
-            ]
-        });
-
+        const students = await getUsersByTypeAndArchived('student');
         const studentDTOs = students.map(student => new UserDTO(student.toJSON()));
         res.json(studentDTOs);
     } catch (err) {
@@ -111,15 +87,9 @@ router.get('/users/student', async (req, res, next) => {
 // Retrieve only active student users
 router.get('/users/student/active', async (req, res, next) => {
     try {
-        const students = await User.findAll({
-            where: { userType: 'student', isArchived: false }, // Retrieve only users with role 'student'
-            include: [
-                { model: StudentDetail, as: 'studentDetails' }
-            ]
-        });
-
-        const studentDTOs = students.map(student => new UserDTO(student.toJSON()));
-        res.json(studentDTOs);
+        const activeStudents = await getUsersByTypeAndArchived('student', false);
+        const activeStudentDTOs = activeStudents.map(student => new UserDTO(student.toJSON()));
+        res.json(activeStudentDTOs);
     } catch (err) {
         next(err);
     }
@@ -128,13 +98,7 @@ router.get('/users/student/active', async (req, res, next) => {
 // Retrieve only teacher users
 router.get('/users/teacher', async (req, res, next) => {
     try {
-        const teachers = await User.findAll({
-            where: { userType: 'teacher' }, // Retrieve only users with role 'teacher'
-            include: [
-                { model: TeacherDetail, as: 'teacherDetails' }
-            ]
-        });
-
+        const teachers = await getUsersByTypeAndArchived('teacher');
         const teacherDTOs = teachers.map(teacher => new UserDTO(teacher.toJSON()));
         res.json(teacherDTOs);
     } catch (err) {
@@ -145,15 +109,9 @@ router.get('/users/teacher', async (req, res, next) => {
 // Retrieve only active teacher users
 router.get('/users/teacher/active', async (req, res, next) => {
     try {
-        const teachers = await User.findAll({
-            where: { userType: 'teacher', isArchived: false }, // Retrieve only users with role 'teacher'
-            include: [
-                { model: TeacherDetail, as: 'teacherDetails' }
-            ]
-        });
-
-        const teacherDTOs = teachers.map(teacher => new UserDTO(teacher.toJSON()));
-        res.json(teacherDTOs);
+        const activeTeachers = await getUsersByTypeAndArchived('teacher', false);
+        const activeTeacherDTOs = activeTeachers.map(teacher => new UserDTO(teacher.toJSON()));
+        res.json(activeTeacherDTOs);
     } catch (err) {
         next(err);
     }
@@ -186,15 +144,7 @@ router.get('/users/teacher-admin/active', async (req, res, next) => {
 // Retrieve only non-archived, active users
 router.get('/users/active', async (req, res, next) => {
     try {
-        const activeUsers = await User.findAll({
-            where: { isArchived: false }, // Retrieve only non-archived users
-            include: [
-                { model: StudentDetail, as: 'studentDetails' },
-                { model: TeacherDetail, as: 'teacherDetails' },
-                { model: AdminDetail, as: 'adminDetails' },
-            ]
-        });
-
+        const activeUsers = await getUsersByTypeAndArchived(null, false); // Fetch all active users (not archived)
         const activeUsersDTO = activeUsers.map(user => new UserDTO(user.toJSON()));
         res.json(activeUsersDTO);
     } catch (err) {
@@ -205,15 +155,7 @@ router.get('/users/active', async (req, res, next) => {
 // Retrieve only archived users
 router.get('/users/archived', async (req, res, next) => {
     try {
-        const archivedUsers = await User.findAll({
-            where: { isArchived: true }, // Retrieve only archived users
-            include: [
-                { model: StudentDetail, as: 'studentDetails' },
-                { model: TeacherDetail, as: 'teacherDetails' },
-                { model: AdminDetail, as: 'adminDetails' },
-            ]
-        });
-
+        const archivedUsers = await getUsersByTypeAndArchived(null, true); // Fetch all archived users
         const archivedUsersDTO = archivedUsers.map(user => new UserDTO(user.toJSON()));
         res.json(archivedUsersDTO);
     } catch (err) {
@@ -251,13 +193,7 @@ router.post('/users/register-upload-csv', upload.single('file'), async (req, res
             }
         });
 
-        const users = await User.findAll({
-            include: [
-                { model: StudentDetail, as: 'studentDetails' },
-                { model: TeacherDetail, as: 'teacherDetails' },
-                { model: AdminDetail, as: 'adminDetails' },
-            ]
-        });
+        const users = await getUsersWithDetails();
 
         const usersDTO = users.map(user => new UserDTO(user.toJSON()));
         res.status(201).json(usersDTO);
