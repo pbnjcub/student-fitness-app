@@ -14,7 +14,6 @@ const { createSection, findSectionRoster, createRosterEntries, checkCsvForDuplic
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
 const rosterSectionRowHandler = require('../utils/section/csv_handling/RosterSectionCSVRowHandler');
-const { processRosterCsv } = require('../utils/section/csv_handling/ProcessRosterCsv');
 const { handleTransaction } = require('../utils/csv_handling/HandleTransaction');
 
 // Import validation middleware
