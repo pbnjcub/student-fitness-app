@@ -210,24 +210,6 @@ const checkCsvForDuplicateEmails = async (newStudents) => {
     }
 };
 
-// create roster entries from csv
-async function createRosterEntriesFromCsv(newStudents, transaction) {
-    const processedIds = new Set();
-    const rosteredStudents = [];
-    const errors = [];
-
-    for (const { studentUserId, sectionId } of newStudents) {
-        if (processedIds.has(studentUserId)) {
-            errors.push({ studentUserId, sectionId, error: 'Duplicate student ID found' });
-            continue;
-        }
-        processedIds.add(studentUserId);
-        const sectionRoster = await SectionRoster.create({ studentUserId, sectionId }, { transaction });
-        rosteredStudents.push(sectionRoster);
-    }
-
-    return { rosteredStudents, errors };
-}
 
 const switchRosterEntries = async (studentIds, fromSectionId, toSectionId, transaction) => {
     const switchedStudents = [];
@@ -297,7 +279,6 @@ module.exports = {
     hasEnrolledStudents,
     createRosterEntries,
     checkCsvForDuplicateSectionCode,
-    createRosterEntriesFromCsv,
     checkCsvForDuplicateEmails,
     switchRosterEntries
 };

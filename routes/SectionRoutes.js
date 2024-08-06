@@ -6,17 +6,16 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // import models
-const { sequelize, User, Section, SectionRoster, StudentDetail } = require('../models');
+const { sequelize,User, Section, SectionRoster, StudentDetail } = require('../models');
 
 // Import helper functions
 const { SectionDTO, SectionByIdDTO } = require('../utils/section/dto/SectionDTO');
-const { createSection, findSectionRoster, createRosterEntries, checkCsvForDuplicateSectionCode, createRosterEntriesFromCsv, checkCsvForDuplicateEmails, switchRosterEntries } = require('../utils/section/helper_functions/SectionHelpers');
+const { createSection, findSectionRoster, createRosterEntries, checkCsvForDuplicateSectionCode, checkCsvForDuplicateEmails, switchRosterEntries } = require('../utils/section/helper_functions/SectionHelpers');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
 const rosterSectionRowHandler = require('../utils/section/csv_handling/RosterSectionCSVRowHandler');
 const { processRosterCsv } = require('../utils/section/csv_handling/ProcessRosterCsv');
 const { handleTransaction } = require('../utils/csv_handling/HandleTransaction');
-
 
 // Import validation middleware
 const { createSectionValidationRules, updateSectionValidationRules } = require('../utils/section/middleware_validation/SectionReqObjValidation');
