@@ -10,10 +10,13 @@ const { sequelize, User, Section, SectionRoster, StudentDetail } = require('../m
 
 // Import helper functions
 const { SectionDTO, SectionByIdDTO } = require('../utils/section/dto/SectionDTO');
-const { createSection, findSectionRoster, createRosterEntries, checkCsvForDuplicateSectionCode } = require('../utils/section/helper_functions/SectionHelpers');
+const { createSection, findSectionRoster, createRosterEntries, checkCsvForDuplicateSectionCode, createRosterEntriesFromCsv, checkCsvForDuplicateEmails, switchRosterEntries } = require('../utils/section/helper_functions/SectionHelpers');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
+const rosterSectionRowHandler = require('../utils/section/csv_handling/RosterSectionCSVRowHandler');
+const { processRosterCsv } = require('../utils/section/csv_handling/ProcessRosterCsv');
 const { handleTransaction } = require('../utils/csv_handling/HandleTransaction');
+
 
 // Import validation middleware
 const { createSectionValidationRules, updateSectionValidationRules } = require('../utils/section/middleware_validation/SectionReqObjValidation');
@@ -21,8 +24,13 @@ const validate = require('../utils/validation/ValidationMiddleware');
 const { checkSectionExists, checkSectionIsActive } = require('../utils/section/middleware_validation/CheckSectionExistsIsActive');
 const { hasRosteredStudents } = require('../utils/section/middleware_validation/CheckHasRosteredStudents');
 const { checkSectionCodeExists } = require('../utils/section/middleware_validation/CheckSectionCodeExists');
-// const { checkCsvForDuplicateSectionCode } = require('../utils/section/middleware_validation/CheckCsvDuplicateSectionCode');
 const { validateRoster, validateUnroster } = require('../utils/section/middleware_validation/CheckStudentsToRosterInSection');
+const checkStudentsExistEmail = require('../utils/section/csv_handling/RosterSectionCSVValidations');
+const checkStudentsExistId = require('../utils/section/middleware_validation/CheckStudentsExistId');
+const checkSectionsExistAndActive = require('../utils/section/middleware_validation/CheckSectionsExistAndActive');
+const checkStudentsActive = require('../utils/section/middleware_validation/CheckStudentsActive');
+const checkStudentsInFromSection = require('../utils/section/middleware_validation/CheckStudentsInFromSection');
+const transferStudentsValidationRules = require('../utils/section/middleware_validation/TransferStudentsReqObjValidation');
 
 // Add section
 router.post('/sections',
@@ -197,35 +205,68 @@ router.delete('/sections/:sectionId/unroster-students',
 );
 
 // Roster students from CSV
-router.post('/sections/:sectionId/roster-students-upload-csv', upload.single('file'), async (req, res, next) => {
-    try {
-        const buffer = req.file.buffer;
-        const content = buffer.toString();
-        const { sectionId } = req.params;
-        const newStudents = await processCsv(content, async (row, rowNumber) => await rosterToSectionRowHandler(row, rowNumber, sectionId));
-        const transaction = await sequelize.transaction();
-        const processedIds = new Set();
-        const rosteredStudents = [];
-        const err = [];
-        for (const { studentUserId, sectionId } of newStudents) {
-            if (processedIds.has(studentUserId)) {
-                err.push({ studentUserId, sectionId, err: 'Duplicate student ID found' });
-                continue;
-            }
-            processedIds.add(studentUserId);
-            const sectionRoster = await SectionRoster.create({ studentUserId, sectionId }, { transaction });
-            rosteredStudents.push(sectionRoster);
+router.post('/sections/:sectionId/roster-students-upload-csv', 
+    upload.single('file'),
+    async (req, res, next) => {
+        try {
+            const buffer = req.file.buffer;
+            const content = buffer.toString();
+            const { sectionId } = req.params;
+            
+            // Process the CSV content and validate each row
+            const newStudents = await processCsv(content, rosterSectionRowHandler);
+
+            console.log('newStudents:', newStudents);
+            // Check for duplicate student IDs
+            await checkCsvForDuplicateEmails(newStudents);
+
+            const studentIds = await checkStudentsExistEmail(newStudents);
+
+            // Attach the student IDs to the student objects
+            newStudents.forEach(student => {
+                student.id = studentIds[student.email]; // Attach the student ID to the student object
+            });
+
+            // Handle the transaction and create roster entries
+            await handleTransaction(async (transaction) => {
+                const rosteredStudents = await createRosterEntries(newStudents, sectionId, transaction);
+                res.status(201).json({ success: 'File uploaded and processed successfully', rosteredStudents });
+            });
+
+        } catch (err) {
+            console.error('Error uploading file:', err);
+            next(err); // Pass the error to the centralized error handler
         }
-        if (err.length > 0) {
-            await transaction.rollback();
-            return res.status(400).json({ error: 'Some students could not be rostered', details: err });
-        }
-        await transaction.commit();
-        res.status(201).json({ success: 'File uploaded and processed successfully', rosteredStudents });
-    } catch (err) {
-        console.error('Error uploading file:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+);
+
+router.post('/sections/transfer-students', 
+    transferStudentsValidationRules(), // Validate the request body structure
+    validate, // Handle any validation errors
+    checkStudentsExistId, // Middleware to check if student IDs exist and are valid
+    checkStudentsActive,// Check if students are active and not archived
+    checkSectionsExistAndActive, // Check if sections exist and toSection is active 
+    checkStudentsInFromSection, // Check if students are in the fromSection
+ 
+    async (req, res, next) => {
+        try {
+            const { fromSectionId, toSectionId } = req.body;
+            const validSectionStudents = req.validSectionStudents;
+
+            // Handle the transaction to switch students between sections
+            await handleTransaction(async (transaction) => {
+                const switchedStudents = await switchRosterEntries(validSectionStudents, fromSectionId, toSectionId, transaction);
+                res.status(200).json({ success: 'Students switched successfully', switchedStudents });
+            });
+
+        } catch (err) {
+            console.error('Error switching students:', err);
+            next(err); // Pass the error to the centralized error handler
+        }
+    }
+);
+
+
+
 
 module.exports = router;

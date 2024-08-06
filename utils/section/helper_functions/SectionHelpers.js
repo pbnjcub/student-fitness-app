@@ -123,28 +123,55 @@ async function hasEnrolledStudents(sectionId) {
     return enrolledStudents > 0;
 }
 
-const handleTransaction = async (operation) => {
-    const transaction = await sequelize.transaction();
-    try {
-        await operation(transaction);
-        await transaction.commit();
-    } catch (err) {
-        await transaction.rollback();
-        throw err;
-    }
-};
+// const handleTransaction = async (operation) => {
+//     const transaction = await sequelize.transaction();
+//     try {
+//         await operation(transaction);
+//         await transaction.commit();
+//     } catch (err) {
+//         await transaction.rollback();
+//         throw err;
+//     }
+// };
 
 const createRosterEntries = async (students, sectionId, transaction) => {
     const rosteredStudents = [];
+    const alreadyRosteredEmails = [];
+
     for (const student of students) {
+        const { id: studentUserId, email } = student;
+
+        // Check if the student is already rostered in any section
+        const existingRoster = await SectionRoster.findOne({
+            where: {
+                studentUserId
+            }
+        });
+
+        if (existingRoster) {
+            alreadyRosteredEmails.push(email);
+            continue; // Skip this student and continue with the next one
+        }
+
+        // Create SectionRoster entry
         const sectionRoster = await SectionRoster.create({
-            studentUserId: student.id,
+            studentUserId,
             sectionId: sectionId,
         }, { transaction });
+
         rosteredStudents.push(sectionRoster);
     }
+
+    if (alreadyRosteredEmails.length > 0) {
+        throw new Error(`The following students are already rostered in other sections: ${alreadyRosteredEmails.join(', ')}`);
+    }
+
     return rosteredStudents;
 };
+
+
+
+
 
 //check for duplicate section codes in CSV upload
 const checkCsvForDuplicateSectionCode = async (newSections) => {
@@ -165,6 +192,101 @@ const checkCsvForDuplicateSectionCode = async (newSections) => {
     }
 };
 
+const checkCsvForDuplicateEmails = async (newStudents) => {
+    console.log('Checking for duplicate emails:', JSON.stringify(newStudents, null, 2));
+    const emails = new Set();
+    const duplicates = [];
+
+    for (const student of newStudents) {
+        if (emails.has(student.email)) {
+            duplicates.push(student.email);
+        }
+        emails.add(student.email);
+    }
+
+    console.log('Duplicate emails:', duplicates);
+    if (duplicates.length > 0) {
+        throw new Error(`Duplicate emails found: ${[...new Set(duplicates)].join(', ')}`);
+    }
+};
+
+// create roster entries from csv
+async function createRosterEntriesFromCsv(newStudents, transaction) {
+    const processedIds = new Set();
+    const rosteredStudents = [];
+    const errors = [];
+
+    for (const { studentUserId, sectionId } of newStudents) {
+        if (processedIds.has(studentUserId)) {
+            errors.push({ studentUserId, sectionId, error: 'Duplicate student ID found' });
+            continue;
+        }
+        processedIds.add(studentUserId);
+        const sectionRoster = await SectionRoster.create({ studentUserId, sectionId }, { transaction });
+        rosteredStudents.push(sectionRoster);
+    }
+
+    return { rosteredStudents, errors };
+}
+
+const switchRosterEntries = async (studentIds, fromSectionId, toSectionId, transaction) => {
+    const switchedStudents = [];
+    const alreadyInTargetSectionIds = [];
+    const notInSourceSectionIds = [];
+
+    for (const studentUserId of studentIds) {
+        // Check if the student is rostered in the target section already
+        const existingInTargetSection = await SectionRoster.findOne({
+            where: {
+                studentUserId,
+                sectionId: toSectionId,
+            },
+            transaction,
+        });
+
+        if (existingInTargetSection) {
+            alreadyInTargetSectionIds.push(studentUserId);
+            continue; // Skip this student if already in the target section
+        }
+
+        // Check if the student is rostered in the current (from) section
+        const existingInFromSection = await SectionRoster.findOne({
+            where: {
+                studentUserId,
+                sectionId: fromSectionId,
+            },
+            transaction,
+        });
+
+        if (!existingInFromSection) {
+            notInSourceSectionIds.push(studentUserId);
+            continue;
+        }
+
+        // Remove from the current section
+        await existingInFromSection.destroy({ transaction });
+
+        // Add to the target section
+        const newRosterEntry = await SectionRoster.create({
+            studentUserId,
+            sectionId: toSectionId,
+        }, { transaction });
+
+        switchedStudents.push(newRosterEntry);
+    }
+
+    if (alreadyInTargetSectionIds.length > 0) {
+        console.log(`The following students are already rostered in the target section: ${alreadyInTargetSectionIds.join(', ')}`);
+    }
+
+    if (notInSourceSectionIds.length > 0) {
+        console.log(`The following students were not found in the source section: ${notInSourceSectionIds.join(', ')}`);
+    }
+
+    return switchedStudents;
+};
+
+
 
 module.exports = {
     
@@ -173,7 +295,9 @@ module.exports = {
     getAcademicYear,
     getGradeLevel,
     hasEnrolledStudents,
-    handleTransaction,
     createRosterEntries,
-    checkCsvForDuplicateSectionCode
+    checkCsvForDuplicateSectionCode,
+    createRosterEntriesFromCsv,
+    checkCsvForDuplicateEmails,
+    switchRosterEntries
 };

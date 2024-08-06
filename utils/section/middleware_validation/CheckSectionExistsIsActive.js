@@ -1,19 +1,18 @@
 const { Section } = require('../../../models');
 
 async function checkSectionExists(req, res, next) {
-    console.log('Checking if section exists')
-    const { id } = req.params;
+    const sectionId = req.params.sectionId || req.params.id;
 
-    if (isNaN(id)) {
+    if (!sectionId || isNaN(sectionId)) {
         const err = new Error('Section ID must be an integer');
         err.status = 400;
         return next(err);
     }
 
     try {
-        const section = await Section.findByPk(id);
+        const section = await Section.findByPk(sectionId);
         if (!section) {
-            const err = new Error(`Section with ID ${id} not found`);
+            const err = new Error(`Section with ID ${sectionId} not found`);
             err.status = 404;
             return next(err);
         }
@@ -25,8 +24,8 @@ async function checkSectionExists(req, res, next) {
     }
 }
 
+
 async function checkSectionIsActive(req, res, next) {
-    console.log('Checking if section is active')
     const { section } = req;
 
     if (!section.isActive) {
