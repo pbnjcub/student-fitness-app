@@ -15,6 +15,7 @@ const UserDTO = require('../utils/user/dto/UserDTO');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const userRowHandler = require('../utils/user/csv_handling/UserCSVRowHandler');
 const { handleTransaction } = require('../utils/csv_handling/HandleTransaction');
+const { checkCsvForDuplicateEmails } = require('../utils/user/csv_handling/UserCSVHelperFunctions');
 
 //import validation middleware
 const { createUserValidationRules, updateUserValidationRules } = require('../utils/user/middleware_validation/UserReqObjValidation');
@@ -180,27 +181,32 @@ router.get('/users/:id',
 );
 
 //bulk upload from csv
-router.post('/users/register-upload-csv', upload.single('file'), async (req, res, next) => {
-    try {
-        const buffer = req.file.buffer;
-        const content = buffer.toString();
+router.post('/users/register-upload-csv',
+    upload.single('file'),
+    async (req, res, next) => {
+        try {
+            const buffer = req.file.buffer;
+            const content = buffer.toString();
+            const newUsers = await processCsv(content, userRowHandler);
 
-        const newUsers = await processCsv(content, userRowHandler);
+            // Check for duplicate emails
+            await checkCsvForDuplicateEmails(newUsers);
 
-        await handleTransaction(async (transaction) => {
-            for (const user of newUsers) {
-                await createUser(user, transaction);
-            }
-        });
+            // Create users in a transaction
+            await handleTransaction(async (transaction) => {
+                for (const user of newUsers) {
+                    await createUser(user, transaction);
+                }
+            });
 
-        const users = await getUsersWithDetails();
+            const users = await getUsersWithDetails();
 
-        const usersDTO = users.map(user => new UserDTO(user.toJSON()));
-        res.status(201).json(usersDTO);
-    } catch (err) {
-        console.error('Error in POST /users/register-upload-csv', err);
-        next(err);
-    }
+            const usersDTO = users.map(user => new UserDTO(user.toJSON()));
+            res.status(201).json(usersDTO);
+        } catch (err) {
+            console.error('Error in POST /users/register-upload-csv', err);
+            next(err);
+        }
 });
 
 // Update user by id

@@ -22,17 +22,6 @@ function convertGradeLevelToEnum(gradeLevel) {
     return enumLabel;
 }
 
-// const checkRequired = (sectionData) => {
-//     const { sectionCode, gradeLevel } = sectionData;
-
-//     const missingFields = [];
-
-//     if (!sectionCode) missingFields.push('Section Code');
-//     if (!gradeLevel) missingFields.push('Grade Level');
-
-//     return missingFields.length > 0 ? missingFields.join(', ') + ' required.' : true;
-// }
-
 // Helper function to create a section
 async function createSection(sectionData, transaction) {
     try {
@@ -64,7 +53,7 @@ async function createSection(sectionData, transaction) {
     }
 }
 
-//find section by id
+// find section by id
 async function findSectionRoster(sectionId) {
     const sectionRoster = await SectionRoster.findAll({
         where: { sectionId },
@@ -117,22 +106,11 @@ function getGradeLevel(studentUser) {
     return currentGradeLevel <= 0 ? 'Kindergarten or younger' : currentGradeLevel;
 }
 
-//helper function to check for enrolled students
+// Check for enrolled students
 async function hasEnrolledStudents(sectionId) {
     const enrolledStudents = await SectionRoster.count({ where: { sectionId } });
     return enrolledStudents > 0;
 }
-
-// const handleTransaction = async (operation) => {
-//     const transaction = await sequelize.transaction();
-//     try {
-//         await operation(transaction);
-//         await transaction.commit();
-//     } catch (err) {
-//         await transaction.rollback();
-//         throw err;
-//     }
-// };
 
 const createRosterEntries = async (students, sectionId, transaction) => {
     const rosteredStudents = [];
@@ -169,46 +147,42 @@ const createRosterEntries = async (students, sectionId, transaction) => {
     return rosteredStudents;
 };
 
+// //check for duplicate section codes in CSV upload
+// const checkCsvForDuplicateSectionCode = async (newSections) => {
+//     console.log('Checking for duplicate section codes:', JSON.stringify(newSections, null, 2));
+//     const sectionCodes = new Set();
+//     const duplicates = [];
 
+//     for (const section of newSections) {
+//         if (sectionCodes.has(section.sectionCode)) {
+//             duplicates.push(section.sectionCode);
+//         }
+//         sectionCodes.add(section.sectionCode);
+//     }
 
+//     console.log('Duplicate section codes:', duplicates);
+//     if (duplicates.length > 0) {
+//         throw new Error(`Duplicate section codes found: ${[...new Set(duplicates)].join(', ')}`);
+//     }
+// };
 
+// const checkCsvForDuplicateEmails = async (newStudents) => {
+//     console.log('Checking for duplicate emails:', JSON.stringify(newStudents, null, 2));
+//     const emails = new Set();
+//     const duplicates = [];
 
-//check for duplicate section codes in CSV upload
-const checkCsvForDuplicateSectionCode = async (newSections) => {
-    console.log('Checking for duplicate section codes:', JSON.stringify(newSections, null, 2));
-    const sectionCodes = new Set();
-    const duplicates = [];
+//     for (const student of newStudents) {
+//         if (emails.has(student.email)) {
+//             duplicates.push(student.email);
+//         }
+//         emails.add(student.email);
+//     }
 
-    for (const section of newSections) {
-        if (sectionCodes.has(section.sectionCode)) {
-            duplicates.push(section.sectionCode);
-        }
-        sectionCodes.add(section.sectionCode);
-    }
-
-    console.log('Duplicate section codes:', duplicates);
-    if (duplicates.length > 0) {
-        throw new Error(`Duplicate section codes found: ${[...new Set(duplicates)].join(', ')}`);
-    }
-};
-
-const checkCsvForDuplicateEmails = async (newStudents) => {
-    console.log('Checking for duplicate emails:', JSON.stringify(newStudents, null, 2));
-    const emails = new Set();
-    const duplicates = [];
-
-    for (const student of newStudents) {
-        if (emails.has(student.email)) {
-            duplicates.push(student.email);
-        }
-        emails.add(student.email);
-    }
-
-    console.log('Duplicate emails:', duplicates);
-    if (duplicates.length > 0) {
-        throw new Error(`Duplicate emails found: ${[...new Set(duplicates)].join(', ')}`);
-    }
-};
+//     console.log('Duplicate emails:', duplicates);
+//     if (duplicates.length > 0) {
+//         throw new Error(`Duplicate emails found: ${[...new Set(duplicates)].join(', ')}`);
+//     }
+// };
 
 
 const switchRosterEntries = async (studentIds, fromSectionId, toSectionId, transaction) => {
@@ -278,7 +252,7 @@ module.exports = {
     getGradeLevel,
     hasEnrolledStudents,
     createRosterEntries,
-    checkCsvForDuplicateSectionCode,
-    checkCsvForDuplicateEmails,
+    // checkCsvForDuplicateSectionCode,
+    // checkCsvForDuplicateEmails,
     switchRosterEntries
 };

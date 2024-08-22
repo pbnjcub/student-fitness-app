@@ -10,7 +10,8 @@ const { sequelize,User, Section, SectionRoster, StudentDetail } = require('../mo
 
 // Import helper functions
 const { SectionDTO, SectionByIdDTO } = require('../utils/section/dto/SectionDTO');
-const { createSection, findSectionRoster, createRosterEntries, checkCsvForDuplicateSectionCode, checkCsvForDuplicateEmails, switchRosterEntries } = require('../utils/section/helper_functions/SectionHelpers');
+const { createSection, findSectionRoster, createRosterEntries, switchRosterEntries } = require('../utils/section/helper_functions/SectionHelpers');
+const { checkCsvForDuplicateSectionCode, checkCsvForDuplicateEmails } = require('../utils/section/csv_handling/SectionCSVHelperFunctions');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
 const rosterSectionRowHandler = require('../utils/section/csv_handling/RosterSectionCSVRowHandler');
