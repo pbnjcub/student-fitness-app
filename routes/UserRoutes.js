@@ -14,7 +14,7 @@ const { createUser, findUserById, detailedUser, updateUserDetails, updateUserAnd
 const UserDTO = require('../utils/user/dto/UserDTO');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const userRowHandler = require('../utils/user/csv_handling/UserCSVRowHandler');
-const { handleTransaction } = require('../utils/csv_handling/HandleTransaction');
+const { handleTransaction } = require('../utils/HandleTransaction');
 const { checkCsvForDuplicateEmails } = require('../utils/user/csv_handling/UserCSVHelperFunctions');
 
 //import validation middleware
@@ -243,19 +243,18 @@ router.delete('/users/:id',
     checkUserExists,
     checkIfRostered,
     async (req, res, next) => {
-  const { id } = req.params;
+        const user = req.user; 
 
-  try {
-    const user = await findUserById(id);
+        try {
+            await user.destroy();
+            res.status(200).json({ message: "User successfully deleted" });
+        } catch (err) {
+            console.error('Error in DELETE /users/:id:', err);
+            next(err);
+        }
+    }
+);
 
-    await user.destroy();
-    // Send a 200 status code with a success message
-    res.status(200).json({ message: "User successfully deleted" });
-  } catch (err) {
-    console.error('Error in DELETE /users/:id:', err); // Log the error for debugging
-    next(err);
-  }
-});
 
 
 module.exports = router;

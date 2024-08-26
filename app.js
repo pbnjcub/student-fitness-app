@@ -22,6 +22,7 @@ const studentRoutes = require('./routes/StudentRoutes');
 const teacherRoutes = require('./routes/TeacherRoutes');
 const adminRoutes = require('./routes/AdminRoutes');
 const sectionRoutes = require('./routes/SectionRoutes');
+const fitnessMetricsRoutes = require('./routes/FitnessMetricsRoutes');
 const sessionsRoutes = require('./routes/SessionsRoutes');
 
 //Import models and setup associations
@@ -68,6 +69,7 @@ app.use('/api', studentRoutes);
 app.use('/api', teacherRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', sectionRoutes);
+app.use('/api', fitnessMetricsRoutes);
 app.use('/api', sessionsRoutes);
 
 //global error handler

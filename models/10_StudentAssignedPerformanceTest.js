@@ -36,7 +36,8 @@ module.exports = (sequelize) => {
         },
         dateAssigned: {
             type: DataTypes.DATEONLY,
-            allowNull: true,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
         },
     }, { 
         sequelize, 

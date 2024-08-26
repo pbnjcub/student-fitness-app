@@ -15,7 +15,7 @@ const { checkCsvForDuplicateSectionCode, checkCsvForDuplicateEmails } = require(
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
 const rosterSectionRowHandler = require('../utils/section/csv_handling/RosterSectionCSVRowHandler');
-const { handleTransaction } = require('../utils/csv_handling/HandleTransaction');
+const { handleTransaction } = require('../utils/HandleTransaction');
 
 // Import validation middleware
 const { createSectionValidationRules, updateSectionValidationRules } = require('../utils/section/middleware_validation/SectionReqObjValidation');

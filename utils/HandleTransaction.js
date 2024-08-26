@@ -1,4 +1,4 @@
-const { sequelize } = require('../../models'); 
+const { sequelize } = require('../models'); 
 
 const handleTransaction = async (operation) => {
     const transaction = await sequelize.transaction();
