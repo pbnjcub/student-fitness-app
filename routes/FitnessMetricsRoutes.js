@@ -12,8 +12,10 @@ const { handleTransaction } = require('../utils/HandleTransaction');
 
 // Import validation middleware
 const validate = require('../utils/validation/ValidationMiddleware');
-const { checkStudentExists } = require('../utils/fitness_metrics/middleware_validation/CheckStudentExists');
+const checkStudentExists = require('../utils/fitness_metrics/middleware_validation/CheckStudentExists');
+const checkStudentArchived = require('../utils/fitness_metrics/middleware_validation/CheckStudentArchived');
 const checkTeacherExists = require('../utils/fitness_metrics/middleware_validation/CheckTeacherExists');
+const checkTeacherArchived = require('../utils/fitness_metrics/middleware_validation/CheckTeacherArchived');
 const { anthroValidationRules } = require('../utils/fitness_metrics/middleware_validation/AnthroReqObjValidation');
 
 // Route to record anthropometric data (e.g., weight, height)
@@ -21,7 +23,9 @@ router.post('/users/:id/record-anthro',
     anthroValidationRules(), // Validate the incoming anthropometric data
     validate,
     checkStudentExists, // Ensure the student exists before proceeding
+    checkStudentArchived, // Ensure the student is not archived before proceeding
     checkTeacherExists, // Ensure the teacher exists before proceeding
+    checkTeacherArchived, // Ensure the teacher is not archived before proceeding
     async (req, res, next) => {
         console.log('POST /users/:id/record-anthro');
         try {

@@ -11,8 +11,8 @@ async function checkStudentExists(req, res, next) {
 
     try {
         const student = await User.findByPk(id);
-        if (!student) {
-            const err = new Error(`Student with ID ${id} not found`);
+        if (!student || student.userType !== 'student') {
+            const err = new Error(`Student with ID ${id} not found or is not a student`);
             err.status = 404;
             return next(err);
         }
@@ -24,4 +24,4 @@ async function checkStudentExists(req, res, next) {
     }
 }
 
-module.exports = { checkStudentExists };
+module.exports = checkStudentExists;

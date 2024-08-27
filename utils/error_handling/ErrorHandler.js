@@ -91,6 +91,16 @@ const errorHandler = (err, req, res, next) => {
                 errorResponse = formatError('isActive', err.message);
                 statusCode = 400;
                 break;
+            
+            // Fitness Metrics errors
+            case err.message.includes('Student with ID'):
+                errorResponse = formatError('general', err.message);
+                statusCode = 404;
+                break;
+            case err.message.includes('Teacher with ID'):
+                errorResponse = formatError('general', err.message);
+                statusCode = 404;
+                break;
 
             // General errors
             case err.message.includes('not found'):

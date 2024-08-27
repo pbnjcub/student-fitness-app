@@ -5,8 +5,8 @@ async function checkTeacherExists(req, res, next) {
 
     try {
         const teacher = await User.findByPk(teacherUserId);
-        if (!teacher) {
-            const err = new Error(`Teacher with ID ${teacherUserId} not found`);
+        if (!teacher || (teacher.userType !== 'teacher' && teacher.userType !== 'admin')) {
+            const err = new Error(`Teacher with ID ${teacherUserId} not found or is not a teacher or admin`);
             err.status = 404;
             return next(err);
         }
