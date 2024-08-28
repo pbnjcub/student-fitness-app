@@ -51,11 +51,11 @@ router.post('/users/:id/record-anthro',
 router.patch('/users/:id/update-anthro',
     updateAnthroValidationRules(), // You might want to customize these rules for patching
     validate,
-    checkAnthroExists,
     checkStudentExists,
     checkStudentArchived,
     checkTeacherExists(),
     checkTeacherArchived,
+    checkAnthroExists,
     async (req, res, next) => {
         console.log('PATCH /users/:id/update-anthro');
         try {
