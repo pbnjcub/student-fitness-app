@@ -37,6 +37,25 @@ async function recordAnthroData(studentUserId, anthroData, transaction) {
     return newAnthro; // Return the newly created data
 }
 
+// Function to update anthropometric data for a student
+async function updateAnthroData(existingAnthro, anthroData, transaction) {
+    // Prepare the fields to be updated
+    const fieldsToUpdate = {};
+    if (anthroData.height !== undefined) fieldsToUpdate.height = anthroData.height;
+    if (anthroData.weight !== undefined) fieldsToUpdate.weight = anthroData.weight;
+    if (anthroData.teacherUserId !== undefined) fieldsToUpdate.teacherUserId = anthroData.teacherUserId;
+    if (anthroData.dateRecorded !== undefined) fieldsToUpdate.dateRecorded = anthroData.dateRecorded;
+
+    // Perform the update
+    await existingAnthro.update(fieldsToUpdate, { transaction: transaction });
+    return existingAnthro;
+}
 
 
-module.exports = { recordAnthroData };
+
+
+
+module.exports = { 
+    recordAnthroData,
+    updateAnthroData
+};

@@ -5,7 +5,7 @@ const router = express.Router();
 const { StudentDetail, StudentAnthro, FitnessMetric } = require('../models');
 
 // Import helper functions
-const { recordAnthroData, logPerformanceMetrics, getFitnessHistory, getStudentMetrics } = require('../utils/fitness_metrics/helper_functions/FitnessMetricsHelpers');
+const { recordAnthroData, updateAnthroData, logPerformanceMetrics, getFitnessHistory, getStudentMetrics } = require('../utils/fitness_metrics/helper_functions/FitnessMetricsHelpers');
 const AnthroDto = require('../utils/fitness_metrics/dto/AnthroDto');
 const { handleTransaction } = require('../utils/HandleTransaction');
 
@@ -16,15 +16,17 @@ const checkStudentExists = require('../utils/fitness_metrics/middleware_validati
 const checkStudentArchived = require('../utils/fitness_metrics/middleware_validation/CheckStudentArchived');
 const checkTeacherExists = require('../utils/fitness_metrics/middleware_validation/CheckTeacherExists');
 const checkTeacherArchived = require('../utils/fitness_metrics/middleware_validation/CheckTeacherArchived');
-const { anthroValidationRules } = require('../utils/fitness_metrics/middleware_validation/AnthroReqObjValidation');
+const checkAnthroExists = require('../utils/fitness_metrics/middleware_validation/CheckAnthroExists');
+const { createAnthroValidationRules, updateAnthroValidationRules } = require('../utils/fitness_metrics/middleware_validation/AnthroReqObjValidation');
+// const { check } = require('express-validator');
 
 // Route to record anthropometric data (e.g., weight, height)
 router.post('/users/:id/record-anthro',
-    anthroValidationRules(), // Validate the incoming anthropometric data
+    createAnthroValidationRules(), // Validate the incoming anthropometric data
     validate,
     checkStudentExists, // Ensure the student exists before proceeding
     checkStudentArchived, // Ensure the student is not archived before proceeding
-    checkTeacherExists, // Ensure the teacher exists before proceeding
+    checkTeacherExists({ required: true }), // Ensure the teacher exists before proceeding
     checkTeacherArchived, // Ensure the teacher is not archived before proceeding
     async (req, res, next) => {
         console.log('POST /users/:id/record-anthro');
@@ -40,6 +42,35 @@ router.post('/users/:id/record-anthro',
             });
         } catch (err) {
             console.error('Error in POST /users/:id/record-anthro:', err);
+            next(err);
+        }
+    }
+);
+
+// Edit current anthropometric data
+router.patch('/users/:id/update-anthro',
+    updateAnthroValidationRules(), // You might want to customize these rules for patching
+    validate,
+    checkAnthroExists,
+    checkStudentExists,
+    checkStudentArchived,
+    checkTeacherExists(),
+    checkTeacherArchived,
+    async (req, res, next) => {
+        console.log('PATCH /users/:id/update-anthro');
+        try {
+            const { id } = req.params;
+            const anthroData = req.body;
+            const existingAnthro = req.existingAnthro;
+
+            await handleTransaction(async (transaction) => {
+                // Update the anthropometric data within a transaction
+                const updatedAnthro = await updateAnthroData(existingAnthro, anthroData, transaction);
+                const anthroDto = new AnthroDto(updatedAnthro.toJSON());
+                res.status(200).json(anthroDto);
+            });
+        } catch (err) {
+            console.error('Error in PATCH /users/:id/update-anthro:', err);
             next(err);
         }
     }

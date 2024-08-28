@@ -1,21 +1,34 @@
 const { User } = require('../../../models');
 
-async function checkTeacherExists(req, res, next) {
-    const { teacherUserId } = req.body;
+function checkTeacherExists({ required = false } = {}) {
+    return async function (req, res, next) {
+        const { teacherUserId } = req.body;
 
-    try {
-        const teacher = await User.findByPk(teacherUserId);
-        if (!teacher || (teacher.userType !== 'teacher' && teacher.userType !== 'admin')) {
-            const err = new Error(`Teacher with ID ${teacherUserId} not found or is not a teacher or admin`);
-            err.status = 404;
+        if (required && teacherUserId == null) {
+            const err = new Error('Teacher ID is required for this operation');
+            err.status = 400;
             return next(err);
         }
-        req.teacher = teacher;
-        next();
-    } catch (err) {
-        console.error('Error checking teacher existence:', err);
-        next(err);
+
+        if (!teacherUserId) {
+            return next();
+        }
+
+        try {
+            const teacher = await User.findByPk(teacherUserId);
+            console.log()
+            if (!teacher || teacher.userType !== 'teacher') {
+                const err = new Error(`Teacher with ID ${teacherUserId} not found or is not a teacher`);
+                err.status = 404;
+                return next(err);
+            }
+            req.teacher = teacher;
+        } catch (err) {
+            console.error('Error checking teacher existence:', err);
+            return next(err);
+        }
     }
-}
+};
+
 
 module.exports = checkTeacherExists;
