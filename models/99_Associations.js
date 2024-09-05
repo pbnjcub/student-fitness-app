@@ -166,5 +166,16 @@ module.exports = (db) => {
   db.SectionRoster.belongsTo(db.Section, {
     foreignKey: 'sectionId'
   });
+
+  // // Association between StudentAnthro and StudentAnthroHistory
+  // db.StudentAnthro.hasMany(db.StudentHistAnthro, {
+  //   foreignKey: 'originalAnthroId',
+  //   as: 'studentHistAnthro',
+  //   onDelete: 'SET NULL'
+  // });
+  // db.StudentHistAnthro.belongsTo(db.StudentAnthro, {
+  //   foreignKey: 'originalAnthroId',
+  //   as: 'originalAnthro'
+  // });
     
 };

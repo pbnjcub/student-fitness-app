@@ -220,7 +220,7 @@ router.patch('/users/:id',
         const { password, ...otherFields } = req.body;
         try {
             if (password) {
-                otherFields.password = await hashPassword(password);
+                otherFields.password = await bcrypt.hash(password, 10);
             }
 
             const user = req.user;
