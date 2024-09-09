@@ -1,11 +1,11 @@
 const { StudentAnthro, StudentHistAnthro } = require('../../../models'); 
 // Function to transfer current anthropometric data to historical data
-async function transferAnthroToHist(id) {
+async function transferAnthroToHist(id, transaction) {
     try {
         // Check for existing data
         const existingAnthro = await StudentAnthro.findOne({
             where: { studentUserId: id }, // Use the function parameter correctly
-            // transaction: transaction // Ensure this operation is part of the transaction
+            transaction: transaction
         });
 
         // If existing data is found, move it to history
@@ -23,7 +23,7 @@ async function transferAnthroToHist(id) {
             console.log('Data to be transferred inside transferAnthroToHist:', newHistAnthroObj);
             
             // Attempt to transfer existing data to the historical table
-            const newHistRecord = await StudentHistAnthro.create(newHistAnthroObj);
+            const newHistRecord = await StudentHistAnthro.create(newHistAnthroObj, { transaction: transaction });
 
             console.log("Historical data transferred successfully");
             console.log("New historical record:", newHistRecord);
@@ -41,7 +41,7 @@ async function transferAnthroToHist(id) {
 }
 
 // Function to record anthropometric data for a student
-async function recordAnthroData(studentUserId, anthroData) {
+async function recordAnthroData(studentUserId, anthroData, transaction) {
     const mainAnthroData = {
         studentUserId,
         teacherUserId: anthroData.teacherUserId,
@@ -52,7 +52,7 @@ async function recordAnthroData(studentUserId, anthroData) {
 
     try {
         // Create a new record regardless of whether an existing record was found
-        const newAnthro = await StudentAnthro.create(mainAnthroData);
+        const newAnthro = await StudentAnthro.create(mainAnthroData, { transaction: transaction });
         return newAnthro; // Return the newly created data
     } catch (err) {
         console.error('Failed to record anthropometric data:', err);

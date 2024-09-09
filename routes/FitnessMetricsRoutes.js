@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
+
 // Import models
-const { StudentDetail, StudentAnthro, FitnessMetric, StudentHistAnthro } = require('../models');
+const { sequelize, StudentDetail, StudentAnthro, FitnessMetric, StudentHistAnthro } = require('../models');
 
 // Import helper functions
 const { recordAnthroData, updateAnthroData, fetchAnthropometricData, transferAnthroToHist, logPerformanceMetrics, getFitnessHistory, getStudentMetrics } = require('../utils/fitness_metrics/helper_functions/FitnessMetricsHelpers');
@@ -30,29 +31,31 @@ router.post('/users/:id/record-anthro',
     checkTeacherArchived, // Ensure the teacher is not archived before proceeding
     async (req, res, next) => {
         console.log('POST /users/:id/record-anthro');
+        const transaction = await sequelize.transaction();
         try {
             const { id } = req.params;
             const anthroData = req.body;
 
-                // Transfer the current anthropometric data to the historical table
-                // const existingAnthro = await transferAnthroToHist(id, transaction);
-                // console.log('New Anthro Hist Record successfully created:');
-
-            const existingAnthro = await transferAnthroToHist(id);
+            // Transfer existing anthro data to the historical table
+            const existingAnthro = await transferAnthroToHist(id, transaction);
 
             // Delete the existing anthro data
             if (existingAnthro) {
                 StudentAnthro.destroy({
                     where: { id: existingAnthro.id },
+                    transaction: transaction
                 });
             }
 
             // Record the new anthropometric data
-            const newAnthroRecord = await recordAnthroData(id, anthroData);
+            const newAnthroRecord = await recordAnthroData(id, anthroData, transaction);
             const anthroDto = new AnthroDto(newAnthroRecord.toJSON());
+
+            await transaction.commit();
             res.status(201).json(anthroDto);
 
         } catch (err) {
+            await transaction.rollback();
             console.error('Error in POST /users/:id/record-anthro:', err);
             next(err);
         }
@@ -105,25 +108,10 @@ router.get('/users/:id/anthro',
     }
 );
 
-// add historical anthro directly to the StudentHistAnthro table
-router.post('/historical-anthro',
-    async (req, res, next) => {
-        console.log('POST /historical-anthro');
-        try {
-            const historicalData = req.body;
-            const newHistoricalData = await StudentHistAnthro.create(historicalData);
-            res.status(201).json(newHistoricalData);
-        } catch (err) {
-            console.error('Error in POST /historical-anthro:', err);
-            res.status(500).json({ message: 'Failed to add historical anthropometric data' });
-        }
-    }
-);
-
 // delete historical anthro data from the StudentHistAnthro table
-router.delete('/historical-anthro/:id',
+router.delete('/delete-anthro/:id',
     async (req, res, next) => {
-        console.log('DELETE /historical-anthro/:id');
+        console.log('DELETE /delete-anthro/:id');
         try {
             const { id } = req.params;
             const historicalData = await StudentHistAnthro.findByPk(id);
@@ -136,20 +124,6 @@ router.delete('/historical-anthro/:id',
         } catch (err) {
             console.error('Error in DELETE /historical-anthro/:id:', err);
             res.status(500).json({ message: 'Failed to delete historical anthropometric data' });
-        }
-    }
-);
-
-// Route to retrieve all existing data in StudentHistAnthro table
-router.get('/historical-anthro',
-    async (req, res, next) => {
-        console.log('GET /historical-anthro');
-        try {
-            const historicalData = await StudentHistAnthro.findAll();
-            res.json(historicalData);
-        } catch (err) {
-            console.error('Error in GET /historical-anthro:', err);
-            res.status(500).json({ message: 'Failed to retrieve historical anthropometric data' });
         }
     }
 );

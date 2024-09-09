@@ -6,11 +6,11 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // import models
-const { sequelize,User, Section, SectionRoster, StudentDetail } = require('../models');
+const { sequelize, User, Section, SectionRoster, StudentDetail } = require('../models');
 
 // Import helper functions
 const { SectionDTO, SectionByIdDTO } = require('../utils/section/dto/SectionDTO');
-const { createSection, findSectionRoster, createRosterEntries, switchRosterEntries } = require('../utils/section/helper_functions/SectionHelpers');
+const { createSection, findSectionRoster, createRosterEntries, switchRosterEntries, findSectionsByGradeLevel } = require('../utils/section/helper_functions/SectionHelpers');
 const { checkCsvForDuplicateSectionCode, checkCsvForDuplicateEmails } = require('../utils/section/csv_handling/SectionCSVHelperFunctions');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCSVRowHandler');
@@ -30,6 +30,8 @@ const checkSectionsExistAndActive = require('../utils/section/middleware_validat
 const checkStudentsActive = require('../utils/section/middleware_validation/CheckStudentsActive');
 const checkStudentsInFromSection = require('../utils/section/middleware_validation/CheckStudentsInFromSection');
 const transferStudentsValidationRules = require('../utils/section/middleware_validation/TransferStudentsReqObjValidation');
+const checkGradeLevel = require('../utils/section/middleware_validation/CheckGradeLevel');
+const { check } = require('express-validator');
 
 // Add section
 router.post('/sections',
@@ -46,7 +48,6 @@ router.post('/sections',
         }
     }
 );
-
 
 // Retrieve all sections
 router.get('/sections', async (req, res, next) => {
@@ -70,6 +71,21 @@ router.get('/sections/active', async (req, res, next) => {
         const sectionDTOs = activeSections.map(section => new SectionDTO(section));
         res.json(sectionDTOs);
     } catch (err) {
+        next(err);
+    }
+});
+
+// Retrieve sections by grade level
+router.get('/sections/grade',
+    checkGradeLevel,
+    async (req, res, next) => {
+    const { validatedGrades } = req;
+
+    try {
+        const sections = await findSectionsByGradeLevel(validatedGrades);
+        res.json(sections);  // Send the raw sections as the response
+    } catch (err) {
+        console.error('Error retrieving sections by grade:', err);
         next(err);
     }
 });

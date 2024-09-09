@@ -91,6 +91,14 @@ const errorHandler = (err, req, res, next) => {
                 errorResponse = formatError('isActive', err.message);
                 statusCode = 400;
                 break;
+            case err.message === "Grade level is required":
+                errorResponse = formatError('gradeLevel', err.message);
+                statusCode = 400;
+                break;
+            case err.message === "No sections found for the provided grade levels":
+                errorResponse = formatError('gradeLevel', err.message);
+                statusCode = 404;
+                break;
             
             // Fitness Metrics errors
             case err.message.includes('Student with ID'):

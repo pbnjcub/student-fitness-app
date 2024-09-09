@@ -147,6 +147,25 @@ const createRosterEntries = async (students, sectionId, transaction) => {
     return rosteredStudents;
 };
 
+async function findSectionsByGradeLevel(grades) {
+    try {
+        const sections = await Section.findAll({
+            where: {
+                gradeLevel: grades
+            }
+        });
+
+        if (sections.length === 0) {
+            throw new Error('No sections found for the provided grade levels');
+        }
+
+        return sections;  // Directly return the section array without mapping to DTOs.
+    } catch (err) {
+        console.error('Error retrieving sections by grade:', err);
+        throw err; // Rethrow the error to be caught by the caller
+    }
+}
+
 // //check for duplicate section codes in CSV upload
 // const checkCsvForDuplicateSectionCode = async (newSections) => {
 //     console.log('Checking for duplicate section codes:', JSON.stringify(newSections, null, 2));
@@ -252,7 +271,6 @@ module.exports = {
     getGradeLevel,
     hasEnrolledStudents,
     createRosterEntries,
-    // checkCsvForDuplicateSectionCode,
-    // checkCsvForDuplicateEmails,
-    switchRosterEntries
+    switchRosterEntries,
+    findSectionsByGradeLevel
 };
