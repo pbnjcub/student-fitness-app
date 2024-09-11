@@ -1,6 +1,6 @@
 const { User } = require('../../../models');
 
-async function checkEmailExists(req, res, next) {
+async function checkUserExistsByEmail(req, res, next) {
     const { email } = req.body;
 
     try {
@@ -18,4 +18,4 @@ async function checkEmailExists(req, res, next) {
     }
 }
 
-module.exports = { checkEmailExists };
+module.exports = checkUserExistsByEmail;

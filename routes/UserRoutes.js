@@ -20,15 +20,15 @@ const { checkCsvForDuplicateEmails } = require('../utils/csv_handling/CsvExistin
 //import validation middleware
 const { createUserValidationRules, updateUserValidationRules } = require('../utils/user/middleware_validation/UserReqObjValidation');
 const validate = require('../utils/validation/Validate');
-const { checkUserExists } = require('../utils/user/middleware_validation/CheckUserExists');
-const { checkEmailExists } = require('../utils/user/middleware_validation/CheckEmailExists');
-const { checkIfRostered } = require('../utils/user/middleware_validation/CheckIfRostered');
+const checkUserExists = require('../utils/validation/middleware/CheckUserExists');
+const checkUserExistsByEmail = require('../utils/validation/middleware/CheckUserExistsByEmail');
+const checkUserRostered = require('../utils/validation/middleware/CheckUserRostered');
 
 //create user
 router.post('/users/register',
     createUserValidationRules(),
     validate,
-    checkEmailExists,
+    checkUserExistsByEmail,
     async (req, res, next) => {
         try {
             const newUser = await createUser(req.body);
@@ -214,7 +214,7 @@ router.patch('/users/:id',
     checkUserExists, // Ensure the user exists before proceeding
     updateUserValidationRules(), // Validate the incoming data
     validate, // Run validation and handle any validation errors
-    checkIfRostered, // Final check for rostered status and handle isArchived status change
+    checkUserRostered, // Final check for rostered status and handle isArchived status change
     async (req, res, next) => {
         const { id } = req.params;
         const { password, ...otherFields } = req.body;
@@ -241,7 +241,7 @@ router.patch('/users/:id',
 //delete user by id
 router.delete('/users/:id',
     checkUserExists,
-    checkIfRostered,
+    checkUserRostered,
     async (req, res, next) => {
         const user = req.user; 
 
