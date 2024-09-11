@@ -1,4 +1,8 @@
-const isValidEmail = (email) => {
+const { User, StudentDetail } = require('../../../models'); // Import necessary models
+
+const moment = require('moment');
+
+const isEmailValid = (email) => {
     if (email === null || email === undefined || email === '') {
         return 'Email is required';
     }
@@ -20,13 +24,16 @@ const isFirstOrLastNameValid = (name) => {
   return name.length >= 2;
 }
 
-const isBirthDateValid = (date) => {
-    if (date === undefined || date === null || date === '') {
+const isBirthDateValid = (birthDate) => {
+    if (!birthDate) {
         return 'Birth date is required';
     }
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  return dateRegex.test(date) && !isNaN(Date.parse(date));
+    if (!moment(birthDate, 'YYYY-MM-DD', true).isValid()) {
+        return 'Birth date must be in the following format (YYYY-MM-DD)';
+    }
+    return true;
 }
+
 
 const isGenderIdentityValid = (genderIdentity) => {
     if (genderIdentity === undefined || genderIdentity === null || genderIdentity === '') {
@@ -135,9 +142,67 @@ const isSectionActiveValid = (isActive) => {
     return true; // No error if it's a boolean
 }
 
+// Anthro validations
+const isTeacherUserIdValid = (teacherUserId) => {
+    if (!teacherUserId) {
+        return 'Teacher User ID is required';
+    }
+    if (teacherUserId < 0) {
+        return 'Teacher User ID must be a positive number';
+    }
+    // If teacherUserId is not an integer, return an error
+    if (!Number.isInteger(teacherUserId)) {
+        return 'Teacher User ID must be an integer';
+    }
+
+    return true;
+}
+
+const isHeightValid = (height) => {
+    if (!height) {
+        return 'Height is required';
+    }
+    if (height < 0) {
+        return 'Height must be a positive number';
+    }
+    // If height is not an integer, return an error
+    if (!Number.isInteger(height)) {
+        return 'Height must be an integer';
+    }
+
+    return true;
+}
+
+
+const isWeightValid = (weight) => {
+    if (!weight) {
+        return 'Weight is required';
+    }
+    if (weight < 0) {
+        return 'Weight must be a positive number';
+    }
+    // If weight is not an integer, return an error
+    if (!Number.isInteger(weight)) {
+        return 'Weight must be an integer';
+    }
+    
+    return true;
+}
+
+const isDateRecordedValid = (dateRecorded) => {
+    if (!dateRecorded) {
+        return 'Date recorded is required';
+    }
+    if (!moment(dateRecorded, 'YYYY-MM-DD', true).isValid()) {
+        return 'Date recorded must be in the following format (YYYY-MM-DD)';
+    }
+    return true;
+}
+
+
 
 module.exports = {
-    isValidEmail,
+    isEmailValid,
     isPasswordValid,
     isFirstOrLastNameValid,
     isBirthDateValid,
@@ -148,5 +213,9 @@ module.exports = {
     isIsArchivedValid,
     isSectionCodeValid,
     isSectionGradeLevelValid,
-    isSectionActiveValid
+    isSectionActiveValid,
+    isTeacherUserIdValid,
+    isHeightValid,
+    isWeightValid,
+    isDateRecordedValid,
 }

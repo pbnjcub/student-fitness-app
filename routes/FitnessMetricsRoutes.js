@@ -9,17 +9,17 @@ const { sequelize, StudentDetail, StudentAnthro, FitnessMetric, StudentHistAnthr
 const { recordAnthroData, updateAnthroData, fetchAnthropometricData, transferAnthroToHist, logPerformanceMetrics, getFitnessHistory, getStudentMetrics } = require('../utils/fitness_metrics/helper_functions/FitnessMetricsHelpers');
 const AnthroDto = require('../utils/fitness_metrics/dto/AnthroDto');
 const { handleTransaction } = require('../utils/HandleTransaction');
-
+const anthroRowHandler = require('../utils/fitness_metrics/csv_handling/AnthroCSVRowHandler');
 
 // Import validation middleware
-const validate = require('../utils/validation/ValidationMiddleware');
+const validate = require('../utils/validation/Validate');
+const { checkStudentsExistEmail } = require('../utils/csv_handling/CsvExistingDataChecks');
 const checkStudentExists = require('../utils/fitness_metrics/middleware_validation/CheckStudentExists');
 const checkStudentArchived = require('../utils/fitness_metrics/middleware_validation/CheckStudentArchived');
 const checkTeacherExists = require('../utils/fitness_metrics/middleware_validation/CheckTeacherExists');
 const checkTeacherArchived = require('../utils/fitness_metrics/middleware_validation/CheckTeacherArchived');
 const checkAnthroExists = require('../utils/fitness_metrics/middleware_validation/CheckAnthroExists');
 const { createAnthroValidationRules, updateAnthroValidationRules } = require('../utils/fitness_metrics/middleware_validation/AnthroReqObjValidation');
-// const { check } = require('express-validator');
 
 // Route to record anthropometric data (e.g., weight, height). this route should include the following:
 router.post('/users/:id/record-anthro',
@@ -107,6 +107,42 @@ router.get('/users/:id/anthro',
         }
     }
 );
+
+// Bulk upload anthro data for a class of students
+router.post('/users/record-anthro-csv',
+    upload.single('file'),
+    async (req, res, next) => {
+        try {
+            const buffer = req.file.buffer;
+            const content = buffer.toString();
+            const anthroData = await processCsv(content, anthroRowHandler);
+
+            // Check for duplicate entries
+            await checkCsvForDuplicateEmails(anthroData);
+
+            // Check if students exist by email
+            // Check if students are archived
+            // Attach studentUserId to each anthro data object retrieved from the processed emails
+            // Check if teacher exists by email
+            // Check if teacher is archived
+            // Attach teacherUserId to each anthro data object retrieved from the processed emails
+
+            // Record anthro data in a transaction
+            await handleTransaction(async (transaction) => {
+                for (const data of anthroData) {
+                    await recordAnthroData(data.email, data, transaction);
+                }
+            });
+
+            res.status(201).json({ message: 'Anthropometric data recorded successfully' });
+        } catch (err) {
+
+            console.error('Error in POST /users/record-anthro-csv:', err);
+            next(err);
+    
+        }
+    }
+)
 
 // delete historical anthro data from the StudentHistAnthro table
 router.delete('/delete-anthro/:id',

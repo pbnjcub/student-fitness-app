@@ -24,17 +24,4 @@ async function checkSectionExists(req, res, next) {
     }
 }
 
-
-async function checkSectionIsActive(req, res, next) {
-    const { section } = req;
-
-    if (!section.isActive) {
-        const err = new Error(`Section with ID ${section.id} is not active`);
-        err.status = 400;
-        return next(err);
-    }
-    next();
-}
-
-
-module.exports = { checkSectionExists, checkSectionIsActive };
+module.exports = checkSectionExists;

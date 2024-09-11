@@ -15,11 +15,11 @@ const UserDTO = require('../utils/user/dto/UserDTO');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const userRowHandler = require('../utils/user/csv_handling/UserCSVRowHandler');
 const { handleTransaction } = require('../utils/HandleTransaction');
-const { checkCsvForDuplicateEmails } = require('../utils/user/csv_handling/UserCSVHelperFunctions');
+const { checkCsvForDuplicateEmails } = require('../utils/csv_handling/CsvExistingDataChecks');
 
 //import validation middleware
 const { createUserValidationRules, updateUserValidationRules } = require('../utils/user/middleware_validation/UserReqObjValidation');
-const validate = require('../utils/validation/ValidationMiddleware');
+const validate = require('../utils/validation/Validate');
 const { checkUserExists } = require('../utils/user/middleware_validation/CheckUserExists');
 const { checkEmailExists } = require('../utils/user/middleware_validation/CheckEmailExists');
 const { checkIfRostered } = require('../utils/user/middleware_validation/CheckIfRostered');

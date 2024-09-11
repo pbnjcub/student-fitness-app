@@ -1,7 +1,7 @@
 // validation imports
 const {
-    isValidEmail
-} = require('../../csv_handling/CSVValidationHelpers');
+    isEmailValid
+} = require('../../csv_handling/CsvRowDataValidations');
 
 function rosterSectionRowHandler(rowData, rowNumber) {
     let errs = [];
@@ -9,7 +9,7 @@ function rosterSectionRowHandler(rowData, rowNumber) {
     // email validation
     console.log(`Validating email: '${rowData.email}', Type: ${typeof rowData.email}`);
 
-    const emailError = isValidEmail(rowData.email);
+    const emailError = isEmailValid(rowData.email);
     console.log('emailError:', emailError)
     if (emailError !== true) {
         console.log('emailError:', emailError)

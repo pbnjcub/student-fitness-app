@@ -18,4 +18,4 @@ async function checkSectionCodeExists(req, res, next) {
     }
 }
 
-module.exports = { checkSectionCodeExists };
+module.exports = checkSectionCodeExists;

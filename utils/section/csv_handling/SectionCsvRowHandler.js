@@ -2,7 +2,7 @@ const {
     isSectionCodeValid,
     isSectionGradeLevelValid,
     isSectionActiveValid
-} = require('./SectionCSVValidations');
+} = require('../../csv_handling/CsvRowDataValidations');
 
 const gradeLevelEnumMapping = {
     6: '6',
