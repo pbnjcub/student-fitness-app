@@ -1,6 +1,6 @@
-const BaseDTO = require('../../dto/BaseDTO');
+const BaseDto = require('../../dto/BaseDto');
 
-class StudentDetailDTO extends BaseDTO {
+class StudentDetailDto extends BaseDto {
     constructor(studentDetail) {
         super(studentDetail, {
             'gradYear': true,
@@ -10,4 +10,4 @@ class StudentDetailDTO extends BaseDTO {
     }
 }
 
-module.exports = StudentDetailDTO;
+module.exports = StudentDetailDto;

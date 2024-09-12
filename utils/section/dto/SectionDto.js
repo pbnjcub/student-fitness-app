@@ -1,6 +1,6 @@
-const BaseDTO = require('../../dto/BaseDTO');
+const BaseDto = require('../../dto/BaseDto');
 
-class SectionDTO extends BaseDTO {
+class SectionDto extends BaseDto {
     constructor(section) {
         super(section, {
             'id': true,
@@ -11,30 +11,30 @@ class SectionDTO extends BaseDTO {
     }
 }
 
-class SectionByIdDTO extends BaseDTO {
+class SectionByIdDto extends BaseDto {
     constructor(section) {
         super(section, {
             'id': true,
             'sectionCode': true,
             'gradeLevel': true,
             'isActive': true,
-            'sectionRoster': StudentRosterDTO
+            'sectionRoster': StudentRosterDto
         });
     }
 }
 
-class StudentRosterDTO extends BaseDTO {
+class StudentRosterDto extends BaseDto {
     constructor(rosterItem) {
         super(rosterItem, {
             'id': true,
             'studentUserId': true,
             'sectionId': true,
-            'student': StudentDTO
+            'student': StudentDto
         });
     }
 }
 
-class StudentDTO extends BaseDTO {
+class StudentDto extends BaseDto {
     constructor(student) {
         super(student, {
             'id': true,
@@ -42,12 +42,12 @@ class StudentDTO extends BaseDTO {
             'lastName': true,
             'birthDate': true,
             'userType': true,
-            'studentDetails': StudentDetailsDTO
+            'studentDetails': StudentDetailsDto
         });
     }
 }
 
-class StudentDetailsDTO extends BaseDTO {
+class StudentDetailsDto extends BaseDto {
     constructor(details) {
         super(details, {
             'id': true,
@@ -57,6 +57,6 @@ class StudentDetailsDTO extends BaseDTO {
 }
 
 module.exports = {
-    SectionDTO,
-    SectionByIdDTO
+    SectionDto,
+    SectionByIdDto
 };

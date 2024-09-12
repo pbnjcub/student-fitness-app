@@ -1,4 +1,4 @@
-class BaseDTO {
+class BaseDto {
     constructor(object = {}, fields = {}) {
         // Ensure the input parameters are valid
         if (typeof fields !== 'object' || typeof object !== 'object') {
@@ -53,4 +53,4 @@ class BaseDTO {
     }
 }
 
-module.exports = BaseDTO;
+module.exports = BaseDto;

@@ -1,4 +1,4 @@
-const { User, StudentDetail } = require('../../../models'); // Import necessary models
+const { User, StudentDetail } = require('../../models'); // Import necessary models
 
 const moment = require('moment');
 

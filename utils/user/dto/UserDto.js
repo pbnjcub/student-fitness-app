@@ -1,11 +1,11 @@
-const BaseDTO = require('../../dto/BaseDTO');
+const BaseDto = require('../../dto/BaseDto');
 
-const StudentDetailDTO = require('./StudentDetailDTO');
-const TeacherDetailDTO = require('./TeacherDetailDTO');
-const AdminDetailDTO = require('./AdminDetailDTO');
-const StudentAnthroDTO = require('./StudentAnthroDTO');
+const StudentDetailDto = require('./StudentDetailDto');
+const TeacherDetailDto = require('./TeacherDetailDto');
+const AdminDetailDto = require('./AdminDetailDto');
+const StudentAnthroDto = require('./StudentAnthroDto');
 
-class UserDTO extends BaseDTO {
+class UserDto extends BaseDto {
     constructor(user) {
         // Initialize with base fields
         let fieldsConfig = {
@@ -39,17 +39,17 @@ class UserDTO extends BaseDTO {
 
         // Now handle instantiation of the specific details if they exist
         if (user.userType === 'student' && user.studentDetails) {
-            this.studentDetails = new StudentDetailDTO(user.studentDetails);
+            this.studentDetails = new StudentDetailDto(user.studentDetails);
             if (user.studentAnthro) {
-                this.studentAnthro = new StudentAnthroDTO(user.studentAnthro);
+                this.studentAnthro = new StudentAnthroDto(user.studentAnthro);
             }
         } else if (user.userType === 'teacher' && user.teacherDetails) {
-            this.teacherDetails = new TeacherDetailDTO(user.teacherDetails);
+            this.teacherDetails = new TeacherDetailDto(user.teacherDetails);
         } else if (user.userType === 'admin' && user.adminDetails) {
-            this.adminDetails = new AdminDetailDTO(user.adminDetails);
+            this.adminDetails = new AdminDetailDto(user.adminDetails);
         }
     }
 }
 
-module.exports = UserDTO;
+module.exports = UserDto;
 

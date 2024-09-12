@@ -6,7 +6,7 @@ const {
     isDateRecordedValid
 } = require('../../csv_handling/CsvRowDataValidations');
 
-function anthroRowHandler(rowData, rowNumber) {
+function anthroCsvRowHandler(rowData, rowNumber) {
     let errs = [];
 
     // Email validation
@@ -52,4 +52,4 @@ function anthroRowHandler(rowData, rowNumber) {
 
 
 
-module.exports = anthroRowHandler;
+module.exports = anthroCsvRowHandler;

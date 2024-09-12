@@ -1,5 +1,5 @@
 const { User, Section, SectionRoster, StudentDetail } = require('../../../models');
-const { getGradeLevel } = require('../helper_functions/SectionHelpers');
+const { getGradeLevel } = require('../../section/helper_functions/SectionHelpers');
 
 async function checkStudentsToUnrosterFromSection(req, res, next) {
     let { studentUserIds } = req.body;

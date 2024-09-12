@@ -1,4 +1,4 @@
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 const moment = require('moment');
 const { validateField, customFieldValidation } = require('../../validation/CommonValidationFunctions');
 
@@ -13,6 +13,7 @@ const createAnthroValidationRules = () => {
         // validatedateRecorded is a date and is in the correct format
         customFieldValidation('dateRecorded', (value) => moment(value, 'YYYY-MM-DD', true).isValid(), false).withMessage('Date recorded must be valid or in the following format (YYYY-MM-DD)'),
         
+        param('id').isInt().withMessage('ID must be an integer')
     ];
 };
 

@@ -1,25 +1,47 @@
 const express = require('express');
+const multer = require('multer');
+const Papa = require('papaparse');
 const router = express.Router();
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
+// Import Models
+const {
+    sequelize,
+    StudentDetail,
+    StudentAnthro,
+    FitnessMetric,
+    StudentHistAnthro
+} = require('../models');
 
-// Import models
-const { sequelize, StudentDetail, StudentAnthro, FitnessMetric, StudentHistAnthro } = require('../models');
+// Import Helper Functions
+const { 
+    recordAnthroData,
+    updateAnthroData,
+    fetchAnthropometricData,
+    transferAnthroToHist
+} = require('../utils/fitness_metrics/helper_functions/FitnessMetricsHelpers');
 
-// Import helper functions
-const { recordAnthroData, updateAnthroData, fetchAnthropometricData, transferAnthroToHist, logPerformanceMetrics, getFitnessHistory, getStudentMetrics } = require('../utils/fitness_metrics/helper_functions/FitnessMetricsHelpers');
+// Import AnthroDto
 const AnthroDto = require('../utils/fitness_metrics/dto/AnthroDto');
-const { handleTransaction } = require('../utils/HandleTransaction');
-const anthroRowHandler = require('../utils/fitness_metrics/csv_handling/AnthroCSVRowHandler');
 
-// Import validation middleware
+// Import Transaction Handler
+const { handleTransaction } = require('../utils/HandleTransaction');
+
+// Import Validation Middleware
 const validate = require('../utils/validation/Validate');
-const { checkStudentsExistEmail } = require('../utils/csv_handling/CsvExistingDataChecks');
-const checkStudentExists = require('../utils/fitness_metrics/middleware_validation/CheckStudentExists');
-const checkStudentArchived = require('../utils/fitness_metrics/middleware_validation/CheckStudentArchived');
-const checkTeacherExists = require('../utils/fitness_metrics/middleware_validation/CheckTeacherExists');
-const checkTeacherArchived = require('../utils/fitness_metrics/middleware_validation/CheckTeacherArchived');
-const checkAnthroExists = require('../utils/fitness_metrics/middleware_validation/CheckAnthroExists');
+const checkStudentExists = require('../utils/validation/middleware/CheckStudentExists');
+const checkStudentArchived = require('../utils/validation/middleware/CheckStudentArchived');
+const checkTeacherExists = require('../utils/validation/middleware/CheckTeacherExists');
+const checkTeacherArchived = require('../utils/validation/middleware/CheckTeacherArchived');
+const checkAnthroExists = require('../utils/validation/middleware/CheckAnthroExists');
 const { createAnthroValidationRules, updateAnthroValidationRules } = require('../utils/fitness_metrics/middleware_validation/AnthroReqObjValidation');
+
+// Import CSV Handling Functions
+const anthroCsvRowHandler = require('../utils/fitness_metrics/csv_handling/AnthroCsvRowHandler');
+
+// Import CSV Validation
+const { checkStudentsExistEmail } = require('../utils/csv_handling/CsvExistingDataChecks');
 
 // Route to record anthropometric data (e.g., weight, height). this route should include the following:
 router.post('/users/:id/record-anthro',
@@ -115,7 +137,7 @@ router.post('/users/record-anthro-csv',
         try {
             const buffer = req.file.buffer;
             const content = buffer.toString();
-            const anthroData = await processCsv(content, anthroRowHandler);
+            const anthroData = await processCsv(content, anthroCsvRowHandler);
 
             // Check for duplicate entries
             await checkCsvForDuplicateEmails(anthroData);

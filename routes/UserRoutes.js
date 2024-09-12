@@ -6,20 +6,42 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// import models
-const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, sequelize, Sequelize } = require('../models');
+// Import Models
+const {
+    User,
+    StudentDetail,
+    StudentAnthro,
+    TeacherDetail,
+    AdminDetail,
+    sequelize,
+    Sequelize
+} = require('../models');
 
-// import helper functions
-const { createUser, findUserById, detailedUser, updateUserDetails, updateUserAndDetails, getUsersWithDetails, getUsersByTypeAndArchived } = require('../utils/user/helper_functions/UserHelpers');
-const UserDTO = require('../utils/user/dto/UserDTO');
+// Import Helper Functions
+const {
+    createUser,
+    findUserById,
+    detailedUser,
+    updateUserDetails,
+    updateUserAndDetails,
+    getUsersWithDetails,
+    getUsersByTypeAndArchived
+} = require('../utils/user/helper_functions/UserHelpers');
+
+// Import UserDto
+const UserDto = require('../utils/user/dto/UserDto');
+
+// Import Csv Handling Functions
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const userRowHandler = require('../utils/user/csv_handling/UserCSVRowHandler');
-const { handleTransaction } = require('../utils/HandleTransaction');
 const { checkCsvForDuplicateEmails } = require('../utils/csv_handling/CsvExistingDataChecks');
 
-//import validation middleware
-const { createUserValidationRules, updateUserValidationRules } = require('../utils/user/middleware_validation/UserReqObjValidation');
+// Import Transaction Handler
+const { handleTransaction } = require('../utils/HandleTransaction');
+
+//import Validation Middleware
 const validate = require('../utils/validation/Validate');
+const { createUserValidationRules, updateUserValidationRules } = require('../utils/user/middleware_validation/UserReqObjValidation');
 const checkUserExists = require('../utils/validation/middleware/CheckUserExists');
 const checkUserExistsByEmail = require('../utils/validation/middleware/CheckUserExistsByEmail');
 const checkUserRostered = require('../utils/validation/middleware/CheckUserRostered');
@@ -33,7 +55,7 @@ router.post('/users/register',
         try {
             const newUser = await createUser(req.body);
             const userWithDetails = await findUserById(newUser.id);
-            const userDto = new UserDTO(userWithDetails.toJSON());
+            const userDto = new UserDto(userWithDetails.toJSON());
             return res.status(201).json(userDto);
         } catch (err) {
             next(err);
@@ -45,7 +67,7 @@ router.get('/users', async (req, res, next) => {
     try {
         const users = await getUsersWithDetails();
 
-        const usersDTO = users.map(user => new UserDTO(user.toJSON()));
+        const usersDTO = users.map(user => new UserDto(user.toJSON()));
         res.json(usersDTO);
     } catch (err) {
         next(err);
@@ -56,7 +78,7 @@ router.get('/users', async (req, res, next) => {
 router.get('/users/admin', async (req, res, next) => {
     try {
         const admins = await getUsersByTypeAndArchived('admin');
-        const adminDTOs = admins.map(admin => new UserDTO(admin.toJSON()));
+        const adminDTOs = admins.map(admin => new UserDto(admin.toJSON()));
         res.json(adminDTOs);
     } catch (err) {
         next(err);
@@ -67,7 +89,7 @@ router.get('/users/admin', async (req, res, next) => {
 router.get('/users/admin/active', async (req, res, next) => {
     try {
         const activeAdmins = await getUsersByTypeAndArchived('admin', false);
-        const activeAdminDTOs = activeAdmins.map(admin => new UserDTO(admin.toJSON()));
+        const activeAdminDTOs = activeAdmins.map(admin => new UserDto(admin.toJSON()));
         res.json(activeAdminDTOs);
     } catch (err) {
         next(err);
@@ -78,7 +100,7 @@ router.get('/users/admin/active', async (req, res, next) => {
 router.get('/users/student', async (req, res, next) => {
     try {
         const students = await getUsersByTypeAndArchived('student');
-        const studentDTOs = students.map(student => new UserDTO(student.toJSON()));
+        const studentDTOs = students.map(student => new UserDto(student.toJSON()));
         res.json(studentDTOs);
     } catch (err) {
         next(err);
@@ -89,7 +111,7 @@ router.get('/users/student', async (req, res, next) => {
 router.get('/users/student/active', async (req, res, next) => {
     try {
         const activeStudents = await getUsersByTypeAndArchived('student', false);
-        const activeStudentDTOs = activeStudents.map(student => new UserDTO(student.toJSON()));
+        const activeStudentDTOs = activeStudents.map(student => new UserDto(student.toJSON()));
         res.json(activeStudentDTOs);
     } catch (err) {
         next(err);
@@ -100,7 +122,7 @@ router.get('/users/student/active', async (req, res, next) => {
 router.get('/users/teacher', async (req, res, next) => {
     try {
         const teachers = await getUsersByTypeAndArchived('teacher');
-        const teacherDTOs = teachers.map(teacher => new UserDTO(teacher.toJSON()));
+        const teacherDTOs = teachers.map(teacher => new UserDto(teacher.toJSON()));
         res.json(teacherDTOs);
     } catch (err) {
         next(err);
@@ -111,7 +133,7 @@ router.get('/users/teacher', async (req, res, next) => {
 router.get('/users/teacher/active', async (req, res, next) => {
     try {
         const activeTeachers = await getUsersByTypeAndArchived('teacher', false);
-        const activeTeacherDTOs = activeTeachers.map(teacher => new UserDTO(teacher.toJSON()));
+        const activeTeacherDTOs = activeTeachers.map(teacher => new UserDto(teacher.toJSON()));
         res.json(activeTeacherDTOs);
     } catch (err) {
         next(err);
@@ -135,7 +157,7 @@ router.get('/users/teacher-admin/active', async (req, res, next) => {
             ]
         });
 
-        const teacherAndAdminDTOs = teachersAndAdmins.map(user => new UserDTO(user.toJSON()));
+        const teacherAndAdminDTOs = teachersAndAdmins.map(user => new UserDto(user.toJSON()));
         res.json(teacherAndAdminDTOs);
     } catch (err) {
         next(err);
@@ -146,7 +168,7 @@ router.get('/users/teacher-admin/active', async (req, res, next) => {
 router.get('/users/active', async (req, res, next) => {
     try {
         const activeUsers = await getUsersByTypeAndArchived(null, false); // Fetch all active users (not archived)
-        const activeUsersDTO = activeUsers.map(user => new UserDTO(user.toJSON()));
+        const activeUsersDTO = activeUsers.map(user => new UserDto(user.toJSON()));
         res.json(activeUsersDTO);
     } catch (err) {
         next(err);
@@ -157,7 +179,7 @@ router.get('/users/active', async (req, res, next) => {
 router.get('/users/archived', async (req, res, next) => {
     try {
         const archivedUsers = await getUsersByTypeAndArchived(null, true); // Fetch all archived users
-        const archivedUsersDTO = archivedUsers.map(user => new UserDTO(user.toJSON()));
+        const archivedUsersDTO = archivedUsers.map(user => new UserDto(user.toJSON()));
         res.json(archivedUsersDTO);
     } catch (err) {
         next(err);
@@ -172,7 +194,7 @@ router.get('/users/:id',
 
         try {
             const user = await findUserById(id);
-            const userDto = new UserDTO(user);
+            const userDto = new UserDto(user);
             res.json(userDto);
         } catch (err) {
             next(err);
@@ -201,7 +223,7 @@ router.post('/users/register-upload-csv',
 
             const users = await getUsersWithDetails();
 
-            const usersDTO = users.map(user => new UserDTO(user.toJSON()));
+            const usersDTO = users.map(user => new UserDto(user.toJSON()));
             res.status(201).json(usersDTO);
         } catch (err) {
             console.error('Error in POST /users/register-upload-csv', err);
@@ -229,7 +251,7 @@ router.patch('/users/:id',
             await updateUserAndDetails(user, otherFields);
 
             const updatedUser = await findUserById(id); // Fetch updated user
-            const userDto = new UserDTO(updatedUser);
+            const userDto = new UserDto(updatedUser);
             res.status(200).json(userDto);
         } catch (err) {
             console.error('Error in PATCH /users/:id', err);

@@ -1,6 +1,6 @@
-const BaseDTO = require('../../dto/BaseDTO');
+const BaseDto = require('../../dto/BaseDto');
 
-class AdminDetailDTO extends BaseDTO {
+class AdminDetailDto extends BaseDto {
     constructor(adminDetail) {
         super(adminDetail, {
             'yearsExp': true,
@@ -11,4 +11,4 @@ class AdminDetailDTO extends BaseDTO {
     }
 }
 
-module.exports = AdminDetailDTO;
+module.exports = AdminDetailDto;

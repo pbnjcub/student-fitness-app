@@ -5,21 +5,39 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// import models
-const { sequelize, User, Section, SectionRoster, StudentDetail } = require('../models');
+// Import Models
+const {
+    sequelize,
+    User,
+    Section,
+    SectionRoster,
+    StudentDetail
+} = require('../models');
 
-// Import helper functions
-const { SectionDTO, SectionByIdDTO } = require('../utils/section/dto/SectionDTO');
-const { createSection, findSectionRoster, createRosterEntries, switchRosterEntries, findSectionsByGradeLevel } = require('../utils/section/helper_functions/SectionHelpers');
+//Import SectionDto
+const { SectionDto, SectionByIdDto } = require('../utils/section/dto/SectionDto');
+
+// Import Helper Functions
+const {
+    createSection,
+    findSectionRoster, 
+    createRosterEntries,
+    switchRosterEntries,
+    findSectionsByGradeLevel
+} = require('../utils/section/helper_functions/SectionHelpers');
+
+// Import Transaction Handler
+const { handleTransaction } = require('../utils/HandleTransaction');
+
+// Import CSV Handling Functions
 const { checkCsvForDuplicateSectionCode, checkCsvForDuplicateEmails } = require('../utils/csv_handling/CsvExistingDataChecks');
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const sectionRowHandler = require('../utils/section/csv_handling/SectionCsvRowHandler');
 const rosterSectionRowHandler = require('../utils/section/csv_handling/RosterSectionCsvRowHandler');
-const { handleTransaction } = require('../utils/HandleTransaction');
 
 // Import validation middleware
-const { createSectionValidationRules, updateSectionValidationRules } = require('../utils/section/middleware_validation/SectionReqObjValidation');
 const validate = require('../utils/validation/Validate');
+const { createSectionValidationRules, updateSectionValidationRules } = require('../utils/section/middleware_validation/SectionReqObjValidation');
 const checkSectionActive = require('../utils/validation/middleware//CheckSectionActive');
 const checkSectionExists = require('../utils/validation/middleware/CheckSectionExists');
 const CheckHasRosteredStudents = require('../utils/validation/middleware/CheckHasRosteredStudents');
@@ -33,7 +51,6 @@ const checkStudentsActive = require('../utils/validation/middleware/CheckStudent
 const checkStudentsRosteredInFromSection = require('../utils/validation/middleware/CheckStudentsRosteredInFromSection');
 const transferStudentsValidationRules = require('../utils/section/middleware_validation/TransferStudentsReqObjValidation');
 const checkGradeLevel = require('../utils/validation/middleware/CheckGradeLevel');
-const { check } = require('express-validator');
 
 // Add section
 router.post('/sections',
@@ -43,7 +60,7 @@ router.post('/sections',
     async (req, res, next) => {
         try {
             const newSection = await createSection(req.body);
-            const sectionDto = new SectionDTO(newSection);
+            const sectionDto = new SectionDto(newSection);
             return res.status(201).json(sectionDto);
         } catch (err) {
             next(err);
@@ -55,8 +72,8 @@ router.post('/sections',
 router.get('/sections', async (req, res, next) => {
     try {
         const sections = await Section.findAll();
-        const sectionDTOs = sections.map(section => new SectionDTO(section));
-        res.json(sectionDTOs);
+        const sectionDtos = sections.map(section => new SectionDto(section));
+        res.json(sectionDtos);
     } catch (err) {
         next(err);
     }
@@ -70,8 +87,8 @@ router.get('/sections/active', async (req, res, next) => {
                 isActive: true
             }
         });
-        const sectionDTOs = activeSections.map(section => new SectionDTO(section));
-        res.json(sectionDTOs);
+        const sectionDtos = activeSections.map(section => new SectionDto(section));
+        res.json(sectionDtos);
     } catch (err) {
         next(err);
     }
@@ -101,7 +118,7 @@ router.get('/sections/:id',
         try {
             const sectionRoster = await findSectionRoster(section.id);
             section.sectionRoster = sectionRoster;
-            const sectionWithRoster = new SectionByIdDTO(section);
+            const sectionWithRoster = new SectionByIdDto(section);
             res.json(sectionWithRoster);
         } catch (err) {
             next(err);
@@ -129,8 +146,8 @@ router.post('/sections/upload-csv',
             });
 
             const sections = await Section.findAll();
-            const sectionsDTO = sections.map(section => new SectionDTO(section.toJSON()));
-            res.status(201).json(sectionsDTO);
+            const sectionDto = sections.map(section => new SectionDto(section.toJSON()));
+            res.status(201).json(sectionDtos);
         } catch (err) {
             console.error('Error in POST /sections/upload-csv', err);
             next(err);
@@ -148,8 +165,8 @@ router.patch('/sections/:id',
         try {
             await section.update(req.body);
             const updatedSection = await Section.findByPk(section.id);
-            const sectionDTO = new SectionDTO(updatedSection);
-            res.status(200).json(sectionDTO);
+            const sectionDto = new SectionDto(updatedSection);
+            res.status(200).json(sectionDto);
         } catch (err) {
             console.error('Error updating section:', err);
             next(err);
