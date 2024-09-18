@@ -44,7 +44,7 @@ const validate = require('../utils/validation/Validate');
 const { createUserValidationRules, updateUserValidationRules } = require('../utils/user/middleware_validation/UserReqObjValidation');
 const checkUserExists = require('../utils/validation/middleware/CheckUserExists');
 const checkUserExistsByEmail = require('../utils/validation/middleware/CheckUserExistsByEmail');
-const checkUserRostered = require('../utils/validation/middleware/CheckUserRostered');
+const checkStudentRostered = require('../utils/validation/middleware/CheckStudentRostered');
 
 //create user
 router.post('/users/register',
@@ -236,7 +236,7 @@ router.patch('/users/:id',
     checkUserExists, // Ensure the user exists before proceeding
     updateUserValidationRules(), // Validate the incoming data
     validate, // Run validation and handle any validation errors
-    checkUserRostered, // Final check for rostered status and handle isArchived status change
+    checkStudentRostered, // Final check for rostered status and handle isArchived status change
     async (req, res, next) => {
         const { id } = req.params;
         const { password, ...otherFields } = req.body;
@@ -263,7 +263,7 @@ router.patch('/users/:id',
 //delete user by id
 router.delete('/users/:id',
     checkUserExists,
-    checkUserRostered,
+    checkStudentRostered,
     async (req, res, next) => {
         const user = req.user; 
 
