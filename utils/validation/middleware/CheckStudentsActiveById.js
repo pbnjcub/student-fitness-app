@@ -1,6 +1,6 @@
 const { User } = require('../../../models');
 
-const checkStudentsActive = async (req, res, next) => {
+const checkStudentsActiveById = async (req, res, next) => {
     const { validStudentIds } = req;
 
     try {
@@ -31,4 +31,4 @@ const checkStudentsActive = async (req, res, next) => {
     }
 };
 
-module.exports = checkStudentsActive;
+module.exports = checkStudentsActiveById;

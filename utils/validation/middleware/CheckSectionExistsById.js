@@ -1,6 +1,6 @@
 const { Section } = require('../../../models');
 
-async function checkSectionExists(req, res, next) {
+async function checkSectionExistsById(req, res, next) {
     const sectionId = req.params.sectionId || req.params.id;
 
     if (!sectionId || isNaN(sectionId)) {
@@ -24,4 +24,4 @@ async function checkSectionExists(req, res, next) {
     }
 }
 
-module.exports = checkSectionExists;
+module.exports = checkSectionExistsById;

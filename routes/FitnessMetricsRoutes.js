@@ -30,8 +30,8 @@ const { handleTransaction } = require('../utils/HandleTransaction');
 
 // Import Validation Middleware
 const validate = require('../utils/validation/Validate');
-const checkStudentExists = require('../utils/validation/middleware/CheckStudentExists');
-const checkStudentArchived = require('../utils/validation/middleware/CheckStudentArchived');
+const checkStudentExistsById = require('../utils/validation/middleware/CheckStudentExistsById');
+const checkStudentActive = require('../utils/validation/middleware/CheckStudentActive');
 const checkTeacherExists = require('../utils/validation/middleware/CheckTeacherExists');
 const checkTeacherArchived = require('../utils/validation/middleware/CheckTeacherArchived');
 const checkAnthroExists = require('../utils/validation/middleware/CheckAnthroExists');
@@ -47,8 +47,8 @@ const { checkStudentsExistEmail } = require('../utils/csv_handling/CsvExistingDa
 router.post('/users/:id/record-anthro',
     createAnthroValidationRules(), // Validate the incoming anthropometric data
     validate,
-    checkStudentExists, // Ensure the student exists before proceeding
-    checkStudentArchived, // Ensure the student is not archived before proceeding
+    checkStudentExistsById, // Ensure the student exists before proceeding
+    checkStudentActive, // Ensure the student is not archived before proceeding
     checkTeacherExists({ required: true }), // Ensure the teacher exists before proceeding
     checkTeacherArchived, // Ensure the teacher is not archived before proceeding
     async (req, res, next) => {
@@ -88,8 +88,8 @@ router.post('/users/:id/record-anthro',
 router.patch('/users/:id/update-anthro',
     updateAnthroValidationRules(), // You might want to customize these rules for patching
     validate,
-    checkStudentExists,
-    checkStudentArchived,
+    checkStudentExistsById,
+    checkStudentActive,
     checkTeacherExists(),
     checkTeacherArchived,
     checkAnthroExists,
@@ -115,8 +115,8 @@ router.patch('/users/:id/update-anthro',
 
 // Route to retrieve all anthro data related to one student, including historical data
 router.get('/users/:id/anthro',
-    checkStudentExists,
-    checkStudentArchived,
+    checkStudentExistsById,
+    checkStudentActive,
     async (req, res, next) => {
         console.log('GET /users/:id/anthro');
         try {

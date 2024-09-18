@@ -1,6 +1,6 @@
 const { User } = require('../../../models');
 
-async function checkStudentExists(req, res, next) {
+async function checkStudentExistsById(req, res, next) {
     const { id } = req.params;
 
     try {
@@ -18,4 +18,4 @@ async function checkStudentExists(req, res, next) {
     }
 }
 
-module.exports = checkStudentExists;
+module.exports = checkStudentExistsById;

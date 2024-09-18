@@ -168,25 +168,10 @@ async function findSectionsByGradeLevel(grades) {
 
 const switchRosterEntries = async (studentIds, fromSectionId, toSectionId, transaction) => {
     const switchedStudents = [];
-    const alreadyInTargetSectionIds = [];
-    const notInSourceSectionIds = [];
 
     for (const studentUserId of studentIds) {
-        // Check if the student is rostered in the target section already
-        const existingInTargetSection = await SectionRoster.findOne({
-            where: {
-                studentUserId,
-                sectionId: toSectionId,
-            },
-            transaction,
-        });
 
-        if (existingInTargetSection) {
-            alreadyInTargetSectionIds.push(studentUserId);
-            continue; // Skip this student if already in the target section
-        }
-
-        // Check if the student is rostered in the current (from) section
+        // Find and remove from the current section
         const existingInFromSection = await SectionRoster.findOne({
             where: {
                 studentUserId,
@@ -195,29 +180,17 @@ const switchRosterEntries = async (studentIds, fromSectionId, toSectionId, trans
             transaction,
         });
 
-        if (!existingInFromSection) {
-            notInSourceSectionIds.push(studentUserId);
-            continue;
+        if (existingInFromSection) {
+            await existingInFromSection.destroy({ transaction });
+
+            // Add to the target section
+            const newRosterEntry = await SectionRoster.create({
+                studentUserId,
+                sectionId: toSectionId,
+            }, { transaction });
+
+            switchedStudents.push(newRosterEntry);
         }
-
-        // Remove from the current section
-        await existingInFromSection.destroy({ transaction });
-
-        // Add to the target section
-        const newRosterEntry = await SectionRoster.create({
-            studentUserId,
-            sectionId: toSectionId,
-        }, { transaction });
-
-        switchedStudents.push(newRosterEntry);
-    }
-
-    if (alreadyInTargetSectionIds.length > 0) {
-        console.log(`The following students are already rostered in the target section: ${alreadyInTargetSectionIds.join(', ')}`);
-    }
-
-    if (notInSourceSectionIds.length > 0) {
-        console.log(`The following students were not found in the source section: ${notInSourceSectionIds.join(', ')}`);
     }
 
     return switchedStudents;
@@ -225,8 +198,9 @@ const switchRosterEntries = async (studentIds, fromSectionId, toSectionId, trans
 
 
 
-module.exports = {
-    
+
+
+module.exports = {   
     createSection,
     findSectionRoster,
     getAcademicYear,

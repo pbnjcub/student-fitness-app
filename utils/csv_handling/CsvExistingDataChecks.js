@@ -1,26 +1,23 @@
 const { User, StudentDetail } = require('../../models'); // Import necessary models
 
 
-async function checkStudentsExistEmail(newStudents) {
+async function checkCsvUsersExistEmail(csvData) {
     const errors = [];
-    const studentIds = {};
+    const existingUsers = {}; // Generalized to store IDs for any type of user
 
-    for (const student of newStudents) {
-        const { email } = student;
+    for (const row of csvData) {
+        const { email } = row;
 
-        const studentRecord = await User.findOne({
+        const userRecord = await User.findOne({
             where: { email },
-            include: [{ model: StudentDetail, as: 'studentDetails' }],
-            attributes: ['id', 'userType'] // Fetch the id and userType for validation
+            attributes: ['id', 'userType', 'isArchived'] // Fetch the id and userType for validation
         });
 
-        if (!studentRecord) {
-            errors.push(`Student with email ${email} not found`);
-        } else if (studentRecord.userType !== 'student') {
-            errors.push(`User with email ${email} is not a student`);
+        if (!userRecord) {
+            errors.push(`User with email ${email} not found`);
         } else {
-            // If the student exists and is valid, store the ID for later use
-            studentIds[email] = studentRecord.id;
+            // If the user exists and is valid, store the ID for later use
+            existingUsers[email] = { id: userRecord.id, userType: userRecord.userType, isArchived: userRecord.isArchived };
         }
     }
 
@@ -28,8 +25,42 @@ async function checkStudentsExistEmail(newStudents) {
         throw new Error(errors.join('; '));
     }
 
-    return studentIds; // Return an object with emails as keys and student IDs as values
+    return existingUsers; // Return an object with emails as keys and user IDs as values
 }
+
+const checkCsvUsersAreStudents = (users) => {
+    const errors = [];
+
+    for (const email in users) {
+        const { userType } = users[email];
+        
+        if (userType !== 'student') {
+            errors.push(`User with email ${email} is not a student.`);
+        }
+    }
+
+    if (errors.length > 0) {
+        throw new Error(errors.join('; '));
+    }
+};
+
+const checkCsvUsersArchived = (users) => {
+    const errors = [];
+
+    for (const email in users) {
+        const { isArchived } = users[email];
+        
+        if (isArchived) {
+            errors.push(`User with email ${email} is archived.`);
+        }
+    }
+
+    if (errors.length > 0) {
+        throw new Error(errors.join('; '));
+    }
+};
+
+
 
 //check for duplicate section codes in CSV upload
 const checkCsvForDuplicateSectionCode = async (newSections) => {
@@ -50,27 +81,35 @@ const checkCsvForDuplicateSectionCode = async (newSections) => {
     }
 };
 
-const checkCsvForDuplicateEmails = async (newStudents) => {
-    console.log('Checking for duplicate emails:', JSON.stringify(newStudents, null, 2));
+const checkCsvForDuplicateEmails = async (csvData) => {
+    console.log('Checking for duplicate emails:', JSON.stringify(csvData, null, 2));
     const emails = new Set();
-    const duplicates = [];
+    const duplicates = new Set(); // Use a Set to ensure uniqueness
 
-    for (const student of newStudents) {
-        if (emails.has(student.email)) {
-            duplicates.push(student.email);
+    for (const data of csvData) {
+        if (!data.email) {
+            continue; // Skip if email is missing or falsy
         }
-        emails.add(student.email);
+        
+        if (emails.has(data.email)) {
+            duplicates.add(data.email); // Add to duplicates if email already exists
+        } else {
+            emails.add(data.email); // Otherwise, add email to Set
+        }
     }
 
-    console.log('Duplicate emails:', duplicates);
-    if (duplicates.length > 0) {
-        throw new Error(`Duplicate emails found: ${[...new Set(duplicates)].join(', ')}`);
+    console.log('Duplicate emails:', [...duplicates]);
+    if (duplicates.size > 0) {
+        throw new Error(`Duplicate emails found: ${[...duplicates].join(', ')}`);
     }
 };
 
 
+
 module.exports = {
-    checkStudentsExistEmail,
+    checkCsvUsersExistEmail,
+    checkCsvUsersAreStudents,
+    checkCsvUsersArchived,
     checkCsvForDuplicateSectionCode,
-    
+    checkCsvForDuplicateEmails
  }

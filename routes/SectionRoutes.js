@@ -38,17 +38,19 @@ const rosterSectionRowHandler = require('../utils/section/csv_handling/RosterSec
 // Import validation middleware
 const validate = require('../utils/validation/Validate');
 const { createSectionValidationRules, updateSectionValidationRules } = require('../utils/section/middleware_validation/SectionReqObjValidation');
+const rosterStudentsValidationRules = require('../utils/section/middleware_validation/RosterStudentsReqObjValidation');
 const checkSectionActive = require('../utils/validation/middleware//CheckSectionActive');
-const checkSectionExists = require('../utils/validation/middleware/CheckSectionExists');
+const checkSectionExistsById = require('../utils/validation/middleware/CheckSectionExistsById');
 const CheckHasRosteredStudents = require('../utils/validation/middleware/CheckHasRosteredStudents');
 const checkSectionCodeExists = require('../utils/validation/middleware/CheckSectionCodeExists');
 const checkStudentsToRosterInSection = require('../utils/validation/middleware/CheckStudentsToRosterInSection');
 const checkStudentsToUnrosterFromSection = require('../utils/validation/middleware/CheckStudentsToUnrosterFromSection');
-const { checkStudentsExistEmail } = require('../utils/csv_handling/CsvExistingDataChecks');
-const checkMultipleStudentsExist = require('../utils/validation/middleware/CheckMultipleStudentsExist');
-const checkSectionsExistAndActive = require('../utils/validation/middleware/CheckSectionsExistAndActive');
-const checkStudentsActive = require('../utils/validation/middleware/CheckStudentsActive');
+const { checkCsvUsersExistEmail, checkCsvUsersAreStudents, checkCsvUsersArchived } = require('../utils/csv_handling/CsvExistingDataChecks');
+const checkStudentsExistById = require('../utils/validation/middleware/CheckStudentsExistById');
+const checkSectionsExistByIdWhenTransferStudents = require('../utils/validation/middleware/CheckSectionsExistByIdWhenTransferStudents');
+const checkStudentsActiveById = require('../utils/validation/middleware/CheckStudentsActiveById');
 const checkStudentsRosteredInFromSection = require('../utils/validation/middleware/CheckStudentsRosteredInFromSection');
+const checkStudentsAlreadyRosteredInToSection = require('../utils/validation/middleware/CheckStudentsAlreadyRosteredInToSection');
 const transferStudentsValidationRules = require('../utils/section/middleware_validation/TransferStudentsReqObjValidation');
 const checkGradeLevel = require('../utils/validation/middleware/CheckGradeLevel');
 
@@ -111,7 +113,7 @@ router.get('/sections/grade',
 
 // Retrieve section by id
 router.get('/sections/:id',
-    checkSectionExists,
+    checkSectionExistsById,
     async (req, res, next) => {
         const { section } = req;
 
@@ -156,9 +158,9 @@ router.post('/sections/upload-csv',
 
 // Edit section by id
 router.patch('/sections/:id',
-    checkSectionExists, // Ensure the section exists before proceeding
     updateSectionValidationRules(), // Validate the incoming data
     validate, // Run validation and handle any validation errors
+    checkSectionExistsById, // Ensure the section exists before proceeding
     CheckHasRosteredStudents, // Final check for rostered students and handle isActive status change
     async (req, res, next) => {
         const { section } = req;
@@ -176,7 +178,7 @@ router.patch('/sections/:id',
 
 // Delete section
 router.delete('/sections/:id',
-    checkSectionExists,
+    checkSectionExistsById,
     CheckHasRosteredStudents,
     async (req, res, next) => {
         const { section } = req;
@@ -192,9 +194,12 @@ router.delete('/sections/:id',
 
 // Route to roster a student user to a section
 router.post('/sections/:sectionId/roster-students',
-    checkSectionExists,
-    checkSectionActive,
-    checkStudentsToRosterInSection,
+    rosterStudentsValidationRules(),
+    validate,
+    checkStudentsExistById,
+    checkStudentsActiveById,
+    checkSectionExistsById,
+    checkSectionActive(),
     async (req, res, next) => {
         const { section } = req;
         try {
@@ -211,7 +216,7 @@ router.post('/sections/:sectionId/roster-students',
 
 // Route to unenroll student from section
 router.delete('/sections/:sectionId/unroster-students',
-    checkSectionExists,
+    checkSectionExistsById,
     checkStudentsToUnrosterFromSection,
     async (req, res, next) => {
         const { section } = req;
@@ -239,7 +244,7 @@ router.delete('/sections/:sectionId/unroster-students',
 );
 
 // Roster students from CSV
-router.post('/sections/:sectionId/roster-students-upload-csv', 
+router.post('/sections/:sectionId/roster-students-by-csv', 
     upload.single('file'),
     async (req, res, next) => {
         try {
@@ -254,11 +259,19 @@ router.post('/sections/:sectionId/roster-students-upload-csv',
             // Check for duplicate student IDs
             await checkCsvForDuplicateEmails(newStudents);
 
-            const studentIds = await checkStudentsExistEmail(newStudents);
+            const existingUsers = await checkCsvUsersExistEmail(newStudents);
+
+            // Check if existingUsers' userTypes are "student"
+            checkCsvUsersAreStudents(existingUsers);
+
+            console.log(('existingUsers after successful userRole check:', existingUsers));
+
+            // Check if existingUsers are archived
+            checkCsvUsersArchived(existingUsers);
 
             // Attach the student IDs to the student objects
             newStudents.forEach(student => {
-                student.id = studentIds[student.email]; // Attach the student ID to the student object
+                student.id = existingUsers[student.email]; // Attach the student ID to the student object
             });
 
             // Handle the transaction and create roster entries
@@ -275,13 +288,14 @@ router.post('/sections/:sectionId/roster-students-upload-csv',
 );
 
 router.post('/sections/transfer-students', 
-    transferStudentsValidationRules(), // Validate the request body structure
+    transferStudentsValidationRules(), // Validate the incoming data types, etc.
     validate, // Handle any validation errors
-    checkMultipleStudentsExist, // Middleware to check if student IDs exist and are valid
-    checkStudentsActive,// Check if students are active and not archived
-    checkSectionsExistAndActive, // Check if sections exist and toSection is active 
+    checkStudentsExistById, // Check if student IDs exist and are valid
+    checkStudentsActiveById,// Check if students are active and not archived
+    checkSectionsExistByIdWhenTransferStudents, // Check if sections exist
+    checkSectionActive('toSection'), // Check if the toSection is active
     checkStudentsRosteredInFromSection, // Check if students are in the fromSection
- 
+    checkStudentsAlreadyRosteredInToSection, // Check if students are already in the to
     async (req, res, next) => {
         try {
             const { fromSectionId, toSectionId } = req.body;

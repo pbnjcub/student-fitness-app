@@ -1,12 +1,12 @@
 const { SectionRoster } = require('../../../models');
 
-const checkStudentsInFromSection = async (req, res, next) => {
+const checkStudentsRosteredInFromSection = async (req, res, next) => {
     const { activeStudentIds } = req;
     const { fromSectionId } = req.body;
 
     try {
-        const notInSectionStudents = [];
-        const validSectionStudents = [];
+        const notRosteredInFromSectionStudents = [];
+        const rosteredInFromSectionStudents = [];
 
         for (const id of activeStudentIds) {
             const rosterRecord = await SectionRoster.findOne({
@@ -14,24 +14,24 @@ const checkStudentsInFromSection = async (req, res, next) => {
             });
 
             if (!rosterRecord) {
-                notInSectionStudents.push(id);
+                notRosteredInFromSectionStudents.push(id);
             } else {
-                validSectionStudents.push(id);
+                rosteredInFromSectionStudents.push(id);
             }
         }
 
-        if (notInSectionStudents.length > 0) {
+        if (notRosteredInFromSectionStudents.length > 0) {
             return res.status(400).json({ 
                 error: 'Some students are not in the fromSection', 
-                studentIds: notInSectionStudents 
+                studentIds: notRosteredInFromSectionStudents 
             });
         }
 
-        req.validSectionStudents = validSectionStudents;
+        req.rosteredInFromSectionStudents = rosteredInFromSectionStudents;
         next();
     } catch (err) {
         next(err); // Pass the error to your error handler
     }
 };
 
-module.exports = checkStudentsInFromSection;
+module.exports = checkStudentsRosteredInFromSection;

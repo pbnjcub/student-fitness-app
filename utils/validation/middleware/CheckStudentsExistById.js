@@ -1,6 +1,6 @@
 const { User } = require('../../../models'); // Adjust the import path as needed
 
-const checkMultipleStudentsExist = async (req, res, next) => {
+const checkStudentsExistById = async (req, res, next) => {
     const { studentIds } = req.body;
 
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
@@ -39,4 +39,4 @@ const checkMultipleStudentsExist = async (req, res, next) => {
     }
 };
 
-module.exports = checkMultipleStudentsExist;
+module.exports = checkStudentsExistById;

@@ -27,12 +27,12 @@ class UserDto extends BaseDto {
 
         // Dynamically add detail fields based on the user type
         if (user.userType === 'student') {
-            fieldsConfig['studentDetails'] = StudentDetailDTO;
-            fieldsConfig['studentAnthro'] = StudentAnthroDTO;
+            fieldsConfig['studentDetails'] = StudentDetailDto;
+            fieldsConfig['studentAnthro'] = StudentAnthroDto;
         } else if (user.userType === 'teacher') {
-            fieldsConfig['teacherDetails'] = TeacherDetailDTO;
+            fieldsConfig['teacherDetails'] = TeacherDetailDto;
         } else if (user.userType === 'admin') {
-            fieldsConfig['adminDetails'] = AdminDetailDTO;
+            fieldsConfig['adminDetails'] = AdminDetailDto;
         }
 
         super(user, fieldsConfig);
