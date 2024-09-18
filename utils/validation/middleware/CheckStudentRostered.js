@@ -1,6 +1,6 @@
 const { SectionRoster, User } = require('../../../models');
 
-async function checkUserRostered(req, res, next) {
+async function checkStudentRostered(req, res, next) {
     const { id } = req.params;
     const { isArchived } = req.body;
 
@@ -36,4 +36,4 @@ async function checkUserRostered(req, res, next) {
     }
 }
 
-module.exports = checkUserRostered;
+module.exports = checkStudentRostered;

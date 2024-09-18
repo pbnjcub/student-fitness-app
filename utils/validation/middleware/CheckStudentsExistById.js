@@ -1,3 +1,4 @@
+
 const { User } = require('../../../models'); // Adjust the import path as needed
 
 const checkStudentsExistById = async (req, res, next) => {
@@ -8,22 +9,20 @@ const checkStudentsExistById = async (req, res, next) => {
     }
 
     const errors = [];
-    const validStudentIds = [];
+    const existingStudents = [];
 
     try {
         for (const id of studentIds) {
             const studentRecord = await User.findOne({
                 where: { id },
-                attributes: ['id', 'userType'] // Fetch the id and userType for validation
+                attributes: ['id', 'userType', 'isArchived'] // Fetch the id, userType, and isArchived
             });
 
             if (!studentRecord) {
                 errors.push(`Student with ID ${id} not found`);
-            } else if (studentRecord.userType !== 'student') {
-                errors.push(`User with ID ${id} is not a student`);
             } else {
-                // If the student exists and is valid, add the ID to the validStudentIds array
-                validStudentIds.push(studentRecord.id);
+                // Store the whole record with id, userType, and isArchived
+                existingStudents.push(studentRecord);
             }
         }
 
@@ -31,8 +30,8 @@ const checkStudentsExistById = async (req, res, next) => {
             return res.status(400).json({ errors });
         }
 
-        // Attach validStudentIds to the request object for later use
-        req.validStudentIds = validStudentIds;
+        // Attach existingStudents (with id, userType, isArchived) to the request object for use in later middleware
+        req.existingStudents = existingStudents;
         next();
     } catch (err) {
         next(err); // Pass the error to your error handler
@@ -40,3 +39,5 @@ const checkStudentsExistById = async (req, res, next) => {
 };
 
 module.exports = checkStudentsExistById;
+
+

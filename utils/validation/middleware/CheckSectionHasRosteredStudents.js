@@ -1,6 +1,6 @@
 const { SectionRoster, Section } = require('../../../models');
 
-async function CheckHasRosteredStudents(req, res, next) {
+async function CheckSectionHasRosteredStudents(req, res, next) {
     const { id } = req.params;
     const { isActive } = req.body;
 
@@ -35,7 +35,7 @@ async function CheckHasRosteredStudents(req, res, next) {
     }
 }
 
-module.exports = CheckHasRosteredStudents;
+module.exports = CheckSectionHasRosteredStudents;
 
 
 

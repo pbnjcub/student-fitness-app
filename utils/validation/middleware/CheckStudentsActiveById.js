@@ -1,34 +1,23 @@
-const { User } = require('../../../models');
+const checkStudentsActiveById = (req, res, next) => {
+    const ArchivedStudents = [];
 
-const checkStudentsActiveById = async (req, res, next) => {
-    const { validStudentIds } = req;
-
-    try {
-        const inactiveOrArchivedStudents = [];
-        const activeStudentIds = [];
-
-        for (const id of validStudentIds) {
-            const studentRecord = await User.findByPk(id);
-
-            if (studentRecord.isArchived) {
-                inactiveOrArchivedStudents.push(id);
-            } else {
-                activeStudentIds.push(id);
-            }
+    // Use the existing student data from req.existingStudents
+    req.existingStudents.forEach(student => {
+        if (student.isArchived) {
+            ArchivedStudents.push(student.id);
         }
+    });
 
-        if (inactiveOrArchivedStudents.length > 0) {
-            return res.status(400).json({ 
-                error: 'Some students are inactive or archived', 
-                studentIds: inactiveOrArchivedStudents 
-            });
-        }
-
-        req.activeStudentIds = activeStudentIds;
-        next();
-    } catch (err) {
-        next(err); // Pass the error to your error handler
+    // If there are inactive/archived students, return a 400 error and stop further processing
+    if (ArchivedStudents.length > 0) {
+        return res.status(400).json({ 
+            error: 'Some students are inactive or archived', 
+            studentIds: ArchivedStudents 
+        });
     }
+
+    // If no students are archived, proceed to the next middleware
+    next();
 };
 
 module.exports = checkStudentsActiveById;

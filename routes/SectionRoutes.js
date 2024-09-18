@@ -41,18 +41,20 @@ const { createSectionValidationRules, updateSectionValidationRules } = require('
 const rosterStudentsValidationRules = require('../utils/section/middleware_validation/RosterStudentsReqObjValidation');
 const checkSectionActive = require('../utils/validation/middleware//CheckSectionActive');
 const checkSectionExistsById = require('../utils/validation/middleware/CheckSectionExistsById');
-const CheckHasRosteredStudents = require('../utils/validation/middleware/CheckHasRosteredStudents');
+const CheckSectionHasRosteredStudents = require('../utils/validation/middleware/CheckSectionHasRosteredStudents');
 const checkSectionCodeExists = require('../utils/validation/middleware/CheckSectionCodeExists');
 const checkStudentsToRosterInSection = require('../utils/validation/middleware/CheckStudentsToRosterInSection');
 const checkStudentsToUnrosterFromSection = require('../utils/validation/middleware/CheckStudentsToUnrosterFromSection');
 const { checkCsvUsersExistEmail, checkCsvUsersAreStudents, checkCsvUsersArchived } = require('../utils/csv_handling/CsvExistingDataChecks');
 const checkStudentsExistById = require('../utils/validation/middleware/CheckStudentsExistById');
+const checkStudentsUserType = require('../utils/validation/middleware/CheckStudentsUserType');
 const checkSectionsExistByIdWhenTransferStudents = require('../utils/validation/middleware/CheckSectionsExistByIdWhenTransferStudents');
 const checkStudentsActiveById = require('../utils/validation/middleware/CheckStudentsActiveById');
 const checkStudentsRosteredInFromSection = require('../utils/validation/middleware/CheckStudentsRosteredInFromSection');
 const checkStudentsAlreadyRosteredInToSection = require('../utils/validation/middleware/CheckStudentsAlreadyRosteredInToSection');
 const transferStudentsValidationRules = require('../utils/section/middleware_validation/TransferStudentsReqObjValidation');
 const checkGradeLevel = require('../utils/validation/middleware/CheckGradeLevel');
+const { check } = require('express-validator');
 
 // Add section
 router.post('/sections',
@@ -161,7 +163,7 @@ router.patch('/sections/:id',
     updateSectionValidationRules(), // Validate the incoming data
     validate, // Run validation and handle any validation errors
     checkSectionExistsById, // Ensure the section exists before proceeding
-    CheckHasRosteredStudents, // Final check for rostered students and handle isActive status change
+    CheckSectionHasRosteredStudents, // Final check for rostered students and handle isActive status change
     async (req, res, next) => {
         const { section } = req;
         try {
@@ -179,7 +181,7 @@ router.patch('/sections/:id',
 // Delete section
 router.delete('/sections/:id',
     checkSectionExistsById,
-    CheckHasRosteredStudents,
+    CheckSectionHasRosteredStudents,
     async (req, res, next) => {
         const { section } = req;
 
@@ -197,6 +199,7 @@ router.post('/sections/:sectionId/roster-students',
     rosterStudentsValidationRules(),
     validate,
     checkStudentsExistById,
+    checkStudentsUserType,
     checkStudentsActiveById,
     checkSectionExistsById,
     checkSectionActive(),
