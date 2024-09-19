@@ -1,9 +1,9 @@
 const Sequelize = require('sequelize');
 const { UserDetailUpdateError } = require('./CustomErrors');
 
-const errorHandler = (err, req, res, next) => {
-    const formatError = (field, message) => ({ field, message });
+const formatError = (field, message) => ({ field, message });
 
+const errorHandler = (err, req, res, next) => {
     let statusCode = err.status || 500;
     let errorResponse;
 
@@ -138,4 +138,4 @@ const errorHandler = (err, req, res, next) => {
     return res.status(statusCode).json({ errs: Array.isArray(errorResponse) ? errorResponse : [errorResponse] });
 };
 
-module.exports = errorHandler;
+module.exports = { errorHandler, formatError };

@@ -114,38 +114,21 @@ async function hasEnrolledStudents(sectionId) {
 
 const createRosterEntries = async (students, sectionId, transaction) => {
     const rosteredStudents = [];
-    const alreadyRosteredEmails = [];
 
     for (const student of students) {
-        const { id: studentUserId, email } = student;
+        const { id: studentUserId } = student;
 
-        // Check if the student is already rostered in any section
-        const existingRoster = await SectionRoster.findOne({
-            where: {
-                studentUserId
-            }
-        });
-
-        if (existingRoster) {
-            alreadyRosteredEmails.push(email);
-            continue; // Skip this student and continue with the next one
-        }
-
-        // Create SectionRoster entry
         const sectionRoster = await SectionRoster.create({
             studentUserId,
-            sectionId: sectionId,
+            sectionId,
         }, { transaction });
 
         rosteredStudents.push(sectionRoster);
     }
 
-    if (alreadyRosteredEmails.length > 0) {
-        throw new Error(`The following students are already rostered in other sections: ${alreadyRosteredEmails.join(', ')}`);
-    }
-
     return rosteredStudents;
 };
+
 
 async function findSectionsByGradeLevel(grades) {
     try {

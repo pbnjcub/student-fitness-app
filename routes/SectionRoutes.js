@@ -52,6 +52,7 @@ const checkSectionsExistByIdWhenTransferStudents = require('../utils/validation/
 const checkStudentsActiveById = require('../utils/validation/middleware/CheckStudentsActiveById');
 const checkStudentsRosteredInFromSection = require('../utils/validation/middleware/CheckStudentsRosteredInFromSection');
 const checkStudentsAlreadyRosteredInToSection = require('../utils/validation/middleware/CheckStudentsAlreadyRosteredInToSection');
+const checkStudentsRostered = require('../utils/validation/middleware/CheckStudentsRostered');
 const transferStudentsValidationRules = require('../utils/section/middleware_validation/TransferStudentsReqObjValidation');
 const checkGradeLevel = require('../utils/validation/middleware/CheckGradeLevel');
 const { check } = require('express-validator');
@@ -201,13 +202,14 @@ router.post('/sections/:sectionId/roster-students',
     checkStudentsExistById,
     checkStudentsUserType,
     checkStudentsActiveById,
+    checkStudentsRostered,
     checkSectionExistsById,
     checkSectionActive(),
     async (req, res, next) => {
         const { section } = req;
         try {
             await handleTransaction(async (transaction) => {
-                const rosteredStudents = await createRosterEntries(req.validatedStudents, section.id, transaction);
+                const rosteredStudents = await createRosterEntries(req.existingStudents, section.id, transaction);
                 res.json({ rosteredStudents, message: `${rosteredStudents.length} student(s) added to the roster` });
             });
         } catch (err) {

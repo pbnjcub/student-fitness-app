@@ -1,17 +1,20 @@
+const { formatError } = require('../../error_handling/ErrorHandler');
+
 const checkStudentsUserType = (req, res, next) => {
     // Filter the existing students to find any that are not of type 'student'
     const invalidUsers = req.existingStudents.filter(student => student.userType !== 'student');
+    const errors = [];
 
-    if (invalidUsers.length > 0) {
-        // If there are invalid users, return a 400 error with details
-        const invalidUserIds = invalidUsers.map(user => user.id);
-        return res.status(400).json({
-            error: 'Some users are not students and cannot be rostered.',
-            invalidUserIds,
-        });
+    invalidUsers.forEach(user => {
+        errors.push(formatError('userType', `User with ID ${user.id} is not a student`));
+        }
+    );
+
+    if (errors.length > 0) {
+        // If there are errors, pass the array of errors to the error handler
+        return next(errors);
     }
 
-    // If all users are of type 'student', proceed to the next middleware
     next();
 };
 

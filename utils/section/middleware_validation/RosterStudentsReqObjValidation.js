@@ -1,7 +1,5 @@
-const { body } = require('express-validator');
-const { validateField, customFieldValidation } = require('../../validation/CommonValidationFunctions');
+const { customFieldValidation } = require('../../validation/CommonValidationFunctions');
 
-// Section validation rules
 const rosterStudentsValidationRules = () => [
     customFieldValidation('studentUserIds', (value) => {
         if (!Array.isArray(value) || value.length === 0) {
@@ -13,7 +11,7 @@ const rosterStudentsValidationRules = () => [
             }
         });
         return true;
-    }),
+    })
 ];
 
 module.exports = rosterStudentsValidationRules;

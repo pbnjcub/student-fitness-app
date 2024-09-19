@@ -1,43 +1,42 @@
-
-const { User } = require('../../../models'); // Adjust the import path as needed
+const { User } = require('../../../models');
+const { formatError } = require('../../error_handling/ErrorHandler'); // Adjust the path as necessary
 
 const checkStudentsExistById = async (req, res, next) => {
-    const { studentIds } = req.body;
+    const { studentUserIds } = req.body;
 
-    if (!Array.isArray(studentIds) || studentIds.length === 0) {
-        return res.status(400).json({ error: 'studentIds must be a non-empty array.' });
+    if (!Array.isArray(studentUserIds) || studentUserIds.length === 0) {
+        const err = new Error('studentUserIds must be a non-empty array.');
+        err.status = 400;
+        return next(err);
     }
 
     const errors = [];
     const existingStudents = [];
 
     try {
-        for (const id of studentIds) {
+        for (const id of studentUserIds) {
             const studentRecord = await User.findOne({
                 where: { id },
-                attributes: ['id', 'userType', 'isArchived'] // Fetch the id, userType, and isArchived
+                attributes: ['id', 'userType', 'isArchived'] 
             });
 
             if (!studentRecord) {
-                errors.push(`Student with ID ${id} not found`);
+                // Use formatError to format the error message
+                errors.push(formatError('studentUserId', `Student with ID ${id} not found`));
             } else {
-                // Store the whole record with id, userType, and isArchived
                 existingStudents.push(studentRecord);
             }
         }
 
         if (errors.length > 0) {
-            return res.status(400).json({ errors });
+            return next(errors); // Pass the array of errors to the error handler
         }
 
-        // Attach existingStudents (with id, userType, isArchived) to the request object for use in later middleware
         req.existingStudents = existingStudents;
         next();
     } catch (err) {
-        next(err); // Pass the error to your error handler
+        next(err); // General error catching
     }
 };
 
 module.exports = checkStudentsExistById;
-
-

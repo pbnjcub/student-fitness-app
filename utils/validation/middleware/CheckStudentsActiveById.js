@@ -1,19 +1,19 @@
+const { formatError } = require('../../error_handling/ErrorHandler');
+
 const checkStudentsActiveById = (req, res, next) => {
-    const ArchivedStudents = [];
+    const { existingStudents } = req;
+    const errors = [];
 
     // Use the existing student data from req.existingStudents
-    req.existingStudents.forEach(student => {
+    existingStudents.forEach(student => {
         if (student.isArchived) {
-            ArchivedStudents.push(student.id);
+            errors.push(formatError('studentId', `Student with ID ${student.id} is archived`));
         }
     });
 
-    // If there are inactive/archived students, return a 400 error and stop further processing
-    if (ArchivedStudents.length > 0) {
-        return res.status(400).json({ 
-            error: 'Some students are inactive or archived', 
-            studentIds: ArchivedStudents 
-        });
+    if (errors.length > 0) {
+        // If there are errors, pass the array of errors to the error handler
+        return next(errors);
     }
 
     // If no students are archived, proceed to the next middleware
