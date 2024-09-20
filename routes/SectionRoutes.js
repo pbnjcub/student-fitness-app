@@ -43,7 +43,6 @@ const checkSectionActive = require('../utils/validation/middleware//CheckSection
 const checkSectionExistsById = require('../utils/validation/middleware/CheckSectionExistsById');
 const CheckSectionHasRosteredStudents = require('../utils/validation/middleware/CheckSectionHasRosteredStudents');
 const checkSectionCodeExists = require('../utils/validation/middleware/CheckSectionCodeExists');
-const checkStudentsToRosterInSection = require('../utils/validation/middleware/CheckStudentsToRosterInSection');
 const checkStudentsToUnrosterFromSection = require('../utils/validation/middleware/CheckStudentsToUnrosterFromSection');
 const { checkCsvUsersExistEmail, checkCsvUsersAreStudents, checkCsvUsersArchived } = require('../utils/csv_handling/CsvExistingDataChecks');
 const checkStudentsExistById = require('../utils/validation/middleware/CheckStudentsExistById');
@@ -55,7 +54,6 @@ const checkStudentsAlreadyRosteredInToSection = require('../utils/validation/mid
 const checkStudentsRostered = require('../utils/validation/middleware/CheckStudentsRostered');
 const transferStudentsValidationRules = require('../utils/section/middleware_validation/TransferStudentsReqObjValidation');
 const checkGradeLevel = require('../utils/validation/middleware/CheckGradeLevel');
-const { check } = require('express-validator');
 
 // Add section
 router.post('/sections',
