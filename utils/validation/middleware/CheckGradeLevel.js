@@ -21,7 +21,7 @@ function checkGradeLevel(req, res, next) {
     }
 
     // Attach clean grades to request for further use in the route handler if needed
-    req.validatedGrades = grades;
+    req.validatedGradeLevels = grades;
     next();
 }
 

@@ -139,13 +139,14 @@ async function findSectionsByGradeLevel(grades) {
         });
 
         if (sections.length === 0) {
-            throw new Error('No sections found for the provided grade levels');
+            const err = new Error('No sections found for the provided grade levels');
+            return next(err)
         }
 
         return sections;  // Directly return the section array without mapping to DTOs.
     } catch (err) {
         console.error('Error retrieving sections by grade:', err);
-        throw err; // Rethrow the error to be caught by the caller
+        next(err); // Rethrow the error to be caught by the caller
     }
 }
 

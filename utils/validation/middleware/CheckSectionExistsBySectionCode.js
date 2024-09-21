@@ -1,6 +1,6 @@
 const { Section } = require('../../../models');
 
-async function checkSectionCodeExists(req, res, next) {
+async function checkSectionExistsBySectionCode(req, res, next) {
     console.log('Checking if section code exists')
     const { sectionCode } = req.body;
 
@@ -18,4 +18,4 @@ async function checkSectionCodeExists(req, res, next) {
     }
 }
 
-module.exports = checkSectionCodeExists;
+module.exports = checkSectionExistsBySectionCode;

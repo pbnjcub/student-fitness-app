@@ -1,31 +1,39 @@
-const { User, StudentDetail } = require('../../models'); // Import necessary models
-
+const { User, StudentDetail, Section } = require('../../models'); // Import necessary models
+const { formatError } = require('../error_handling/ErrorHandler');
 
 async function checkCsvUsersExistEmail(csvData) {
     const errors = [];
     const existingUsers = {}; // Generalized to store IDs for any type of user
 
-    for (const row of csvData) {
-        const { email } = row;
+    try {
+        for (const row of csvData) {
+            const { email } = row;
 
-        const userRecord = await User.findOne({
-            where: { email },
-            attributes: ['id', 'userType', 'isArchived'] // Fetch the id and userType for validation
-        });
+            // Perform the database query
+            const userRecord = await User.findOne({
+                where: { email },
+                attributes: ['id', 'userType', 'isArchived'] // Fetch the id, userType, and isArchived for validation
+            });
 
-        if (!userRecord) {
-            errors.push(`User with email ${email} not found`);
-        } else {
-            // If the user exists and is valid, store the ID for later use
-            existingUsers[email] = { id: userRecord.id, userType: userRecord.userType, isArchived: userRecord.isArchived };
+            if (!userRecord) {
+                // Use formatError to push a formatted error into the array
+                errors.push(formatError('email', `User with email ${email} not found`));
+            } else {
+                // If the user exists and is valid, store the ID for later use
+                existingUsers[email] = { id: userRecord.id, userType: userRecord.userType, isArchived: userRecord.isArchived };
+            }
         }
-    }
 
-    if (errors.length > 0) {
-        throw new Error(errors.join('; '));
-    }
+        if (errors.length > 0) {
+            // Use the formatted errors in the error message
+            throw new Error(errors.map(err => err.message).join('; '));
+        }
 
-    return existingUsers; // Return an object with emails as keys and user IDs as values
+        return existingUsers; // Return an object with emails as keys and user info (id, userType, isArchived) as values
+    } catch (err) {
+        console.error('Error checking user existence by email:', err);
+        throw err; // Propagate the error up to be caught by the route handler
+    }
 }
 
 const checkCsvUsersAreStudents = (users) => {
@@ -81,6 +89,41 @@ const checkCsvForDuplicateSectionCode = async (newSections) => {
     }
 };
 
+async function checkCsvSectionsExistsBySectionCode(csvData) {
+    console.log('Checking if section codes exist');
+
+    const errors = [];
+    const existingSections = {}; // This can store any additional info if needed
+
+    try {
+        // Loop through all rows in the CSV data
+        for (const row of csvData) {
+            const { sectionCode } = row;
+
+            // Check if the section code already exists in the database
+            const existingSection = await Section.findOne({
+                where: { sectionCode }
+            });
+
+            if (existingSection) {
+                // Collect the formatted error if the section code already exists
+                errors.push(formatError('sectionCode', `Section with section code ${sectionCode} already exists`));
+            }
+        }
+
+        // If there are any errors, throw them after checking all rows
+        if (errors.length > 0) {
+            throw new Error(errors.map(err => err.message).join('; '));
+        }
+
+    } catch (err) {
+        console.error('Error checking section code existence:', err);
+        throw err; // Propagate the error to be caught in the route handler
+    }
+}
+
+
+
 const checkCsvForDuplicateEmails = async (csvData) => {
     console.log('Checking for duplicate emails:', JSON.stringify(csvData, null, 2));
     const emails = new Set();
@@ -111,5 +154,6 @@ module.exports = {
     checkCsvUsersAreStudents,
     checkCsvUsersArchived,
     checkCsvForDuplicateSectionCode,
+    checkCsvSectionsExistsBySectionCode,
     checkCsvForDuplicateEmails
  }

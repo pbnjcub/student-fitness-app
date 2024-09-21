@@ -42,9 +42,9 @@ const rosterStudentsValidationRules = require('../utils/section/middleware_valid
 const checkSectionActive = require('../utils/validation/middleware//CheckSectionActive');
 const checkSectionExistsById = require('../utils/validation/middleware/CheckSectionExistsById');
 const CheckSectionHasRosteredStudents = require('../utils/validation/middleware/CheckSectionHasRosteredStudents');
-const checkSectionCodeExists = require('../utils/validation/middleware/CheckSectionCodeExists');
+const checkSectionExistsBySectionCode = require('../utils/validation/middleware/CheckSectionExistsBySectionCode');
 const checkStudentsToUnrosterFromSection = require('../utils/validation/middleware/CheckStudentsToUnrosterFromSection');
-const { checkCsvUsersExistEmail, checkCsvUsersAreStudents, checkCsvUsersArchived } = require('../utils/csv_handling/CsvExistingDataChecks');
+const { checkCsvUsersExistEmail, checkCsvUsersAreStudents, checkCsvUsersArchived, checkCsvSectionsExistsBySectionCode } = require('../utils/csv_handling/CsvExistingDataChecks');
 const checkStudentsExistById = require('../utils/validation/middleware/CheckStudentsExistById');
 const checkStudentsUserType = require('../utils/validation/middleware/CheckStudentsUserType');
 const checkSectionsExistByIdWhenTransferStudents = require('../utils/validation/middleware/CheckSectionsExistByIdWhenTransferStudents');
@@ -59,7 +59,7 @@ const checkGradeLevel = require('../utils/validation/middleware/CheckGradeLevel'
 router.post('/sections',
     createSectionValidationRules(),
     validate,
-    checkSectionCodeExists,
+    checkSectionExistsBySectionCode,
     async (req, res, next) => {
         try {
             const newSection = await createSection(req.body);
@@ -98,13 +98,13 @@ router.get('/sections/active', async (req, res, next) => {
 });
 
 // Retrieve sections by grade level
-router.get('/sections/grade',
+router.get('/sections/by-grade-level',
     checkGradeLevel,
     async (req, res, next) => {
-    const { validatedGrades } = req;
+    const { validatedGradeLevels } = req;
 
     try {
-        const sections = await findSectionsByGradeLevel(validatedGrades);
+        const sections = await findSectionsByGradeLevel(validatedGradeLevels);
         res.json(sections);  // Send the raw sections as the response
     } catch (err) {
         console.error('Error retrieving sections by grade:', err);
@@ -141,6 +141,8 @@ router.post('/sections/upload-csv',
             //check newSections for duplicate sectionCodes
             await checkCsvForDuplicateSectionCode(newSections);
 
+            // Check if the sectionCodes already exist
+            await checkCsvSectionsExistsBySectionCode(newSections);
             // Create sections in a transaction
             await handleTransaction(async (transaction) => {
                 for (const section of newSections) {
@@ -149,7 +151,7 @@ router.post('/sections/upload-csv',
             });
 
             const sections = await Section.findAll();
-            const sectionDto = sections.map(section => new SectionDto(section.toJSON()));
+            const sectionDtos = sections.map(section => new SectionDto(section.toJSON()));
             res.status(201).json(sectionDtos);
         } catch (err) {
             console.error('Error in POST /sections/upload-csv', err);
