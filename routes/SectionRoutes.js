@@ -39,6 +39,7 @@ const rosterSectionRowHandler = require('../utils/section/csv_handling/RosterSec
 // Import validation middleware
 const validate = require('../utils/validation/Validate');
 const { createSectionValidationRules, updateSectionValidationRules } = require('../utils/section/middleware_validation/SectionReqObjValidation');
+const deleteSectionValidationRules = require('../utils/section/middleware_validation/DeleteSectionValidation');
 const rosterStudentsValidationRules = require('../utils/section/middleware_validation/RosterStudentsReqObjValidation');
 const checkSectionActive = require('../utils/validation/middleware//CheckSectionActive');
 const checkSectionExistsById = require('../utils/validation/middleware/CheckSectionExistsById');
@@ -199,6 +200,8 @@ router.patch('/sections/:id',
 
 // Delete section
 router.delete('/sections/:id',
+    deleteSectionValidationRules(),
+    validate,
     checkSectionExistsById, // Middleware to check if the section exists
     checkSectionHasRosteredStudents, // Middleware to check for rostered students
     async (req, res, next) => {
