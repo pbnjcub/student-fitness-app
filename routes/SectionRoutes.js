@@ -198,8 +198,6 @@ router.patch('/sections/:id',
 );
 
 // Delete section
-const { formatError } = require('../error_handling'); // Assuming formatError is available
-
 router.delete('/sections/:id',
     checkSectionExistsById, // Middleware to check if the section exists
     checkSectionHasRosteredStudents, // Middleware to check for rostered students

@@ -62,7 +62,7 @@ async function checkSectionHasRosteredStudents(req, res, next) {
 //     }
 // }
 
-module.exports = CheckSectionHasRosteredStudents;
+module.exports = checkSectionHasRosteredStudents;
 
 
 
