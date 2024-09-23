@@ -1,6 +1,6 @@
 const { formatError } = require('../../error_handling/ErrorHandler');
 
-const checkStudentsActiveById = (req, res, next) => {
+const checkStudentsArchivedById = (req, res, next) => {
     const { existingStudents } = req;
     const errors = [];
 
@@ -20,4 +20,4 @@ const checkStudentsActiveById = (req, res, next) => {
     next();
 };
 
-module.exports = checkStudentsActiveById;
+module.exports = checkStudentsArchivedById;

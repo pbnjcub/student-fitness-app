@@ -1,0 +1,30 @@
+const { formatError } = require('../../error_handling/ErrorHandler');
+
+const checkStudentsDuplicateIds = (req, res, next) => {
+    const { studentUserIds } = req.body;
+
+    const duplicates = [];
+    const errors = [];
+
+    // Check for duplicate student IDs
+    studentUserIds.forEach((student, index) => {
+        if (studentUserIds.indexOf(student) !== index) {
+            duplicates.push(student);
+        }
+    });
+
+    // If duplicates exist, push formatted error to the errors array
+    if (duplicates.length > 0) {
+        errors.push(formatError('studentUserIds', `Duplicate student IDs are not allowed: ${duplicates.join(', ')}`));
+    }
+
+    // If there are any errors, pass them to the next error handler
+    if (errors.length > 0) {
+        return next(errors);
+    }
+
+    // Proceed to the next middleware if no errors
+    next();
+};
+
+module.exports = checkStudentsDuplicateIds;

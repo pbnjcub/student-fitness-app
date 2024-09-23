@@ -129,6 +129,24 @@ const createRosterEntries = async (students, sectionId, transaction) => {
     return rosteredStudents;
 };
 
+const removeRosterEntries = async (students, sectionId, transaction) => {
+    const unrosteredStudents = [];
+
+    for (const student of students) {
+        const sectionRoster = await SectionRoster.findOne({
+            where: { studentUserId: student.id, sectionId },
+            transaction
+        });
+        
+        if (sectionRoster) {
+            await sectionRoster.destroy({ transaction });
+            unrosteredStudents.push(sectionRoster);
+        }
+    }
+
+    return unrosteredStudents; // Return the students that were unrostered
+};
+
 
 async function findSectionsByGradeLevel(grades) {
     try {
@@ -191,6 +209,7 @@ module.exports = {
     getGradeLevel,
     hasEnrolledStudents,
     createRosterEntries,
+    removeRosterEntries,
     switchRosterEntries,
     findSectionsByGradeLevel
 };

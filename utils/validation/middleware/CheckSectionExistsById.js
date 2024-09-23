@@ -3,12 +3,6 @@ const { Section } = require('../../../models');
 async function checkSectionExistsById(req, res, next) {
     const sectionId = req.params.sectionId || req.params.id;
 
-    if (!sectionId || isNaN(sectionId)) {
-        const err = new Error('Section ID must be an integer');
-        err.status = 400;
-        return next(err);
-    }
-
     try {
         const section = await Section.findByPk(sectionId);
         if (!section) {

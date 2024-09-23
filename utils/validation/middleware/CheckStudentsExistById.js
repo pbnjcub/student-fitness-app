@@ -4,12 +4,6 @@ const { formatError } = require('../../error_handling/ErrorHandler'); // Adjust 
 const checkStudentsExistById = async (req, res, next) => {
     const { studentUserIds } = req.body;
 
-    if (!Array.isArray(studentUserIds) || studentUserIds.length === 0) {
-        const err = new Error('studentUserIds must be a non-empty array.');
-        err.status = 400;
-        return next(err);
-    }
-
     const errors = [];
     const existingStudents = [];
 

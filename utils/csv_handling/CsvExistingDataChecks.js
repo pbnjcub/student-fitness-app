@@ -1,4 +1,4 @@
-const { User, StudentDetail, Section } = require('../../models'); // Import necessary models
+const { User, StudentDetail, Section, SectionRoster } = require('../../models'); // Import necessary models
 const { formatError } = require('../error_handling/ErrorHandler');
 
 async function checkCsvUsersExistEmail(csvData) {
@@ -68,7 +68,35 @@ const checkCsvUsersArchived = (users) => {
     }
 };
 
+// Check if students are already rostered in any section
+const checkCsvStudentsRostered = async (users) => {
+    const errors = [];
 
+    try {
+        for (const email in users) {
+            const { id } = users[email];
+
+            // Check if the student is already rostered in any section
+            const sectionRoster = await SectionRoster.findOne({
+                where: { studentUserId: id }
+            });
+
+            if (sectionRoster) {
+                errors.push(`Student with email ${email} is already rostered in a section.`);
+            }
+        }
+
+        if (errors.length > 0) {
+            throw new Error(errors.join('; '));
+        }
+
+    } catch (err) {
+        console.error('Error checking if students are rostered:', err);
+        throw err;
+
+    }
+
+};
 
 //check for duplicate section codes in CSV upload
 const checkCsvForDuplicateSectionCode = async (newSections) => {
@@ -93,36 +121,29 @@ async function checkCsvSectionsExistsBySectionCode(csvData) {
     console.log('Checking if section codes exist');
 
     const errors = [];
-    const existingSections = {}; // This can store any additional info if needed
 
     try {
-        // Loop through all rows in the CSV data
         for (const row of csvData) {
             const { sectionCode } = row;
 
-            // Check if the section code already exists in the database
             const existingSection = await Section.findOne({
                 where: { sectionCode }
             });
 
             if (existingSection) {
-                // Collect the formatted error if the section code already exists
                 errors.push(formatError('sectionCode', `Section with section code ${sectionCode} already exists`));
             }
         }
 
-        // If there are any errors, throw them after checking all rows
         if (errors.length > 0) {
             throw new Error(errors.map(err => err.message).join('; '));
         }
 
     } catch (err) {
         console.error('Error checking section code existence:', err);
-        throw err; // Propagate the error to be caught in the route handler
+        throw err;
     }
 }
-
-
 
 const checkCsvForDuplicateEmails = async (csvData) => {
     console.log('Checking for duplicate emails:', JSON.stringify(csvData, null, 2));
@@ -153,6 +174,7 @@ module.exports = {
     checkCsvUsersExistEmail,
     checkCsvUsersAreStudents,
     checkCsvUsersArchived,
+    checkCsvStudentsRostered,
     checkCsvForDuplicateSectionCode,
     checkCsvSectionsExistsBySectionCode,
     checkCsvForDuplicateEmails
