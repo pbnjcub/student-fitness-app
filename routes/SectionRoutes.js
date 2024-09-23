@@ -38,13 +38,14 @@ const rosterSectionRowHandler = require('../utils/section/csv_handling/RosterSec
 
 // Import validation middleware
 const validate = require('../utils/validation/Validate');
-const { createSectionValidationRules, updateSectionValidationRules } = require('../utils/section/middleware_validation/SectionReqObjValidation');
+const { createSectionsValidationRules, createSectionValidationRules, updateSectionValidationRules } = require('../utils/section/middleware_validation/SectionReqObjValidation');
 const deleteSectionValidationRules = require('../utils/section/middleware_validation/DeleteSectionValidation');
 const rosterStudentsValidationRules = require('../utils/section/middleware_validation/RosterStudentsReqObjValidation');
 const checkSectionActive = require('../utils/validation/middleware//CheckSectionActive');
 const checkSectionExistsById = require('../utils/validation/middleware/CheckSectionExistsById');
 const checkSectionHasRosteredStudents = require('../utils/validation/middleware/CheckSectionHasRosteredStudents');
 const checkSectionExistsBySectionCode = require('../utils/validation/middleware/CheckSectionExistsBySectionCode');
+const checkSectionsExistBySectionCode = require('../utils/validation/middleware/CheckSectionsExistBySectionCode');
 const checkStudentsToUnrosterFromSection = require('../utils/validation/middleware/CheckStudentsToUnrosterFromSection');
 const { checkCsvUsersExistEmail, checkCsvUsersAreStudents, checkCsvUsersArchived, checkCsvSectionsExistsBySectionCode, checkCsvStudentsRostered } = require('../utils/csv_handling/CsvExistingDataChecks');
 const checkStudentsExistById = require('../utils/validation/middleware/CheckStudentsExistById');
@@ -64,19 +65,49 @@ const { formatError } = require('../utils/error_handling/ErrorHandler');
 
 // Add section
 router.post('/sections',
-    createSectionValidationRules(),
-    validate,
-    checkSectionExistsBySectionCode,
+    createSectionsValidationRules(), // Validation for one or more sections
+    validate, // Run validation and handle any validation errors
+    checkSectionsExistBySectionCode, // Check if the section code(s) already exist
     async (req, res, next) => {
         try {
-            const newSection = await createSection(req.body);
-            const sectionDto = new SectionDto(newSection);
-            return res.status(201).json(sectionDto);
+            let sections = req.body.sections;
+
+            // If it's a single section, convert it to an array for uniform processing
+            if (!Array.isArray(sections)) {
+                sections = [sections];
+            }
+
+            const createdSections = [];
+            await handleTransaction(async (transaction) => {
+                for (const sectionData of sections) {
+                    const newSection = await createSection(sectionData, transaction);
+                    createdSections.push(new SectionDto(newSection)); // Add the DTO for each created section
+                }
+            });
+
+            // Return the created sections
+            return res.status(201).json({ sections: createdSections });
         } catch (err) {
+            console.error('Error creating sections:', err);
             next(err);
         }
     }
 );
+
+// router.post('/sections',
+//     createSectionValidationRules(),
+//     validate,
+//     checkSectionExistsBySectionCode,
+//     async (req, res, next) => {
+//         try {
+//             const newSection = await createSection(req.body);
+//             const sectionDto = new SectionDto(newSection);
+//             return res.status(201).json(sectionDto);
+//         } catch (err) {
+//             next(err);
+//         }
+//     }
+// );
 
 // Retrieve all sections
 router.get('/sections', async (req, res, next) => {

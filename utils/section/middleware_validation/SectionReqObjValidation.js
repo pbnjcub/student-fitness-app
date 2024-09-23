@@ -2,6 +2,32 @@ const { body } = require('express-validator');
 const { validateField, customFieldValidation } = require('../../validation/CommonValidationFunctions');
 
 // Section validation rules
+const createSectionsValidationRules = () => {
+    return [
+        body('sections').custom((value) => {
+            if (!Array.isArray(value)) {
+                value = [value]; // If a single section, convert to array
+            }
+            value.forEach((section, index) => {
+                // Validate sectionCode
+                if (!/^\d{4}-\d{2}$/.test(section.sectionCode)) {
+                    throw new Error(`Section code at index ${index} must be in the format "nnnn-nn"`);
+                }
+                // Validate gradeLevel
+                const validGrades = ['6', '7', '8', '9', '10-11-12'];
+                if (!validGrades.includes(section.gradeLevel)) {
+                    throw new Error(`Grade level at index ${index} must be one of: ${validGrades.join(', ')}`);
+                }
+                // Validate isActive
+                if (typeof section.isActive !== 'boolean') {
+                    throw new Error(`isActive at index ${index} must be a boolean`);
+                }
+            });
+            return true;
+        }),
+    ];
+};
+
 const createSectionValidationRules = () => {
     return [
         customFieldValidation('sectionCode', (value) => {
@@ -34,4 +60,4 @@ const updateSectionValidationRules = () => {
     ];
 };
 
-module.exports = { createSectionValidationRules, updateSectionValidationRules };
+module.exports = { createSectionsValidationRules, createSectionValidationRules, updateSectionValidationRules };
