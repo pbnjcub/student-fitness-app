@@ -18,6 +18,10 @@ const errorHandler = (err, req, res, next) => {
                 errorResponse = formatError('user', err.message);
                 statusCode = 409;
                 break;
+            case err.message.includes('Users with the following emails already exist'):
+                errorResponse = formatError('email', err.message);
+                statusCode = 409;
+                break;
             case err.message.includes('User with email'):
                 errorResponse = formatError('email', err.message);
                 statusCode = 409;
@@ -97,6 +101,10 @@ const errorHandler = (err, req, res, next) => {
                 break;
             case err.message === "No sections found for the provided grade levels":
                 errorResponse = formatError('gradeLevel', err.message);
+                statusCode = 404;
+                break;
+            case err.message.includes('Students with the following emails do not exist'):
+                errorResponse = formatError('email', err.message);
                 statusCode = 404;
                 break;
             

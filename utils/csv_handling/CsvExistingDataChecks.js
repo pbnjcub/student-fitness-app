@@ -2,7 +2,6 @@ const { User, StudentDetail, Section, SectionRoster } = require('../../models');
 const { formatError } = require('../error_handling/ErrorHandler');
 
 async function checkCsvUsersExistEmail(csvData) {
-    const errors = [];
     const existingUsers = {}; // Generalized to store IDs for any type of user
 
     try {
@@ -15,18 +14,12 @@ async function checkCsvUsersExistEmail(csvData) {
                 attributes: ['id', 'userType', 'isArchived'] // Fetch the id, userType, and isArchived for validation
             });
 
-            if (!userRecord) {
-                // Use formatError to push a formatted error into the array
-                errors.push(formatError('email', `User with email ${email} not found`));
+            if (userRecord) {
+                existingUsers[email] = { id: userRecord.id, userType: userRecord.userType, isArchived: userRecord.isArchived };
             } else {
                 // If the user exists and is valid, store the ID for later use
-                existingUsers[email] = { id: userRecord.id, userType: userRecord.userType, isArchived: userRecord.isArchived };
+                existingUsers[email] = null;
             }
-        }
-
-        if (errors.length > 0) {
-            // Use the formatted errors in the error message
-            throw new Error(errors.map(err => err.message).join('; '));
         }
 
         return existingUsers; // Return an object with emails as keys and user info (id, userType, isArchived) as values
@@ -35,6 +28,41 @@ async function checkCsvUsersExistEmail(csvData) {
         throw err; // Propagate the error up to be caught by the route handler
     }
 }
+
+// async function checkCsvUsersExistEmail(csvData) {
+//     const errors = [];
+//     const existingUsers = {}; // Generalized to store IDs for any type of user
+
+//     try {
+//         for (const row of csvData) {
+//             const { email } = row;
+
+//             // Perform the database query
+//             const userRecord = await User.findOne({
+//                 where: { email },
+//                 attributes: ['id', 'userType', 'isArchived'] // Fetch the id, userType, and isArchived for validation
+//             });
+
+//             if (!userRecord) {
+//                 // Use formatError to push a formatted error into the array
+//                 errors.push(formatError('email', `User with email ${email} not found`));
+//             } else {
+//                 // If the user exists and is valid, store the ID for later use
+//                 existingUsers[email] = { id: userRecord.id, userType: userRecord.userType, isArchived: userRecord.isArchived };
+//             }
+//         }
+
+//         if (errors.length > 0) {
+//             // Use the formatted errors in the error message
+//             throw new Error(errors.map(err => err.message).join('; '));
+//         }
+
+//         return existingUsers; // Return an object with emails as keys and user info (id, userType, isArchived) as values
+//     } catch (err) {
+//         console.error('Error checking user existence by email:', err);
+//         throw err; // Propagate the error up to be caught by the route handler
+//     }
+// }
 
 const checkCsvUsersAreStudents = (users) => {
     const errors = [];
@@ -148,7 +176,7 @@ async function checkCsvSectionsExistsBySectionCode(csvData) {
 const checkCsvForDuplicateEmails = async (csvData) => {
     console.log('Checking for duplicate emails:', JSON.stringify(csvData, null, 2));
     const emails = new Set();
-    const duplicates = new Set(); // Use a Set to ensure uniqueness
+    const duplicates = new Set(); 
 
     for (const data of csvData) {
         if (!data.email) {

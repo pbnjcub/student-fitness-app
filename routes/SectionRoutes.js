@@ -328,6 +328,21 @@ router.post('/sections/:sectionId/roster-students-by-csv',
             // Database checks for the CSV data
             await checkCsvForDuplicateEmails(newStudents);
             const existingStudents = await checkCsvUsersExistEmail(newStudents);
+
+            // If existingStudents is null, return an error
+            const nonExistentEmails = [];
+            for (const [email, userDetails] of Object.entries(existingStudents)) {
+                if (!userDetails) {
+                    nonExistentEmails.push(email);
+                }
+            }
+
+            if (nonExistentEmails.length > 0) {
+                const err = new Error(`Students with the following emails do not exist: ${nonExistentEmails.join(', ')}`);
+                err.status = 400;
+                return next(err);
+            }
+
             checkCsvUsersAreStudents(existingStudents);
             checkCsvUsersArchived(existingStudents);
             await checkCsvStudentsRostered(existingStudents);

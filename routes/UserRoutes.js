@@ -34,7 +34,7 @@ const UserDto = require('../utils/user/dto/UserDto');
 // Import Csv Handling Functions
 const processCsv = require('../utils/csv_handling/GenCSVHandler');
 const userRowHandler = require('../utils/user/csv_handling/UserCSVRowHandler');
-const { checkCsvForDuplicateEmails } = require('../utils/csv_handling/CsvExistingDataChecks');
+const { checkCsvForDuplicateEmails, checkCsvUsersExistEmail } = require('../utils/csv_handling/CsvExistingDataChecks');
 
 // Import Transaction Handler
 const { handleTransaction } = require('../utils/HandleTransaction');
@@ -213,6 +213,23 @@ router.post('/users/register-upload-csv',
 
             // Check for duplicate emails
             await checkCsvForDuplicateEmails(newUsers);
+
+            // Check to see if Users already exist by email.
+            const existingUsers = await checkCsvUsersExistEmail(newUsers);
+
+            // Collect emails of existing users and handle error.
+            const existingEmails = [];
+            for (const [email, userDetails] of Object.entries(existingUsers)) {
+                if (userDetails) { 
+                    existingEmails.push(email);
+                }
+            }
+
+            if (existingEmails.length > 0) {
+                const err = new Error(`Users with the following emails already exist: ${existingEmails.join(', ')}`);
+                err.status = 400;
+                return next(err);
+            }
 
             // Create users in a transaction
             await handleTransaction(async (transaction) => {
