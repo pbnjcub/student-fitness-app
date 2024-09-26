@@ -250,9 +250,9 @@ router.post('/users/register-upload-csv',
 
 // Update user by id
 router.patch('/users/:id',
-    checkUserExists, // Ensure the user exists before proceeding
     updateUserValidationRules(), // Validate the incoming data
     validate, // Run validation and handle any validation errors
+    checkUserExists, // Ensure the user exists before proceeding
     checkStudentRostered, // Final check for rostered status and handle isArchived status change
     async (req, res, next) => {
         const { id } = req.params;
