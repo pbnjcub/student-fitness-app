@@ -25,7 +25,8 @@ const {
     updateUserDetails,
     updateUserAndDetails,
     getUsersWithDetails,
-    getUsersByTypeAndArchived
+    getUsersByTypeAndArchived,
+    getTotalUsersCountByType
 } = require('../utils/user/helper_functions/UserHelpers');
 
 // Import UserDto
@@ -97,15 +98,53 @@ router.get('/users/admin/active', async (req, res, next) => {
 });
 
 // Retrieve only student users
+// Backend: Adjusted route to handle filtering
 router.get('/users/student', async (req, res, next) => {
     try {
-        const students = await getUsersByTypeAndArchived('student');
+        // Extract page, limit, and filter parameters from query
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 24;
+        const searchText = req.query.searchText || '';
+        const graduationYear = req.query.graduationYear || null;
+        const sectionCode = req.query.sectionCode || null;
+        const showArchived = req.query.showArchived === 'true';
+
+        // Calculate offset for pagination
+        const offset = (page - 1) * limit;
+
+        // Fetch students based on filters and pagination
+        const students = await getUsersByTypeAndArchived(
+            'student',
+            showArchived,
+            offset,
+            limit,
+            searchText,
+            graduationYear,
+            sectionCode
+        );
+
+        // Get the total number of students for pagination calculation
+        const totalCount = await getTotalUsersCountByType('student', searchText, graduationYear, sectionCode, showArchived);
+
+        // Calculate total pages
+        const totalPages = Math.ceil(totalCount / limit);
+
+        // Convert the students to DTOs
         const studentDTOs = students.map(student => new UserDto(student.toJSON()));
-        res.json(studentDTOs);
+
+        // Respond with students, current page, and total pages
+        res.json({
+            students: studentDTOs,
+            currentPage: page,
+            totalPages: totalPages,
+        });
     } catch (err) {
         next(err);
     }
 });
+
+
+
 
 // Retrieve only active student users
 router.get('/users/student/active', async (req, res, next) => {

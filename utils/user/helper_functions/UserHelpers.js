@@ -1,6 +1,7 @@
 // const Sequelize = require('sequelize');
+const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
-const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail } = require('../../../models');
+const { User, StudentDetail, StudentAnthro, TeacherDetail, AdminDetail, Section, SectionRoster } = require('../../../models');
 
 const { UserDetailUpdateError} = require('../../error_handling/CustomErrors');
 
@@ -109,7 +110,7 @@ async function findUserById(id) {
 
 
 //get users by userType and isArchived, with details
-async function getUsersByTypeAndArchived(userType = null, isArchived = null) {
+async function getUsersByTypeAndArchived(userType = null, isArchived = null, offset = 0, limit = 24, searchText = '', graduationYear = null, sectionCode = null) {
   const whereClause = {};
 
   // Add userType to the where clause if it's provided
@@ -122,15 +123,120 @@ async function getUsersByTypeAndArchived(userType = null, isArchived = null) {
     whereClause.isArchived = isArchived;
   }
 
-  return await User.findAll({
-    where: whereClause,
-    include: [
-      { model: StudentDetail, as: 'studentDetails' },
-      { model: TeacherDetail, as: 'teacherDetails' },
-      { model: AdminDetail, as: 'adminDetails' },
-    ]
+  // Add searchText condition if provided
+  if (searchText) {
+    whereClause[Op.or] = [
+      { firstName: { [Op.iLike]: `%${searchText}%` } },
+      { lastName: { [Op.iLike]: `%${searchText}%` } }
+    ];
+  }
+
+  // Add graduationYear if provided
+  if (graduationYear) {
+    whereClause['$studentDetails.gradYear$'] = parseInt(graduationYear);
+  }
+
+  // Add sectionCode if provided (assuming a join on section)
+  if (sectionCode) {
+    whereClause['$sectionRoster.section.sectionCode$'] = sectionCode;
+  }
+
+  const include = [
+    {
+      model: StudentDetail,
+      as: 'studentDetails',
+      attributes: ['gradYear'], // Include only necessary attributes
+    },
+    {
+      model: TeacherDetail,
+      as: 'teacherDetails',
+      attributes: ['yearsExp', 'bio'],
+    },
+    {
+      model: AdminDetail,
+      as: 'adminDetails',
+      attributes: ['yearsExp', 'bio'],
+    },
+  ];
+
+  // If userType is 'student', include the Section association through SectionRoster
+  if (userType === 'student') {
+    include.push({
+      model: SectionRoster,
+      as: 'sectionRoster', // Match the alias defined in User -> SectionRoster association
+      attributes: ['id', 'studentUserId', 'sectionId'], // Include necessary fields
+      required: false,
+      include: [
+        {
+          model: Section,
+          as: 'section', // Match the alias defined in SectionRoster -> Section association
+          attributes: ['id', 'sectionCode', 'gradeLevel', 'isActive'], // Include necessary fields
+          required: false,
+        },
+      ],
+    });
+  }
+
+  try {
+    const result = await User.findAll({
+      where: whereClause,
+      include: include,
+      order: [
+        ['lastName', 'ASC'], // Sort by lastName in ascending order
+        ['firstName', 'ASC'], // Then by firstName in ascending order
+      ],
+      offset: offset, // Start position for fetching records
+      limit: limit,   // Number of records to fetch
+      logging: console.log, // Log the SQL query for debugging
+    });
+
+    console.log(JSON.stringify(result, null, 2)); // Log the full result
+    return result;
+
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    throw error;
+  }
+}
+
+
+
+
+
+
+// Get total count of users by userType
+async function getTotalUsersCountByType(userType) {
+  return await User.count({
+    where: {
+      userType: userType,
+      isArchived: false
+    }
   });
 }
+
+
+// async function getUsersByTypeAndArchived(userType = null, isArchived = null) {
+//   const whereClause = {};
+
+//   // Add userType to the where clause if it's provided
+//   if (userType) {
+//     whereClause.userType = userType;
+//   }
+
+//   // Add isArchived to the where clause if it's not null
+//   if (isArchived !== null) {
+//     whereClause.isArchived = isArchived;
+//   }
+
+//   return await User.findAll({
+//     where: whereClause,
+//     include: [
+//       { model: StudentDetail, as: 'studentDetails' },
+//       { model: TeacherDetail, as: 'teacherDetails' },
+//       { model: AdminDetail, as: 'adminDetails' },
+//     ]
+//   });
+// }
 
 //find user by id with details
 async function detailedUser(userData) {
@@ -208,6 +314,7 @@ module.exports = {
     createUser,
     findUserById,
     getUsersByTypeAndArchived,
+    getTotalUsersCountByType,
     detailedUser,
     getUsersWithDetails,
     updateUserDetails,

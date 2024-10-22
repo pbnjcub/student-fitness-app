@@ -37,11 +37,15 @@ class UserDto extends BaseDto {
 
         super(user, fieldsConfig);
 
-        // Now handle instantiation of the specific details if they exist
+        // Handle instantiation of the specific details if they exist
         if (user.userType === 'student' && user.studentDetails) {
             this.studentDetails = new StudentDetailDto(user.studentDetails);
             if (user.studentAnthro) {
                 this.studentAnthro = new StudentAnthroDto(user.studentAnthro);
+            }
+            // Add only the sectionCode from the section information if it exists
+            if (user.sectionRoster && user.sectionRoster.section) {
+                this.sectionCode = user.sectionRoster.section.sectionCode;
             }
         } else if (user.userType === 'teacher' && user.teacherDetails) {
             this.teacherDetails = new TeacherDetailDto(user.teacherDetails);
@@ -52,4 +56,3 @@ class UserDto extends BaseDto {
 }
 
 module.exports = UserDto;
-

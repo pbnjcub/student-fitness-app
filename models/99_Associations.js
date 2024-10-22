@@ -161,10 +161,11 @@ module.exports = (db) => {
 // Section and SectionRoster Associations (One-to-Many)
   db.Section.hasMany(db.SectionRoster, {
     foreignKey: 'sectionId',
-    as: 'sectionRoster'
+    as: 'sectionRosters'
   });
   db.SectionRoster.belongsTo(db.Section, {
-    foreignKey: 'sectionId'
+    foreignKey: 'sectionId',
+    as: 'section'
   });
 
   // // Association between StudentAnthro and StudentAnthroHistory
